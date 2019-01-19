@@ -16,8 +16,11 @@ executable WhaleChan
   hs-source-dirs:      src
   main-is:             Javran/WhaleChan/Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -main-is Javran.WhaleChan.Main
-  other-modules:       Javran.WhaleChan.Env
+  other-modules:       Javran.WhaleChan.Types
+                     , Javran.WhaleChan.Base
   build-depends:       base
+                     , text
+                     , bytestring
                      , twitter-conduit
                      , telegram-api
                      , authenticate-oauth

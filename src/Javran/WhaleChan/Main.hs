@@ -1,8 +1,14 @@
+{-# LANGUAGE LambdaCase #-}
 module Javran.WhaleChan.Main
   ( main
   ) where
 
-import Javran.WhaleChan.Env
+import System.Environment
+import System.Exit
+import Javran.WhaleChan.Base
 
 main :: IO ()
-main = print =<< getTWInfo
+main = getArgs >>= \case
+  [cfg] -> do
+    loadWEnv cfg >>= print
+  _ -> putStrLn "WhaleChan <config.yaml>" >> exitFailure
