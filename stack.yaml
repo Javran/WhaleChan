@@ -7,3 +7,5 @@ extra-deps:
 - twitter-conduit-0.3.0@sha256:67b68511fc19563ff4159ae37188ac3db7dbc6603d81f11c6f1c2dd8ec1f5bd8
 - twitter-types-0.7.2.2@sha256:778a89d20f1b113ebf9c0f5ba8e8c8a39600d51283f422a3a17ebfe445c87418
 - twitter-types-lens-0.7.2@sha256:fa9965ee7b4d3ac6cbd63eadcc29e9da9f97d1ddbca3003bb639e618fe3e4f65
+- git: https://github.com/Javran/haskell-telegram-api.git
+  commit: d5a80a0d406bcae023fb48ad4204d8e72e546ad3
