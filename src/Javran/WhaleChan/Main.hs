@@ -1,11 +1,20 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE
+    LambdaCase
+  , TypeApplications
+  #-}
 module Javran.WhaleChan.Main
   ( main
   ) where
 
 import System.Environment
 import System.Exit
+import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
+
+import Control.Concurrent (threadDelay)
+import Data.Time.Clock
+import Data.Time.Format
+import Control.Monad
 
 {-
   architecture draft:
@@ -36,8 +45,30 @@ import Javran.WhaleChan.Base
 
  -}
 
+
+oneSec :: Int
+oneSec = 1000000
+
+oneMin :: Int
+oneMin = oneSec * 60
+
+timerThread :: IO ()
+timerThread = forever $ do
+    -- https://stackoverflow.com/a/8578237/315302
+    t <- getCurrentTime
+    -- compute millseconds since beginning of current minute
+    let ms = round (fromIntegral oneSec * realToFrac @_ @Double (utctDayTime t)) `rem` oneMin
+    -- wait to start of next minute
+    threadDelay $ oneMin - ms
+    t' <- getCurrentTime
+    let timeRep = formatTime defaultTimeLocale (iso8601DateFormat $ Just "%H:%M:%S%Q") t'
+    putStrLn $ "Woke up at " ++ timeRep
+
+startService :: WEnv -> IO ()
+startService _ = timerThread
+
 main :: IO ()
 main = getArgs >>= \case
     [cfg] -> do
-        loadWEnv cfg >>= print
+        loadWEnv cfg >>= startService
     _ -> putStrLn "WhaleChan <config.yaml>" >> exitFailure
