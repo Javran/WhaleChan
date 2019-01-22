@@ -66,6 +66,21 @@ timerThread = forever $ do
 
 startService :: WEnv -> IO ()
 startService _ = timerThread
+{-
+  events to be implemented:
+
+  - daily quest reset
+  - practice reset
+  - senka accounting (3 times at the end of each month)
+  - EO reset
+  - quest senka freeze
+  - secretary & comment accounting
+  - weekly quest reset
+  - monthly quest reset
+  - quaterly quest reset: 3 6 9 12
+
+ -}
+
 
 main :: IO ()
 main = getArgs >>= \case
