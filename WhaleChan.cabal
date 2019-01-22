@@ -34,6 +34,8 @@ executable WhaleChan
                      , yaml
                      , async
                      , time
+                     , timezone-olson
+                     , timezone-series
   default-language:    Haskell2010
 
 source-repository head

@@ -3,7 +3,8 @@
   , TypeApplications
   #-}
 module Javran.WhaleChan.Main
-  ( main
+  ( timerThread
+  , main
   ) where
 
 import System.Environment
@@ -52,6 +53,7 @@ oneSec = 1000000
 oneMin :: Int
 oneMin = oneSec * 60
 
+-- infrastructure: support wake up at (roughly) begining of a miniute
 timerThread :: IO ()
 timerThread = forever $ do
     -- https://stackoverflow.com/a/8578237/315302
@@ -65,7 +67,8 @@ timerThread = forever $ do
     putStrLn $ "Woke up at " ++ timeRep
 
 startService :: WEnv -> IO ()
-startService _ = timerThread
+startService _ = pure ()
+
 {-
   events to be implemented:
 
@@ -81,6 +84,7 @@ startService _ = timerThread
 
  -}
 
+-- ref: https://stackoverflow.com/q/43835656/315302
 
 main :: IO ()
 main = getArgs >>= \case
