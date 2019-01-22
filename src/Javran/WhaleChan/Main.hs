@@ -16,6 +16,9 @@ import Control.Concurrent (threadDelay)
 import Data.Time.Clock
 import Data.Time.Format
 import Control.Monad
+import Data.Time.LocalTime
+import Data.Time.LocalTime.TimeZone.Olson
+import Data.Time.LocalTime.TimeZone.Series
 
 {-
   architecture draft:
@@ -67,7 +70,12 @@ timerThread = forever $ do
     putStrLn $ "Woke up at " ++ timeRep
 
 startService :: WEnv -> IO ()
-startService _ = pure ()
+startService _ = do
+    tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
+    t <- getCurrentTime
+    let lTime = utcToLocalTime' tzs t
+    print (localDay lTime)
+    print (localTimeOfDay lTime)
 
 {-
   events to be implemented:
