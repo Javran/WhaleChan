@@ -18,6 +18,7 @@ import Control.Concurrent (threadDelay)
 import Data.Time.Clock
 import Data.Time.Format
 import Data.Time.Calendar
+import Data.Time.Calendar.WeekDate
 import Control.Monad
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Olson
@@ -108,7 +109,7 @@ timerThread = forever $ do
     t' <- getCurrentTime
     let timeRep = formatTime defaultTimeLocale (iso8601DateFormat $ Just "%H:%M:%S%Q") t'
     putStrLn $ "Woke up at " ++ timeRep
-
+-- TODO: use lens-datetime
 localDayAdd :: Integer -> LocalTime -> LocalTime
 localDayAdd n lt@LocalTime{localDay = ld} = lt {localDay = addDays n ld}
 
@@ -119,18 +120,30 @@ nextDailyQuestReset lt@LocalTime{localTimeOfDay = TimeOfDay {todHour}}
   where
     today5pm = lt {localTimeOfDay = TimeOfDay 5 0 0}
 
+nextWeeklyQuestReset :: LocalTime -> LocalTime
+nextWeeklyQuestReset lt@LocalTime{localDay, localTimeOfDay = TimeOfDay {todHour}}
+  | dayOfWeek /= 1 = nextMonday5pm
+  | todHour < 5 = today5pm
+  | otherwise = nextMonday5pm
+  where
+    today5pm = lt {localTimeOfDay = TimeOfDay 5 0 0}
+    nextMonday5pm = localDayAdd (fromIntegral $ 8 - dayOfWeek) today5pm
+    (_, _, dayOfWeek) = toWeekDate localDay
+
 startService :: WEnv -> IO ()
 startService _ = do
     tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
     t <- getCurrentTime
     let lTime = utcToLocalTime' tzs t
-        pprLocalTime LocalTime{..} = do
-          putStrLn $ "Day: " <> show localDay
-          putStrLn $ "Time: " <> show localTimeOfDay
+        pprLocalTime LocalTime{..} =
+          putStrLn $ show localDay <> " " <> show localTimeOfDay
     putStrLn "# Current time"
     pprLocalTime lTime
     putStrLn "# Next Daily Quest Reset"
     pprLocalTime (nextDailyQuestReset lTime)
+    putStrLn "# Next Weekly Quest Reset"
+    pprLocalTime (nextWeeklyQuestReset lTime)
+
 
 {-
   events to be implemented:
