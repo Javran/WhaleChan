@@ -110,24 +110,33 @@ timerThread = forever $ do
     let timeRep = formatTime defaultTimeLocale (iso8601DateFormat $ Just "%H:%M:%S%Q") t'
     putStrLn $ "Woke up at " ++ timeRep
 -- TODO: use lens-datetime
-localDayAdd :: Integer -> LocalTime -> LocalTime
-localDayAdd n lt@LocalTime{localDay = ld} = lt {localDay = addDays n ld}
+localDayAdd :: Int -> LocalTime -> LocalTime
+localDayAdd n lt@LocalTime{localDay = ld} = lt {localDay = addDays (fromIntegral n) ld}
+
+nextPracticeReset :: LocalTime -> LocalTime
+nextPracticeReset lt@LocalTime{localTimeOfDay = TimeOfDay {todHour}}
+  | todHour < 3 = todayAt3
+  | todHour < 15 = todayAt15
+  | otherwise = localDayAdd 1 todayAt3
+  where
+    todayAt3 = lt {localTimeOfDay = TimeOfDay 3 0 0}
+    todayAt15 = lt {localTimeOfDay = TimeOfDay 15 0 0}
 
 nextDailyQuestReset :: LocalTime -> LocalTime
 nextDailyQuestReset lt@LocalTime{localTimeOfDay = TimeOfDay {todHour}}
-  | todHour < 5 = today5pm
-  | otherwise = localDayAdd 1 today5pm
+  | todHour < 5 = todayAt5
+  | otherwise = localDayAdd 1 todayAt5
   where
-    today5pm = lt {localTimeOfDay = TimeOfDay 5 0 0}
+    todayAt5 = lt {localTimeOfDay = TimeOfDay 5 0 0}
 
 nextWeeklyQuestReset :: LocalTime -> LocalTime
 nextWeeklyQuestReset lt@LocalTime{localDay, localTimeOfDay = TimeOfDay {todHour}}
-  | dayOfWeek /= 1 = nextMonday5pm
-  | todHour < 5 = today5pm
-  | otherwise = nextMonday5pm
+  | dayOfWeek /= 1 = nextMondayAt5
+  | todHour < 5 = todayAt5
+  | otherwise = nextMondayAt5
   where
-    today5pm = lt {localTimeOfDay = TimeOfDay 5 0 0}
-    nextMonday5pm = localDayAdd (fromIntegral $ 8 - dayOfWeek) today5pm
+    todayAt5 = lt {localTimeOfDay = TimeOfDay 5 0 0}
+    nextMondayAt5 = localDayAdd (8 - dayOfWeek) todayAt5
     (_, _, dayOfWeek) = toWeekDate localDay
 
 startService :: WEnv -> IO ()
@@ -137,12 +146,14 @@ startService _ = do
     t <- getCurrentTime
     let lTime = utcToLocalTime' tzs t
         pprLocalTime lt = do
-          putStrLn $ "JST: " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
+          putStrLn $ "Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
           let utcT = localTimeToUTC' tzs lt
               lt' = utcToLocalTime' tzPt utcT
-          putStrLn $ "P_T: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
+          putStrLn $ "Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
     putStrLn "# Current time"
     pprLocalTime lTime
+    putStrLn "# Next PvP Reset"
+    pprLocalTime (nextPracticeReset lTime)
     putStrLn "# Next Daily Quest Reset"
     pprLocalTime (nextDailyQuestReset lTime)
     putStrLn "# Next Weekly Quest Reset"
