@@ -1,6 +1,8 @@
 {-# LANGUAGE
     LambdaCase
   , TypeApplications
+  , NamedFieldPuns
+  , RecordWildCards
   #-}
 module Javran.WhaleChan.Main
   ( timerThread
@@ -15,6 +17,7 @@ import Javran.WhaleChan.Base
 import Control.Concurrent (threadDelay)
 import Data.Time.Clock
 import Data.Time.Format
+import Data.Time.Calendar
 import Control.Monad
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Olson
@@ -106,13 +109,28 @@ timerThread = forever $ do
     let timeRep = formatTime defaultTimeLocale (iso8601DateFormat $ Just "%H:%M:%S%Q") t'
     putStrLn $ "Woke up at " ++ timeRep
 
+localDayAdd :: Integer -> LocalTime -> LocalTime
+localDayAdd n lt@LocalTime{localDay = ld} = lt {localDay = addDays n ld}
+
+nextDailyQuestReset :: LocalTime -> LocalTime
+nextDailyQuestReset lt@LocalTime{localTimeOfDay = TimeOfDay {todHour}}
+  | todHour < 5 = today5pm
+  | otherwise = localDayAdd 1 today5pm
+  where
+    today5pm = lt {localTimeOfDay = TimeOfDay 5 0 0}
+
 startService :: WEnv -> IO ()
 startService _ = do
     tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
     t <- getCurrentTime
     let lTime = utcToLocalTime' tzs t
-    print (localDay lTime)
-    print (localTimeOfDay lTime)
+        pprLocalTime LocalTime{..} = do
+          putStrLn $ "Day: " <> show localDay
+          putStrLn $ "Time: " <> show localTimeOfDay
+    putStrLn "# Current time"
+    pprLocalTime lTime
+    putStrLn "# Next Daily Quest Reset"
+    pprLocalTime (nextDailyQuestReset lTime)
 
 {-
   events to be implemented:
