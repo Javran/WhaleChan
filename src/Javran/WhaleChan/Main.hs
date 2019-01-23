@@ -133,10 +133,14 @@ nextWeeklyQuestReset lt@LocalTime{localDay, localTimeOfDay = TimeOfDay {todHour}
 startService :: WEnv -> IO ()
 startService _ = do
     tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
+    tzPt <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
     t <- getCurrentTime
     let lTime = utcToLocalTime' tzs t
-        pprLocalTime LocalTime{..} =
-          putStrLn $ show localDay <> " " <> show localTimeOfDay
+        pprLocalTime lt = do
+          putStrLn $ "JST: " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
+          let utcT = localTimeToUTC' tzs lt
+              lt' = utcToLocalTime' tzPt utcT
+          putStrLn $ "P_T: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
     putStrLn "# Current time"
     pprLocalTime lTime
     putStrLn "# Next Daily Quest Reset"
