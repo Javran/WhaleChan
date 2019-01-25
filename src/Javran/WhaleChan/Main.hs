@@ -160,6 +160,18 @@ nextMonthlyQuestReset LocalTime{localDay, localTimeOfDay = TimeOfDay {todHour}}
     firstDayAt5 = LocalTime firstDay at5
     nextFirstDayAt5 = LocalTime (addGregorianMonthsClip 1 firstDay) at5
 
+nextQuarterlyQuestReset :: LocalTime -> LocalTime
+nextQuarterlyQuestReset lt@LocalTime{localDay, localTimeOfDay = TimeOfDay {todHour}}
+  | month /= nextResetMonth || day /= 1 = nextQuarterFirstDayAt5
+  | todHour < 5 = lt {localTimeOfDay = at5 }
+  | otherwise = nextQuarterFirstDayAt5
+  where
+    (year, month, day) = toGregorian localDay
+    nextResetMonth = 3 * ceiling (fromIntegral month / 3 :: Double) :: Int
+    at5 = TimeOfDay 5 0 0
+    nextQuarterFirstDayAt5 =
+      LocalTime (fromGregorian year nextResetMonth 1) at5
+
 startService :: WEnv -> IO ()
 startService _ = do
     tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
@@ -181,7 +193,8 @@ startService _ = do
     pprLocalTime (nextWeeklyQuestReset lTime)
     putStrLn "# Next Monthly Quest Reset"
     pprLocalTime (nextMonthlyQuestReset lTime)
-
+    putStrLn "# Next Quarterly Quest Reset"
+    pprLocalTime (nextQuarterlyQuestReset lTime)
 
 {-
   events to be implemented:
