@@ -89,6 +89,15 @@ import Data.Time.LocalTime.TimeZone.Series
     + perhaps maintenance time can be implemented specially, which ignores "restock" request
       and have it's own loop (say 20mins) and still post to reminder's channel
       as if a "restock" request is given.
+
+  change of plan:
+
+  - since most reminders are pure functions, using IO with dedicated threads, even lightwight once,
+    is an overkill
+
+  - instead, we'll have a thread to retrieve maintenance time and post to reminder thread
+    when the result is available, this should be the only place that we'll interact with another thread
+
  -}
 
 oneSec :: Int
