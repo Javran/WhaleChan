@@ -167,7 +167,7 @@ nextQuarterlyQuestReset lt@LocalTime{localDay, localTimeOfDay = TimeOfDay {todHo
   | otherwise = nextQuarterFirstDayAt5
   where
     (year, month, day) = toGregorian localDay
-    nextResetMonth = 3 * ceiling (fromIntegral month / 3 :: Double) :: Int
+    nextResetMonth = 3 * ceiling @Double @Int (fromIntegral month / 3)
     at5 = TimeOfDay 5 0 0
     nextQuarterFirstDayAt5 =
       LocalTime (fromGregorian year nextResetMonth 1) at5
@@ -199,15 +199,15 @@ startService _ = do
 {-
   events to be implemented:
 
-  - daily quest reset
-  - practice reset
-  - senka accounting (3 times at the end of each month)
-  - EO reset
-  - quest senka freeze
-  - secretary & comment accounting
-  - weekly quest reset
-  - monthly quest reset
-  - quaterly quest reset: 3 6 9 12
+  - [x] daily quest reset
+  - [x] practice reset
+  - [ ] senka accounting (3 times at the end of each month)
+  - [ ] EO reset
+  - [ ] quest senka freeze
+  - [ ] secretary & comment accounting
+  - [x] weekly quest reset
+  - [x] monthly quest reset
+  - [x] quaterly quest reset: 3 6 9 12
 
  -}
 
