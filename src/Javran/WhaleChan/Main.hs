@@ -122,6 +122,8 @@ timerThread = forever $ do
 localDayAdd :: Int -> LocalTime -> LocalTime
 localDayAdd n lt@LocalTime{localDay = ld} = lt {localDay = addDays (fromIntegral n) ld}
 
+-- TODO: setup tests
+
 nextPracticeReset :: LocalTime -> LocalTime
 nextPracticeReset lt@LocalTime{localTimeOfDay = TimeOfDay {todHour}}
   | todHour < 3 = todayAt3
@@ -172,6 +174,44 @@ nextQuarterlyQuestReset lt@LocalTime{localDay, localTimeOfDay = TimeOfDay {todHo
     nextQuarterFirstDayAt5 =
       LocalTime (fromGregorian year nextResetMonth 1) at5
 
+nextExtraOperationReset :: LocalTime -> LocalTime
+nextExtraOperationReset LocalTime{localDay} = LocalTime lDay (TimeOfDay 0 0 0)
+  where
+    (year, month, _) = toGregorian localDay
+    lDay = addGregorianMonthsClip 1 (fromGregorian year month 1)
+
+{-
+  usually 2:00 JST and 14:00 JST, but for the last day of a month, there's an additional 22:00 JST
+ -}
+nextSenkaAccounting :: LocalTime -> LocalTime
+nextSenkaAccounting lt@LocalTime{localTimeOfDay = TimeOfDay {todHour}}
+  | todHour < 2 = todayAt2
+  | todHour < 14 = lt { localTimeOfDay = TimeOfDay 14 0 0 }
+  | day == lastDay && todHour < 22 = lt { localTimeOfDay = TimeOfDay 22 0 0 }
+  | otherwise =
+    -- next day at 22
+    LocalTime (addDays 1 (localDay todayAt2)) (TimeOfDay 2 0 0)
+  where
+    todayAt2 = lt { localTimeOfDay = TimeOfDay 2 0 0 }
+    (year, month, day) = toGregorian (localDay lt)
+    lastDay = gregorianMonthLength year month
+
+nextQuestPointDeadline :: LocalTime -> LocalTime
+nextQuestPointDeadline lt@LocalTime{localTimeOfDay = TimeOfDay {todHour}}
+  | day /= lastDay = thisMonthDdl
+  | todHour < 14 = thisMonthDdl
+  | otherwise =
+      -- compute as if we are in first day of next month
+      -- given that this will always satisfy day /= lastDay, we are safe from infinite loops
+      nextQuestPointDeadline $
+        LocalTime
+          (addGregorianMonthsClip 1 (fromGregorian year month 1))
+          (TimeOfDay 0 0 0)
+  where
+    thisMonthDdl = LocalTime (fromGregorian year month lastDay) (TimeOfDay 14 0 0)
+    (year, month, day) = toGregorian (localDay lt)
+    lastDay = gregorianMonthLength year month
+
 startService :: WEnv -> IO ()
 startService _ = do
     tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
@@ -195,15 +235,21 @@ startService _ = do
     pprLocalTime (nextMonthlyQuestReset lTime)
     putStrLn "# Next Quarterly Quest Reset"
     pprLocalTime (nextQuarterlyQuestReset lTime)
+    putStrLn "# Next EO Reset"
+    pprLocalTime (nextExtraOperationReset lTime)
+    putStrLn "# Next Senka Accounting"
+    pprLocalTime (nextSenkaAccounting lTime)
+    putStrLn "# Next Quest Point Deadline"
+    pprLocalTime (nextQuestPointDeadline lTime)
 
 {-
   events to be implemented:
 
   - [x] daily quest reset
   - [x] practice reset
-  - [ ] senka accounting (3 times at the end of each month)
-  - [ ] EO reset
-  - [ ] quest senka freeze
+  - [x] senka accounting (3 times at the end of each month)
+  - [x] EO reset
+  - [x] quest senka freeze
   - [ ] secretary & comment accounting
   - [x] weekly quest reset
   - [x] monthly quest reset
