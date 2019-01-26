@@ -79,4 +79,8 @@ test-suite test
   main-is:             Spec.hs
   ghc-options:         -Wall
   build-depends:       base
+                     , WhaleChan
                      , hspec
+                     , time
+  other-modules:       Javran.WhaleChan.ReoccuringEventsSpec
+  default-language:    Haskell2010
