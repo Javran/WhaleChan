@@ -38,6 +38,14 @@ executable WhaleChan
                      , timezone-series
   default-language:    Haskell2010
 
+test-suite test
+  hs-source-dirs:      test
+  type:                exitcode-stdio-1.0
+  main-is:             Spec.hs
+  ghc-options:         -Wall
+  build-depends:       base
+                     , hspec
+
 source-repository head
   type:     git
   location: https://github.com/Javran/WhaleChan
