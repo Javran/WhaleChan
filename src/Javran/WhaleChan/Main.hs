@@ -2,7 +2,6 @@
     LambdaCase
   , TypeApplications
   , NamedFieldPuns
-  , RecordWildCards
   #-}
 module Javran.WhaleChan.Main
   ( timerThread
@@ -17,8 +16,6 @@ import Javran.WhaleChan.Base
 import Control.Concurrent (threadDelay)
 import Data.Time.Clock
 import Data.Time.Format
-import Data.Time.Calendar
-import Data.Time.Calendar.WeekDate
 import Control.Monad
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Olson

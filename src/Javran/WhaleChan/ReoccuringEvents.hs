@@ -1,26 +1,38 @@
 {-# LANGUAGE
-    LambdaCase
-  , TypeApplications
+    TypeApplications
   , NamedFieldPuns
-  , RecordWildCards
   #-}
 
-module Javran.WhaleChan.ReoccuringEvents where
+{-
+  this module implements a bunch of nextXXXX functions
+  corresponding to the game.
 
-import System.Environment
-import System.Exit
-import Javran.WhaleChan.Types
-import Javran.WhaleChan.Base
+  - all times are in JST
+  - the input is current time
+  - the output is next time that the event happens
+  - note that we consider input time to be in the past
+    at the time that this function is called,
+    which means input should never be the same as output:
+    say if you call nextDailyQuestReset with exact reseting time 5:00 JST,
+    today's 5:00 JST is already a "past" so you'll get 5:00 JST of next day back instead
 
-import Control.Concurrent (threadDelay)
-import Data.Time.Clock
-import Data.Time.Format
+ -}
+
+module Javran.WhaleChan.ReoccuringEvents
+  ( nextPracticeReset
+  , nextDailyQuestReset
+  , nextWeeklyQuestReset
+  , nextMonthlyQuestReset
+  , nextQuarterlyQuestReset
+  , nextExtraOperationReset
+  , nextSenkaAccounting
+  , nextQuestPointDeadline
+  ) where
+
 import Data.Time.Calendar
 import Data.Time.Calendar.WeekDate
-import Control.Monad
+
 import Data.Time.LocalTime
-import Data.Time.LocalTime.TimeZone.Olson
-import Data.Time.LocalTime.TimeZone.Series
 
 localDayAdd :: Int -> LocalTime -> LocalTime
 localDayAdd n lt@LocalTime{localDay = ld} = lt {localDay = addDays (fromIntegral n) ld}
