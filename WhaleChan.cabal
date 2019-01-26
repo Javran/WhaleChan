@@ -1,3 +1,4 @@
+cabal-version:       1.12
 name:                WhaleChan
 version:             0.1.0.0
 synopsis:            Initial project template from stack
@@ -10,14 +11,18 @@ maintainer:          javran.c@gmail.com
 copyright:           Copyright: (c) 2016 Javran Cheng
 category:            Web
 build-type:          Simple
-cabal-version:       >=1.10
 
-executable WhaleChan
+source-repository head
+  type:     git
+  location: https://github.com/Javran/WhaleChan
+
+library
   hs-source-dirs:      src
-  main-is:             Javran/WhaleChan/Main.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -main-is Javran.WhaleChan.Main
-  other-modules:       Javran.WhaleChan.Types
+  ghc-options:         -Wall -O2
+  exposed-modules:     Javran.WhaleChan.Types
                      , Javran.WhaleChan.Base
+                     , Javran.WhaleChan.ReoccuringEvents
+                     , Javran.WhaleChan.Main
   build-depends:       base
                      , text
                      , bytestring
@@ -38,6 +43,36 @@ executable WhaleChan
                      , timezone-series
   default-language:    Haskell2010
 
+executable WhaleChan
+  hs-source-dirs:      src
+  ghc-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
+  main-is:             Main.hs
+  other-modules:       Javran.WhaleChan.Base
+                     , Javran.WhaleChan.Main
+                     , Javran.WhaleChan.ReoccuringEvents
+                     , Javran.WhaleChan.Types
+
+  build-depends:       base
+                     , text
+                     , bytestring
+                     , twitter-conduit
+                     , telegram-api
+                     , authenticate-oauth
+                     , mtl
+                     , servant-client
+                     , http-client
+                     , http-client-tls
+                     , data-default
+                     , containers
+                     , aeson
+                     , yaml
+                     , async
+                     , time
+                     , timezone-olson
+                     , timezone-series
+                     , WhaleChan
+  default-language:    Haskell2010
+
 test-suite test
   hs-source-dirs:      test
   type:                exitcode-stdio-1.0
@@ -45,7 +80,3 @@ test-suite test
   ghc-options:         -Wall
   build-depends:       base
                      , hspec
-
-source-repository head
-  type:     git
-  location: https://github.com/Javran/WhaleChan
