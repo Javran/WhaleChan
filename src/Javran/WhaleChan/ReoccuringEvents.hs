@@ -36,8 +36,6 @@ import Data.Time.LocalTime
 localDayAdd :: Int -> LocalTime -> LocalTime
 localDayAdd n lt@LocalTime{localDay = ld} = lt {localDay = addDays (fromIntegral n) ld}
 
--- TODO: setup tests
-
 nextPracticeReset :: LocalTime -> LocalTime
 nextPracticeReset lt@LocalTime{localTimeOfDay = TimeOfDay {todHour}}
   | todHour < 3 = todayAt3
@@ -77,16 +75,18 @@ nextMonthlyQuestReset LocalTime{localDay, localTimeOfDay = TimeOfDay {todHour}}
     nextFirstDayAt5 = LocalTime (addGregorianMonthsClip 1 firstDay) at5
 
 nextQuarterlyQuestReset :: LocalTime -> LocalTime
-nextQuarterlyQuestReset lt@LocalTime{localDay, localTimeOfDay = TimeOfDay {todHour}}
-  | month /= nextResetMonth || day /= 1 = nextQuarterFirstDayAt5
-  | todHour < 5 = lt {localTimeOfDay = at5 }
+nextQuarterlyQuestReset LocalTime{localDay, localTimeOfDay = TimeOfDay {todHour}}
+  | month /= nextResetMonth = resetMonthFirstDayAt5
+  | day == 1 && todHour < 5 = resetMonthFirstDayAt5
   | otherwise = nextQuarterFirstDayAt5
   where
     (year, month, day) = toGregorian localDay
     nextResetMonth = 3 * ceiling @Double @Int (fromIntegral month / 3)
     at5 = TimeOfDay 5 0 0
-    nextQuarterFirstDayAt5 =
+    resetMonthFirstDayAt5 =
       LocalTime (fromGregorian year nextResetMonth 1) at5
+    nextQuarterFirstDayAt5 =
+      LocalTime (addGregorianMonthsClip 3 $ fromGregorian year nextResetMonth 1) at5
 
 nextExtraOperationReset :: LocalTime -> LocalTime
 nextExtraOperationReset LocalTime{localDay} = LocalTime lDay (TimeOfDay 0 0 0)
