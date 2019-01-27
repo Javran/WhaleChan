@@ -14,12 +14,14 @@ import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
 
 import Control.Concurrent (threadDelay)
+import Control.Concurrent.Async
 import Data.Time.Clock
 import Data.Time.Format
 import Control.Monad
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Olson
 import Data.Time.LocalTime.TimeZone.Series
+import Say
 
 import Javran.WhaleChan.ReoccuringEvents
 
@@ -105,22 +107,28 @@ oneSec = 1000000
 oneMin :: Int
 oneMin = oneSec * 60
 
--- infrastructure: support wake up at (roughly) begining of a miniute
-timerThread :: IO ()
-timerThread = forever $ do
-    -- https://stackoverflow.com/a/8578237/315302
+{-
+  wait and wake up at (roughly) begining of the next minute
+  -- https://stackoverflow.com/a/8578237/315302
+ -}
+waitUntilStartOfNextMinute :: IO ()
+waitUntilStartOfNextMinute = do
     t <- getCurrentTime
     -- compute millseconds since beginning of current minute
     let ms = round (fromIntegral oneSec * realToFrac @_ @Double (utctDayTime t)) `rem` oneMin
     -- wait to start of next minute
     threadDelay $ oneMin - ms
+
+timerThread :: IO ()
+timerThread = forever $ do
+    waitUntilStartOfNextMinute
     t' <- getCurrentTime
     let timeRep = formatTime defaultTimeLocale (iso8601DateFormat $ Just "%H:%M:%S%Q") t'
-    putStrLn $ "Woke up at " ++ timeRep
+    sayString $ "Woke up at " ++ timeRep
 -- TODO: use lens-datetime
 
-startService :: WEnv -> IO ()
-startService _ = do
+testService :: WEnv -> IO ()
+testService _ = do
     tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
     tzPt <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
     t <- getCurrentTime
@@ -149,6 +157,11 @@ startService _ = do
     putStrLn "# Next Quest Point Deadline"
     pprLocalTime (nextQuestPointDeadline lTime)
 
+startService :: WEnv -> IO ()
+startService _ = do
+  aTimer <- async timerThread
+  wait aTimer
+
 {-
   events to be implemented:
 
@@ -168,6 +181,5 @@ startService _ = do
 
 main :: IO ()
 main = getArgs >>= \case
-    [cfg] -> do
-        loadWEnv cfg >>= startService
+    [cfg] -> loadWEnv cfg >>= startService
     _ -> putStrLn "WhaleChan <config.yaml>" >> exitFailure

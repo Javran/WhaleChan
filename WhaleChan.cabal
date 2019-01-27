@@ -41,6 +41,7 @@ library
                      , time
                      , timezone-olson
                      , timezone-series
+                     , say
   default-language:    Haskell2010
 
 executable WhaleChan
@@ -71,6 +72,7 @@ executable WhaleChan
                      , timezone-olson
                      , timezone-series
                      , WhaleChan
+                     , say
   default-language:    Haskell2010
 
 test-suite test
