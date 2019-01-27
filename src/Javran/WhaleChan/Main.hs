@@ -127,7 +127,15 @@ waitUntilStartOfNextMinute = do
     threadDelay $ oneMin - ms
 
 reminderSupplies :: [EReminderSupply]
-reminderSupplies = [ERS (Proxy :: Proxy DailyQuestReset)]
+reminderSupplies =
+  [ ERS (Proxy :: Proxy DailyQuestReset)
+  , ERS (Proxy :: Proxy WeeklyQuestReset)
+  , ERS (Proxy :: Proxy MonthlyQuestReset)
+  , ERS (Proxy :: Proxy QuarterlyQuestReset)
+  , ERS (Proxy :: Proxy ExtraOperationReset)
+  , ERS (Proxy :: Proxy SenkaAccounting)
+  , ERS (Proxy :: Proxy QuestPointDeadline)
+  ]
 
 type TimerM a = StateT (M.Map TypeRep [UTCTime]) IO a
 
@@ -157,8 +165,8 @@ timerThread = do
         forM_ ts $ \curT -> do
           let lt = utcToLocalTime' tzs curT
               lt' = utcToLocalTime' tzPt curT
-          putStrLn $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
-          putStrLn $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
+          sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
+          sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
 
 -- TODO: use lens-datetime
 
