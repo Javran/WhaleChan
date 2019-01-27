@@ -113,12 +113,60 @@ spec = do
 
     describe "nextExtraOperationReset" $ do
       let t = mkTest nextExtraOperationReset
-      pure ()
+      specify "trivials" $ do
+        t (mk 2019 01 31 23 59 59)
+          (mk 2019 02 01 00 00 00)
+        t (mk 2019 02 28 23 59 59)
+          (mk 2019 03 01 00 00 00)
+      specify "exact times" $ do
+        t (mk 2019 02 01 00 00 00)
+          (mk 2019 03 01 00 00 00)
+        t (mk 2018 12 01 00 00 00)
+          (mk 2019 01 01 00 00 00)
 
     describe "nextSenkaAccounting" $ do
       let t = mkTest nextSenkaAccounting
-      pure ()
+      specify "trivials" $ do
+        t (mk 2019 02 28 00 00 00)
+          (mk 2019 02 28 02 00 00)
+        t (mk 2019 02 28 02 01 00)
+          (mk 2019 02 28 14 00 00)
+        t (mk 2019 02 28 14 01 00)
+          (mk 2019 02 28 22 00 00)
+        t (mk 2019 02 28 22 00 01)
+          (mk 2019 03 01 02 00 00)
+
+        t (mk 2019 01 20 00 00 01)
+          (mk 2019 01 20 02 00 00)
+        t (mk 2019 01 20 02 00 01)
+          (mk 2019 01 20 14 00 00)
+        t (mk 2019 01 20 14 00 01)
+          (mk 2019 01 21 02 00 00)
+      specify "exact times" $ do
+        t (mk 2019 02 27 14 00 00)
+          (mk 2019 02 28 02 00 00)
+        t (mk 2019 02 28 02 00 00)
+          (mk 2019 02 28 14 00 00)
+        t (mk 2020 02 28 02 00 00)
+          (mk 2020 02 28 14 00 00)
+        t (mk 2020 02 28 14 00 00)
+          (mk 2020 02 29 02 00 00)
+        t (mk 2020 02 29 02 00 00)
+          (mk 2020 02 29 14 00 00)
+        t (mk 2020 02 29 14 00 00)
+          (mk 2020 02 29 22 00 00)
+        t (mk 2020 02 29 22 00 00)
+          (mk 2020 03 01 02 00 00)
 
     describe "nextQuestPointDeadlineReset" $ do
       let t = mkTest nextQuestPointDeadline
-      pure ()
+      specify "trivials" $ do
+        t (mk 2019 01 23 12 34 56)
+          (mk 2019 01 31 14 00 00)
+        t (mk 2019 01 31 14 00 01)
+          (mk 2019 02 28 14 00 00)
+      specify "exact times" $ do
+        t (mk 2019 02 28 14 00 00)
+          (mk 2019 03 31 14 00 00)
+        t (mk 2020 01 31 14 00 00)
+          (mk 2020 02 29 14 00 00)
