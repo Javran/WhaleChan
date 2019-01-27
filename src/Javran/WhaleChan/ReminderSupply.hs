@@ -12,13 +12,13 @@ import Javran.WhaleChan.ReoccuringEvents
 
 renewSupplyByFunc :: (LocalTime -> LocalTime) -> TimeZoneSeries -> UTCTime -> [UTCTime]
 renewSupplyByFunc getNextTime tzs ut =
-    [mkTime 30, mkTime 10, mkTime 5]
+    [mkTime 30, mkTime 10, mkTime 5, mkTime 0]
   where
     toLocal = utcToLocalTime' tzs
     fromLocal = localTimeToUTC' tzs
     eventTime :: UTCTime
     eventTime = fromLocal . getNextTime . toLocal $ ut
-    mkTime mins = addUTCTime (fromIntegral @Int $ mins * 60) eventTime
+    mkTime mins = addUTCTime (fromIntegral @Int $ -60 * mins) eventTime
 
 data DailyQuestReset
 

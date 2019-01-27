@@ -2,6 +2,8 @@
     LambdaCase
   , TypeApplications
   , NamedFieldPuns
+  , LambdaCase
+  , ScopedTypeVariables
   #-}
 module Javran.WhaleChan.Main
   ( timerThread
@@ -22,8 +24,13 @@ import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Olson
 import Data.Time.LocalTime.TimeZone.Series
 import Say
+import Data.Proxy
+import Data.Typeable
+import Control.Monad.State
 
 import Javran.WhaleChan.ReoccuringEvents
+import Javran.WhaleChan.ReminderSupply
+import qualified Data.Map.Strict as M
 
 {-
   architecture draft:
@@ -119,47 +126,45 @@ waitUntilStartOfNextMinute = do
     -- wait to start of next minute
     threadDelay $ oneMin - ms
 
-timerThread :: IO ()
-timerThread = forever $ do
-    waitUntilStartOfNextMinute
-    t' <- getCurrentTime
-    let timeRep = formatTime defaultTimeLocale (iso8601DateFormat $ Just "%H:%M:%S%Q") t'
-    sayString $ "Woke up at " ++ timeRep
--- TODO: use lens-datetime
+reminderSupplies :: [EReminderSupply]
+reminderSupplies = [ERS (Proxy :: Proxy DailyQuestReset)]
 
-testService :: WEnv -> IO ()
-testService _ = do
-    tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
-    tzPt <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
-    t <- getCurrentTime
-    let lTime = utcToLocalTime' tzs t
-        pprLocalTime lt = do
-          putStrLn $ "Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
-          let utcT = localTimeToUTC' tzs lt
-              lt' = utcToLocalTime' tzPt utcT
-          putStrLn $ "Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
-    putStrLn "# Current time"
-    pprLocalTime lTime
-    putStrLn "# Next PvP Reset"
-    pprLocalTime (nextPracticeReset lTime)
-    putStrLn "# Next Daily Quest Reset"
-    pprLocalTime (nextDailyQuestReset lTime)
-    putStrLn "# Next Weekly Quest Reset"
-    pprLocalTime (nextWeeklyQuestReset lTime)
-    putStrLn "# Next Monthly Quest Reset"
-    pprLocalTime (nextMonthlyQuestReset lTime)
-    putStrLn "# Next Quarterly Quest Reset"
-    pprLocalTime (nextQuarterlyQuestReset lTime)
-    putStrLn "# Next EO Reset"
-    pprLocalTime (nextExtraOperationReset lTime)
-    putStrLn "# Next Senka Accounting"
-    pprLocalTime (nextSenkaAccounting lTime)
-    putStrLn "# Next Quest Point Deadline"
-    pprLocalTime (nextQuestPointDeadline lTime)
+type TimerM a = StateT (M.Map TypeRep [UTCTime]) IO a
+
+timerThread :: TimerM ()
+timerThread = do
+    tzPt <- liftIO $ getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
+    (tzs,t) <- liftIO $
+        (,) <$> getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
+            <*> getCurrentTime
+    -- initialize
+    forM_ reminderSupplies $ \(ERS tp) ->
+      let alt = \case
+              Nothing -> Just newSupply
+              Just ts ->
+                case dropWhile (< t) ts of
+                  [] -> Just newSupply
+                  ts' -> Just ts'
+          newSupply = dropWhile (< t) (renewSupply tp tzs t)
+      in modify (M.alter alt (typeRep tp))
+    forever $ do
+      t' <- liftIO (waitUntilStartOfNextMinute >> getCurrentTime)
+      let timeRep = formatTime defaultTimeLocale (iso8601DateFormat $ Just "%H:%M:%S%Q") t'
+      liftIO $ sayString $ "Woke up at " ++ timeRep
+      ds <- gets M.toList
+      forM_ ds $ \(tp, ts) -> liftIO $ do
+        sayString $ "Reminder: " <> show tp
+        forM_ ts $ \curT -> do
+          let lt = utcToLocalTime' tzs curT
+              lt' = utcToLocalTime' tzPt curT
+          putStrLn $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
+          putStrLn $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
+
+-- TODO: use lens-datetime
 
 startService :: WEnv -> IO ()
 startService _ = do
-  aTimer <- async timerThread
+  aTimer <- async (evalStateT timerThread M.empty)
   wait aTimer
 
 {-
