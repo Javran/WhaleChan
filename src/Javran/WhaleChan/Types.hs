@@ -3,6 +3,8 @@
   , OverloadedStrings
   , ExplicitForAll
   , ExistentialQuantification
+  , KindSignatures
+  , PolyKinds
   #-}
 module Javran.WhaleChan.Types where
 
@@ -45,7 +47,7 @@ instance FromJSON WEnv where
   a ReminderSupply, when given current time,
   supplies a sorted list of times for the timer thread
  -}
-class ReminderSupply r where
+class ReminderSupply (r :: k) where
     renewSupply :: forall p. p r -> TimeZoneSeries -> UTCTime -> [UTCTime]
 
 data EReminderSupply =

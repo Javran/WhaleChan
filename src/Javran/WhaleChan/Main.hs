@@ -4,6 +4,7 @@
   , NamedFieldPuns
   , LambdaCase
   , ScopedTypeVariables
+  , DataKinds
   #-}
 module Javran.WhaleChan.Main
   ( timerThread
@@ -128,14 +129,14 @@ waitUntilStartOfNextMinute = do
 
 reminderSupplies :: [EReminderSupply]
 reminderSupplies =
-  [ ERS (Proxy :: Proxy DailyQuestReset)
-  , ERS (Proxy :: Proxy WeeklyQuestReset)
-  , ERS (Proxy :: Proxy MonthlyQuestReset)
-  , ERS (Proxy :: Proxy QuarterlyQuestReset)
-  , ERS (Proxy :: Proxy ExtraOperationReset)
-  , ERS (Proxy :: Proxy SenkaAccounting)
-  , ERS (Proxy :: Proxy QuestPointDeadline)
-  ]
+    [ ERS (Proxy :: Proxy 'DailyQuestReset)
+    , ERS (Proxy :: Proxy 'WeeklyQuestReset)
+    , ERS (Proxy :: Proxy 'MonthlyQuestReset)
+    , ERS (Proxy :: Proxy 'QuarterlyQuestReset)
+    , ERS (Proxy :: Proxy 'ExtraOperationReset)
+    , ERS (Proxy :: Proxy 'SenkaAccounting)
+    , ERS (Proxy :: Proxy 'QuestPointDeadline)
+    ]
 
 type TimerM a = StateT (M.Map TypeRep [UTCTime]) IO a
 
