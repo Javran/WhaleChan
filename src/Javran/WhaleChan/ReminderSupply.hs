@@ -20,9 +20,11 @@ data ReminderSupplier
   | QuestPointDeadline
     deriving (Enum, Eq, Ord, Bounded)
 
-renewSupplyByFunc :: (LocalTime -> LocalTime) -> TimeZoneSeries -> UTCTime -> [UTCTime]
+renewSupplyByFunc :: (LocalTime -> LocalTime) -> TimeZoneSeries -> UTCTime -> EventReminder
 renewSupplyByFunc getNextTime tzs ut =
-    [mkTime 30, mkTime 10, mkTime 5, mkTime 0]
+    EventReminder
+      eventTime
+      [mkTime 30, mkTime 10, mkTime 5, eventTime]
   where
     toLocal = utcToLocalTime' tzs
     fromLocal = localTimeToUTC' tzs

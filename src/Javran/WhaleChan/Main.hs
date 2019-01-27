@@ -29,7 +29,6 @@ import Data.Proxy
 import Data.Typeable
 import Control.Monad.State
 
-import Javran.WhaleChan.ReoccuringEvents
 import Javran.WhaleChan.ReminderSupply
 import qualified Data.Map.Strict as M
 
@@ -138,7 +137,7 @@ reminderSupplies =
     , ERS (Proxy :: Proxy 'QuestPointDeadline)
     ]
 
-type TimerM a = StateT (M.Map TypeRep [UTCTime]) IO a
+type TimerM a = StateT (M.Map TypeRep EventReminder) IO a
 
 timerThread :: TimerM ()
 timerThread = do
@@ -148,20 +147,24 @@ timerThread = do
             <*> getCurrentTime
     -- initialize
     forM_ reminderSupplies $ \(ERS tp) ->
-      let alt = \case
+      let alt :: Maybe EventReminder -> Maybe EventReminder
+          alt = \case
               Nothing -> Just newSupply
-              Just ts ->
+              Just (EventReminder eot ts) ->
                 case dropWhile (< t) ts of
                   [] -> Just newSupply
-                  ts' -> Just ts'
-          newSupply = dropWhile (< t) (renewSupply tp tzs t)
+                  ts' -> Just (EventReminder eot ts')
+          newSupply = EventReminder eot (dropWhile (< t) erds)
+            where
+              EventReminder eot erds = renewSupply tp tzs t
+
       in modify (M.alter alt (typeRep tp))
     forever $ do
       t' <- liftIO (waitUntilStartOfNextMinute >> getCurrentTime)
       let timeRep = formatTime defaultTimeLocale (iso8601DateFormat $ Just "%H:%M:%S%Q") t'
       liftIO $ sayString $ "Woke up at " ++ timeRep
       ds <- gets M.toList
-      forM_ ds $ \(tp, ts) -> liftIO $ do
+      forM_ ds $ \(tp, EventReminder _ ts) -> liftIO $ do
         sayString $ "Reminder: " <> show tp
         forM_ ts $ \curT -> do
           let lt = utcToLocalTime' tzs curT

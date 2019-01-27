@@ -44,11 +44,20 @@ instance FromJSON WEnv where
             <*> (Tg.Token <$> o .: "telegram-bot-token")
 
 {-
+  EventReminder contains info about the time the event will occur
+  and a sorted list of times that a reminder is due.
+ -}
+data EventReminder = EventReminder
+  { eventOccurTime :: UTCTime
+  , eventReminderDues :: [UTCTime]
+  }
+
+{-
   a ReminderSupply, when given current time,
   supplies a sorted list of times for the timer thread
  -}
 class ReminderSupply (r :: k) where
-    renewSupply :: forall p. p r -> TimeZoneSeries -> UTCTime -> [UTCTime]
+    renewSupply :: forall p. p r -> TimeZoneSeries -> UTCTime -> EventReminder
 
 data EReminderSupply =
   forall rs. (ReminderSupply rs, Typeable rs) => ERS (Proxy rs)
