@@ -22,6 +22,7 @@ library
   exposed-modules:     Javran.WhaleChan.Types
                      , Javran.WhaleChan.Base
                      , Javran.WhaleChan.ReoccuringEvents
+                     , Javran.WhaleChan.ReminderSupply
                      , Javran.WhaleChan.Main
   build-depends:       base
                      , text
@@ -52,6 +53,7 @@ executable WhaleChan
                      , Javran.WhaleChan.Main
                      , Javran.WhaleChan.ReoccuringEvents
                      , Javran.WhaleChan.Types
+                     , Javran.WhaleChan.ReminderSupply
 
   build-depends:       base
                      , text
