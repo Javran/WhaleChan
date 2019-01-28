@@ -64,47 +64,44 @@ import qualified Data.Map.Strict as M
 {-
   reminder impl draft:
 
-  - each reminder is implemented as a unique type implementing a common typeclass
-  - reminder has an IO action that when executed with current time, computes
-    a sorted list of pending reminders
+  - concepts:
 
-    e.g. all info needed for:
+    + a EventReminder contains a sorted list of pending reminders
+      around a particular event.
+    + several type implements ReminderSupply, which, when called with
+      current time generates a corresponding EventReminder.
+      (NOTE: this is a pure function, we'll worry about parsing maintenance times later)
+    + these types are promoted data types, unified by a common kind: ReminderSupplier
+
+- we'll have a list of reminders implemented, visible to
+  the reminder thread
+
+- the timer thread keeps track of a Map from TypeRep of ReminderSupplier
+  to EventReminder
+
+- when EventReminder cannot be found or contains an empty list of eventReminderDues,
+  timer thread will attempt to "resupply" by calling corresponding reminder.
+
+- we'll basically reminder the following events:
 
     + "30 mins before [some event]"
     + "10 mins before [some event]"
     + "5 mins before [some event]"
     + "[some event] is happening"
 
-  - we'll have a list of reminders implemented, visible to
-    the reminder thread
+  but this is by no meaning a limit, the definition of ReminderSupply
+  is flexible to allow time much more longer - for example
 
-  - reminder thread keeps track of a Map from TypeRep of reminders
-    to a (potentially empty) list of reminds
+- the reminder thread is a loop that:
 
-  - the reminder thread is a loop that wakes up
-    at (roughly) the beginning of every minute, then:
-
-    + determine if it's time to remind something
-    + send the post to telegram thread
-    + after this is done, we'll have plenty of time dealing with the Map
-    + discharge corresponding elements from the Map
-    + reminder will have a channel for other threads to post computed new reminders to itself
-    + for any Map value that is empty, we'll start a new thread with it's defined IO action to
-      "restock" the list of reminders
-    + by design we don't expect a reminder impl to return immediately (as it's IO)
-      for example maintenance time would be co-referenced from multiple sources,
-      which requires some amount of network traffic, which takes time.
-    + perhaps maintenance time can be implemented specially, which ignores "restock" request
-      and have it's own loop (say 20mins) and still post to reminder's channel
-      as if a "restock" request is given.
-
-  change of plan:
-
-  - since most reminders are pure functions, using IO with dedicated threads, even lightwight once,
-    is an overkill
-
-  - instead, we'll have a thread to retrieve maintenance time and post to reminder thread
-    when the result is available, this should be the only place that we'll interact with another thread
+  + wakes up at (roughly) the beginning of every minute
+  + then determine if it's time to remind something
+  + send the post to telegram thread
+  + after this is done, we'll try to "resupply" EventReminder that are empty
+  + for dealing with maintenance times, we'll have a dummy ReminderSupplier
+    that does nothing upon resupply - a dedicated thread will check and parse
+    maintenance time on a regular basis and supply timer thread with result,
+    instead of doing passive "resupply"
 
  -}
 
