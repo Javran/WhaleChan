@@ -142,9 +142,15 @@ timerThread = do
     (tzs,t) <- liftIO $
         (,) <$> getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
             <*> getCurrentTime
-    -- initialize
+    -- initialize, setup Map, in future we'll need to persistent the thread state
+    -- INVARIANT: all values of the State Map shouldn't
+    -- contain EventReminder whose eventReminderDues is empty
     forM_ reminderSupplies $ \(ERS tp) ->
-      let alt :: Maybe EventReminder -> Maybe EventReminder
+      let elimEmpty :: Maybe EventReminder -> Maybe EventReminder
+          elimEmpty x = case x of
+            Just (EventReminder _ []) -> Nothing
+            _ -> x
+          alt :: Maybe EventReminder -> Maybe EventReminder
           alt = \case
               Nothing -> Just newSupply
               Just (EventReminder eot ts) ->
@@ -154,20 +160,24 @@ timerThread = do
           newSupply = EventReminder eot (dropWhile (< t) erds)
             where
               EventReminder eot erds = renewSupply tp tzs t
-
-      in modify (M.alter alt (typeRep tp))
+      in modify (M.alter (elimEmpty . alt) (typeRep tp))
+    -- into infinite loop
     forever $ do
+      -- wait until the start of next minute
       t' <- liftIO (waitUntilStartOfNextMinute >> getCurrentTime)
       let timeRep = formatTime defaultTimeLocale (iso8601DateFormat $ Just "%H:%M:%S%Q") t'
       liftIO $ sayString $ "Woke up at " ++ timeRep
-      ds <- gets M.toList
-      forM_ ds $ \(tp, EventReminder _ ts) -> liftIO $ do
-        sayString $ "Reminder: " <> show tp
-        forM_ ts $ \curT -> do
-          let lt = utcToLocalTime' tzs curT
-              lt' = utcToLocalTime' tzPt curT
-          sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
-          sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
+      st <- get
+      forM_ reminderSupplies $ \(ERS tp) -> do
+        liftIO $ sayString $ "Reminder: " <> show tp
+        case M.lookup (typeRep tp) st of
+          Nothing -> sayString "  <Nothing>"
+          Just (EventReminder _ ts) ->
+            forM_ ts $ \curT -> do
+              let lt = utcToLocalTime' tzs curT
+                  lt' = utcToLocalTime' tzPt curT
+              sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
+              sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
 
 -- TODO: use lens-datetime
 
