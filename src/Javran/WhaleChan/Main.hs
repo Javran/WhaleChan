@@ -169,8 +169,9 @@ timerThread = do
       liftIO $ sayString $ "Woke up at " ++ timeRep
       st <- get
       forM_ reminderSupplies $ \(ERS tp) -> do
-        liftIO $ sayString $ "Reminder: " <> show tp
-        case M.lookup (typeRep tp) st of
+        let tyRep = typeRep tp
+        liftIO $ sayString $ "Reminder: " <> show tyRep
+        case M.lookup tyRep st of
           Nothing -> sayString "  <Nothing>"
           Just (EventReminder _ ts) ->
             forM_ ts $ \curT -> do
