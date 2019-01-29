@@ -144,28 +144,15 @@ type TimerM a = StateT (M.Map TypeRep EventReminder) IO a
 timerThread :: TimerM ()
 timerThread = do
     tzPt <- liftIO $ getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
-    (tzs,t) <- liftIO $
-        (,) <$> getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
-            <*> getCurrentTime
-    -- initialize, setup Map, in future we'll need to persistent the thread state
+    tzs <- liftIO $ getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
+    -- TODO: in future we'll need to persistent the thread state
     -- INVARIANT: all values of the State Map shouldn't
     -- contain EventReminder whose eventReminderDues is empty
-    forM_ reminderSupplies $ \(ERS tp) ->
-      let elimEmpty :: Maybe EventReminder -> Maybe EventReminder
-          elimEmpty x = case x of
-            Just (EventReminder _ []) -> Nothing
-            _ -> x
-          alt :: Maybe EventReminder -> Maybe EventReminder
-          alt = \case
-              Nothing -> Just newSupply
-              Just e -> Just e
-          -- note: cleaning-up here might not be a good idea as
-          -- it might lead to some reminder times being discharged without being
-          -- considered
-          newSupply = EventReminder eot erds -- (dropWhile (< t) erds)
-            where
-              EventReminder eot erds = renewSupply tp tzs t
-      in modify (M.alter (elimEmpty . alt) (typeRep tp))
+
+    -- note: cleaning-up here might not be a good idea as
+    -- it might lead to some reminder times being discharged without being
+    -- considered
+
     -- into infinite loop
     forever $ do
       -- wait until the start of next minute
@@ -209,8 +196,18 @@ timerThread = do
         sayString $ "  Remaining time: " <> pprTime (floor (eTime `diffUTCTime` t') :: Int)
         sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
         sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
-
-      -- TODO: re-stock EventReminder here
+      -- re-stock EventReminder here
+      -- we've been careful to make sure EventReminder whose erds is empty
+      -- is removed instead of being kept. which means we just need to restock those
+      -- that returns Nothing by lookup
+      tDone <- liftIO getCurrentTime
+      let restock (ERS tp) = Endo (M.alter altVal tyRep)
+            where
+              altVal x = case x of
+                Nothing -> Just (renewSupply tp tzs tDone)
+                Just _ -> x
+              tyRep = typeRep tp
+      modify (appEndo (foldMap restock reminderSupplies))
 
 -- TODO: use lens-datetime
 
