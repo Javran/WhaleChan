@@ -156,11 +156,11 @@ timerThread = do
           alt :: Maybe EventReminder -> Maybe EventReminder
           alt = \case
               Nothing -> Just newSupply
-              Just (EventReminder eot ts) ->
-                case dropWhile (< t) ts of
-                  [] -> Just newSupply
-                  ts' -> Just (EventReminder eot ts')
-          newSupply = EventReminder eot (dropWhile (< t) erds)
+              Just e -> Just e
+          -- note: cleaning-up here might not be a good idea as
+          -- it might lead to some reminder times being discharged without being
+          -- considered
+          newSupply = EventReminder eot erds -- (dropWhile (< t) erds)
             where
               EventReminder eot erds = renewSupply tp tzs t
       in modify (M.alter (elimEmpty . alt) (typeRep tp))

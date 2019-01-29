@@ -24,7 +24,8 @@ renewSupplyByFunc :: (LocalTime -> LocalTime) -> TimeZoneSeries -> UTCTime -> Ev
 renewSupplyByFunc getNextTime tzs ut =
     EventReminder
       eventTime
-      [mkTime 30, mkTime 10, mkTime 5, eventTime]
+      -- TOOD: the 24 hours ahead is for debugging purpose and we might remove that when done
+      [mkTime (24 * 60), mkTime 30, mkTime 10, mkTime 5, eventTime]
   where
     toLocal = utcToLocalTime' tzs
     fromLocal = localTimeToUTC' tzs

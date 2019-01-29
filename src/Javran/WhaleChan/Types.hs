@@ -50,7 +50,7 @@ instance FromJSON WEnv where
 data EventReminder = EventReminder
   { eventOccurTime :: UTCTime
   , eventReminderDues :: [UTCTime]
-  }
+  } deriving (Show)
 
 {-
   a ReminderSupply, when given current time,
