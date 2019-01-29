@@ -124,7 +124,9 @@ waitUntilStartOfNextMinute = do
     -- compute millseconds since beginning of current minute
     let ms = round (fromIntegral oneSec * realToFrac @_ @Double (utctDayTime t)) `rem` oneMin
     -- wait to start of next minute
-    threadDelay $ oneMin - ms
+    -- threadDelay $ oneMin - ms
+    -- TODO: we only wait for 5s now for it's easier to debug
+    threadDelay (oneSec * 5)
 
 reminderSupplies :: [EReminderSupply]
 reminderSupplies =
@@ -195,7 +197,16 @@ timerThread = do
         sayString $ "Reminder: " <> show tyRep
         let lt = utcToLocalTime' tzs eTime
             lt' = utcToLocalTime' tzPt eTime
-        sayString $ "  Remaining seconds: " <> show (floor (eTime `diffUTCTime` t') :: Int)
+            pprTime seconds
+              | seconds > 3600 =
+                  let (hh,ss') = seconds `divMod` 3600
+                      (mm,ss) = ss' `divMod` 60
+                  in show hh <> " hours " <> show mm <> " minutes " <> show ss <> " seconds"
+              | seconds > 60 =
+                  let (mm,ss) = seconds `divMod` 60
+                  in show mm <> " minutes " <> show ss <> " seconds"
+              | otherwise = show seconds <> " seconds"
+        sayString $ "  Remaining time: " <> pprTime (floor (eTime `diffUTCTime` t') :: Int)
         sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
         sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
 
