@@ -21,12 +21,15 @@ import Control.Concurrent.Async
 import Data.Time.Clock
 import Data.Time.Format
 import Control.Monad
+import Control.Monad.Writer
+import Data.Monoid
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Olson
 import Data.Time.LocalTime.TimeZone.Series
 import Say
 import Data.Proxy
 import Data.Typeable
+import Data.Maybe
 import Control.Monad.State
 
 import Javran.WhaleChan.ReminderSupply
@@ -166,19 +169,37 @@ timerThread = do
       -- wait until the start of next minute
       t' <- liftIO (waitUntilStartOfNextMinute >> getCurrentTime)
       let timeRep = formatTime defaultTimeLocale (iso8601DateFormat $ Just "%H:%M:%S%Q") t'
+          -- any event in future within 20 seconds is also included
+          -- this assume that we can always process all reminders within 20 seconds
+          -- which should be way more than enough.
+          tThres = addUTCTime 20 t'
       liftIO $ sayString $ "Woke up at " ++ timeRep
-      st <- get
-      forM_ reminderSupplies $ \(ERS tp) -> do
+      -- scan & update reminders, and collect things needed to be displayed
+      displayList <- (catMaybes <$>) . forM reminderSupplies $ \e@(ERS tp) ->
         let tyRep = typeRep tp
-        liftIO $ sayString $ "Reminder: " <> show tyRep
-        case M.lookup tyRep st of
-          Nothing -> sayString "  <Nothing>"
-          Just (EventReminder _ ts) ->
-            forM_ ts $ \curT -> do
-              let lt = utcToLocalTime' tzs curT
-                  lt' = utcToLocalTime' tzPt curT
-              sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
-              sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
+        in gets (M.lookup tyRep) >>= \case
+            Nothing -> pure Nothing
+            Just (EventReminder eot erds) -> do
+              -- if remindsDue contains anything, we should send current reminder
+              let (remindsDue, erds') = span (< tThres) erds
+                  newVal = if null erds'
+                    then Nothing
+                    else Just (EventReminder eot erds')
+              modify (M.update (const newVal) tyRep)
+              pure $ if null remindsDue
+                then Nothing
+                else Just (e, eot)
+      -- process display, IO is sufficient
+      liftIO $ forM_ displayList $ \(ERS tp, eTime) -> do
+        let tyRep = typeRep tp
+        sayString $ "Reminder: " <> show tyRep
+        let lt = utcToLocalTime' tzs eTime
+            lt' = utcToLocalTime' tzPt eTime
+        sayString $ "  Remaining seconds: " <> show (floor (eTime `diffUTCTime` t') :: Int)
+        sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
+        sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
+
+      -- TODO: re-stock EventReminder here
 
 -- TODO: use lens-datetime
 
