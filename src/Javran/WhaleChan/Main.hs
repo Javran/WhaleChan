@@ -2,7 +2,6 @@
     LambdaCase
   , TypeApplications
   , NamedFieldPuns
-  , LambdaCase
   , ScopedTypeVariables
   , DataKinds
   #-}
@@ -22,7 +21,6 @@ import Data.Time.Clock
 import Data.Time.Format
 import Control.Monad
 import Control.Monad.Writer
-import Data.Monoid
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Olson
 import Data.Time.LocalTime.TimeZone.Series
