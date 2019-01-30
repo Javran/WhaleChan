@@ -15,6 +15,7 @@ import Data.Time.Clock
 import Data.Time.LocalTime.TimeZone.Series
 import Data.Aeson
 import Data.Typeable
+import Data.Int (Int64)
 
 data WEnv = WEnv
   { twConsumerKey :: BS.ByteString
@@ -22,6 +23,7 @@ data WEnv = WEnv
   , twOAuthToken :: String
   , twOAuthSecret :: String
   , tgBotToken :: Tg.Token
+  , tgChannelId :: Int64
   } deriving (Show)
 
 instance ToJSON WEnv where
@@ -32,6 +34,7 @@ instance ToJSON WEnv where
                , "twitter-oauth-token" .= twOAuthToken
                , "twitter-oauth-secret" .= twOAuthSecret
                , "telegram-bot-token" .= tok
+               , "telegram-channel-id" .= tgChannelId
                ]
 
 instance FromJSON WEnv where
@@ -42,6 +45,7 @@ instance FromJSON WEnv where
             <*> o .: "twitter-oauth-token"
             <*> o .: "twitter-oauth-secret"
             <*> (Tg.Token <$> o .: "telegram-bot-token")
+            <*> o .: "telegram-channel-id"
 
 {-
   EventReminder contains info about the time the event will occur
