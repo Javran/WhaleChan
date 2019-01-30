@@ -4,6 +4,7 @@
   , NamedFieldPuns
   , ScopedTypeVariables
   , DataKinds
+  , OverloadedStrings
   #-}
 module Javran.WhaleChan.Main
   ( timerThread
@@ -25,12 +26,18 @@ import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Olson
 import Data.Time.LocalTime.TimeZone.Series
 import Say
+import Data.Int (Int64)
 import Data.Proxy
 import Data.Typeable
 import Data.Maybe
 import Control.Monad.State
+import qualified Data.Text as T
+import qualified Web.Telegram.API.Bot as Tg
+import Network.HTTP.Client (newManager, Manager)
+import Network.HTTP.Client.TLS (tlsManagerSettings)
 
 import Javran.WhaleChan.ReminderSupply
+import Control.Concurrent.Chan
 import qualified Data.Map.Strict as M
 
 {-
@@ -139,8 +146,8 @@ reminderSupplies =
 
 type TimerM a = StateT (M.Map TypeRep EventReminder) IO a
 
-timerThread :: TimerM ()
-timerThread = do
+timerThread :: Chan T.Text -> TimerM ()
+timerThread tgMsgChan = do
     tzPt <- liftIO $ getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
     tzs <- liftIO $ getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
     -- TODO: in future we'll need to persistent the thread state
@@ -204,18 +211,41 @@ timerThread = do
                   let (mm,ss) = seconds `divMod` 60
                   in show mm <> " minutes " <> show ss <> " seconds"
               | otherwise = show seconds <> " seconds"
-        sayString $ "  Remaining time: " <> pprTime (floor (eTime `diffUTCTime` t') :: Int)
+        let timeStr = pprTime (floor (eTime `diffUTCTime` t') :: Int)
+        sayString $ "  Remaining time: " <> timeStr
         sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
         sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
+        let tgMsg = "Reminder: " <> T.pack (show tyRep) <> " Remaining time: " <> T.pack timeStr
+        writeChan tgMsgChan tgMsg
       -- re-stock EventReminder here
       restockReminders
 
 -- TODO: use lens-datetime
 
+telegramThread :: Manager -> Chan T.Text -> Tg.Token -> Int64 -> IO ()
+telegramThread mgr msgChan tok channelId = forever $ do
+    msg <- readChan msgChan
+    let req = Tg.SendMessageRequest
+                { Tg.message_chat_id = Tg.ChatId channelId
+                , Tg.message_text = msg
+                , Tg.message_parse_mode = Nothing
+                , Tg.message_disable_web_page_preview = Nothing
+                , Tg.message_disable_notification = Nothing
+                , Tg.message_reply_to_message_id = Nothing
+                , Tg.message_reply_markup = Nothing
+                }
+    result <- Tg.sendMessage tok req mgr
+    print result
+
 startService :: WEnv -> IO ()
-startService _ = do
-  aTimer <- async (evalStateT timerThread M.empty)
+startService wenv = do
+  mgr <- newManager tlsManagerSettings
+  ch <- newChan
+  let WEnv {tgBotToken=botToken, tgChannelId=tgChannelId} = wenv
+  aTimer <- async (evalStateT (timerThread ch) M.empty)
+  aTg <- async (telegramThread mgr ch botToken tgChannelId)
   wait aTimer
+  wait aTg
 
 {-
   events to be implemented:
