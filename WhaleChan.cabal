@@ -43,6 +43,10 @@ library
                      , timezone-olson
                      , timezone-series
                      , say
+                     , telegram-api
+                     , http-client
+                     , http-client-tls
+
   default-language:    Haskell2010
 
 executable WhaleChan
@@ -75,6 +79,10 @@ executable WhaleChan
                      , timezone-series
                      , WhaleChan
                      , say
+                     , telegram-api
+                     , http-client
+                     , http-client-tls
+
   default-language:    Haskell2010
 
 test-suite test
