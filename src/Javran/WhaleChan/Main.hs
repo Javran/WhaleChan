@@ -122,9 +122,9 @@ waitUntilStartOfNextMinute = do
     -- compute millseconds since beginning of current minute
     let ms = round (fromIntegral oneSec * realToFrac @_ @Double (utctDayTime t)) `rem` oneMin
     -- wait to start of next minute
-    -- threadDelay $ oneMin - ms
+    threadDelay $ oneMin - ms
     -- TODO: we only wait for 5s now for it's easier to debug
-    threadDelay (oneSec * 5)
+    -- threadDelay (oneSec * 5)
 
 reminderSupplies :: [EReminderSupply]
 reminderSupplies =
@@ -150,7 +150,20 @@ timerThread = do
     -- note: cleaning-up here might not be a good idea as
     -- it might lead to some reminder times being discharged without being
     -- considered
-
+    let restockReminders = do
+          -- re-stock EventReminder here
+          -- we've been careful to make sure EventReminder whose erds is empty
+          -- is removed instead of being kept. which means we just need to restock those
+          -- that returns Nothing by lookup
+          tDone <- liftIO getCurrentTime
+          let restock (ERS tp) = Endo (M.alter altVal tyRep)
+                where
+                  tyRep = typeRep tp
+                  altVal x = case x of
+                    Nothing -> Just (renewSupply tp tzs tDone)
+                    Just _ -> x
+          modify (appEndo (foldMap restock reminderSupplies))
+    restockReminders
     -- into infinite loop
     forever $ do
       -- wait until the start of next minute
@@ -195,17 +208,7 @@ timerThread = do
         sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
         sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
       -- re-stock EventReminder here
-      -- we've been careful to make sure EventReminder whose erds is empty
-      -- is removed instead of being kept. which means we just need to restock those
-      -- that returns Nothing by lookup
-      tDone <- liftIO getCurrentTime
-      let restock (ERS tp) = Endo (M.alter altVal tyRep)
-            where
-              altVal x = case x of
-                Nothing -> Just (renewSupply tp tzs tDone)
-                Just _ -> x
-              tyRep = typeRep tp
-      modify (appEndo (foldMap restock reminderSupplies))
+      restockReminders
 
 -- TODO: use lens-datetime
 
