@@ -211,7 +211,12 @@ timerThread tgMsgChan = do
                   let (mm,ss) = seconds `divMod` 60
                   in show mm <> " minutes " <> show ss <> " seconds"
               | otherwise = show seconds <> " seconds"
-        let timeStr = pprTime (floor (eTime `diffUTCTime` t') :: Int)
+        -- round to closest second, this would hopefully
+        -- give us xxx minutes 0 seconds instead of some 59 seconds
+        -- well, technically we are right by taking the floor
+        -- as we are processing it at this second but sounds
+        -- unhappy to always have some 59 seconds around
+        let timeStr = pprTime (round (eTime `diffUTCTime` t') :: Int)
         sayString $ "  Remaining time: " <> timeStr
         sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
         sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
