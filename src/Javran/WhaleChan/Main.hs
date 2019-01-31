@@ -37,6 +37,7 @@ import Network.HTTP.Client (newManager, Manager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 
 import Javran.WhaleChan.ReminderSupply
+import Javran.WhaleChan.Util
 import Control.Concurrent.Chan
 import qualified Data.Map.Strict as M
 
@@ -202,21 +203,12 @@ timerThread tgMsgChan = do
         sayString $ "Reminder: " <> show tyRep
         let lt = utcToLocalTime' tzs eTime
             lt' = utcToLocalTime' tzPt eTime
-            pprTime seconds
-              | seconds > 3600 =
-                  let (hh,ss') = seconds `divMod` 3600
-                      (mm,ss) = ss' `divMod` 60
-                  in show hh <> " hours " <> show mm <> " minutes " <> show ss <> " seconds"
-              | seconds > 60 =
-                  let (mm,ss) = seconds `divMod` 60
-                  in show mm <> " minutes " <> show ss <> " seconds"
-              | otherwise = show seconds <> " seconds"
         -- round to closest second, this would hopefully
         -- give us xxx minutes 0 seconds instead of some 59 seconds
         -- well, technically we are right by taking the floor
         -- as we are processing it at this second but sounds
         -- unhappy to always have some 59 seconds around
-        let timeStr = pprTime (round (eTime `diffUTCTime` t') :: Int)
+        let timeStr = describeDuration (round (eTime `diffUTCTime` t') :: Int)
         sayString $ "  Remaining time: " <> timeStr
         sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
         sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
