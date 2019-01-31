@@ -136,7 +136,8 @@ waitUntilStartOfNextMinute = do
 
 reminderSupplies :: [EReminderSupply]
 reminderSupplies =
-    [ ERS (Proxy :: Proxy 'DailyQuestReset)
+    [ ERS (Proxy :: Proxy 'PracticeReset)
+    , ERS (Proxy :: Proxy 'DailyQuestReset)
     , ERS (Proxy :: Proxy 'WeeklyQuestReset)
     , ERS (Proxy :: Proxy 'MonthlyQuestReset)
     , ERS (Proxy :: Proxy 'QuarterlyQuestReset)
