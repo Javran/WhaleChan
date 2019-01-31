@@ -23,6 +23,7 @@ library
                      , Javran.WhaleChan.Base
                      , Javran.WhaleChan.ReoccuringEvents
                      , Javran.WhaleChan.ReminderSupply
+                     , Javran.WhaleChan.Util
                      , Javran.WhaleChan.Main
   build-depends:       base
                      , text
@@ -57,6 +58,7 @@ executable WhaleChan
                      , Javran.WhaleChan.Main
                      , Javran.WhaleChan.ReoccuringEvents
                      , Javran.WhaleChan.Types
+                     , Javran.WhaleChan.Util
                      , Javran.WhaleChan.ReminderSupply
 
   build-depends:       base
@@ -95,4 +97,5 @@ test-suite test
                      , hspec
                      , time
   other-modules:       Javran.WhaleChan.ReoccuringEventsSpec
+                     , Javran.WhaleChan.UtilSpec
   default-language:    Haskell2010
