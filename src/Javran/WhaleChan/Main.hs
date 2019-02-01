@@ -12,19 +12,16 @@ module Javran.WhaleChan.Main
 
 import Control.Concurrent.Async
 import Control.Concurrent.Chan
-import Control.Monad
 import Control.Monad.State
-import Data.Int (Int64)
 import qualified Data.Map.Strict as M
-import qualified Data.Text as T
-import Network.HTTP.Client (newManager, Manager)
+import Network.HTTP.Client (newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import System.Environment
 import System.Exit
-import qualified Web.Telegram.API.Bot as Tg
 
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.TimerThread (timerThread)
+import Javran.WhaleChan.TelegramThread (telegramThread)
 import Javran.WhaleChan.Types
 
 {-
@@ -55,21 +52,6 @@ import Javran.WhaleChan.Types
   main thread into a sleep loop, check thread health occasionally
 
  -}
-
-telegramThread :: Manager -> Chan T.Text -> Tg.Token -> Int64 -> IO ()
-telegramThread mgr msgChan tok channelId = forever $ do
-    msg <- readChan msgChan
-    let req = Tg.SendMessageRequest
-                { Tg.message_chat_id = Tg.ChatId channelId
-                , Tg.message_text = msg
-                , Tg.message_parse_mode = Nothing
-                , Tg.message_disable_web_page_preview = Nothing
-                , Tg.message_disable_notification = Nothing
-                , Tg.message_reply_to_message_id = Nothing
-                , Tg.message_reply_markup = Nothing
-                }
-    result <- Tg.sendMessage tok req mgr
-    print result
 
 startService :: WEnv -> IO ()
 startService wenv = do

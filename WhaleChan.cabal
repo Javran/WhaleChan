@@ -25,6 +25,7 @@ library
                      , Javran.WhaleChan.ReminderSupply
                      , Javran.WhaleChan.Util
                      , Javran.WhaleChan.TimerThread
+                     , Javran.WhaleChan.TelegramThread
                      , Javran.WhaleChan.Main
   build-depends:       base
                      , text
@@ -58,6 +59,7 @@ executable WhaleChan
   other-modules:       Javran.WhaleChan.Base
                      , Javran.WhaleChan.Main
                      , Javran.WhaleChan.TimerThread
+                     , Javran.WhaleChan.TelegramThread
                      , Javran.WhaleChan.ReoccuringEvents
                      , Javran.WhaleChan.Types
                      , Javran.WhaleChan.Util
