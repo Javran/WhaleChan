@@ -24,6 +24,7 @@ library
                      , Javran.WhaleChan.ReoccuringEvents
                      , Javran.WhaleChan.ReminderSupply
                      , Javran.WhaleChan.Util
+                     , Javran.WhaleChan.TimerThread
                      , Javran.WhaleChan.Main
   build-depends:       base
                      , text
@@ -56,6 +57,7 @@ executable WhaleChan
   main-is:             Main.hs
   other-modules:       Javran.WhaleChan.Base
                      , Javran.WhaleChan.Main
+                     , Javran.WhaleChan.TimerThread
                      , Javran.WhaleChan.ReoccuringEvents
                      , Javran.WhaleChan.Types
                      , Javran.WhaleChan.Util
