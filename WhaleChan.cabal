@@ -1,105 +1,144 @@
-cabal-version:       1.12
-name:                WhaleChan
-version:             0.1.0.0
-synopsis:            Initial project template from stack
-description:         Please see README.md
-homepage:            http://github.com/Javran/WhaleChan#readme
-license:             BSD3
-license-file:        LICENSE
-author:              Javran Cheng
-maintainer:          javran.c@gmail.com
-copyright:           Copyright: (c) 2016 Javran Cheng
-category:            Web
-build-type:          Simple
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.1.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: c72803d7bf929423ebfe1e7b262dfae61876fe30eab4f7a98c634cbc1162c9ae
+
+name:           WhaleChan
+version:        0.1.0.0
+synopsis:       KanColle game-related event reminder and staff account message re-posting bot.
+description:    See README at <https://github.com/Javran/WhaleChan#readme>
+category:       Telegram
+homepage:       https://github.com/Javran/WhaleChan#readme
+bug-reports:    https://github.com/Javran/WhaleChan/issues
+maintainer:     Javran Cheng <javran.c@gmail.com>
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
 
 source-repository head
-  type:     git
+  type: git
   location: https://github.com/Javran/WhaleChan
 
 library
-  hs-source-dirs:      src
-  ghc-options:         -Wall -O2
-  exposed-modules:     Javran.WhaleChan.Types
-                     , Javran.WhaleChan.Base
-                     , Javran.WhaleChan.ReoccuringEvents
-                     , Javran.WhaleChan.ReminderSupply
-                     , Javran.WhaleChan.Util
-                     , Javran.WhaleChan.TimerThread
-                     , Javran.WhaleChan.TelegramThread
-                     , Javran.WhaleChan.Main
-  build-depends:       base
-                     , text
-                     , bytestring
-                     , twitter-conduit
-                     , telegram-api
-                     , authenticate-oauth
-                     , mtl
-                     , servant-client
-                     , http-client
-                     , http-client-tls
-                     , data-default
-                     , containers
-                     , aeson
-                     , yaml
-                     , async
-                     , time
-                     , timezone-olson
-                     , timezone-series
-                     , say
-                     , telegram-api
-                     , http-client
-                     , http-client-tls
-
-  default-language:    Haskell2010
+  exposed-modules:
+      Javran.WhaleChan.Types
+      Javran.WhaleChan.Base
+      Javran.WhaleChan.ReoccuringEvents
+      Javran.WhaleChan.ReminderSupply
+      Javran.WhaleChan.Util
+      Javran.WhaleChan.TimerThread
+      Javran.WhaleChan.TelegramThread
+      Javran.WhaleChan.Main
+  other-modules:
+      Main
+      Paths_WhaleChan
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -O2
+  build-depends:
+      aeson
+    , async
+    , authenticate-oauth
+    , base
+    , bytestring
+    , containers
+    , data-default
+    , http-client
+    , http-client-tls
+    , mtl
+    , say
+    , servant-client
+    , telegram-api
+    , text
+    , time
+    , timezone-olson
+    , timezone-series
+    , twitter-conduit
+    , yaml
+  default-language: Haskell2010
 
 executable WhaleChan
-  hs-source-dirs:      src
-  ghc-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
-  main-is:             Main.hs
-  other-modules:       Javran.WhaleChan.Base
-                     , Javran.WhaleChan.Main
-                     , Javran.WhaleChan.TimerThread
-                     , Javran.WhaleChan.TelegramThread
-                     , Javran.WhaleChan.ReoccuringEvents
-                     , Javran.WhaleChan.Types
-                     , Javran.WhaleChan.Util
-                     , Javran.WhaleChan.ReminderSupply
+  main-is: Main.hs
+  other-modules:
+      Javran.WhaleChan.Base
+      Javran.WhaleChan.Main
+      Javran.WhaleChan.ReminderSupply
+      Javran.WhaleChan.ReoccuringEvents
+      Javran.WhaleChan.TelegramThread
+      Javran.WhaleChan.TimerThread
+      Javran.WhaleChan.Types
+      Javran.WhaleChan.Util
+      Paths_WhaleChan
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      WhaleChan
+    , aeson
+    , async
+    , authenticate-oauth
+    , base
+    , bytestring
+    , containers
+    , data-default
+    , http-client
+    , http-client-tls
+    , mtl
+    , say
+    , servant-client
+    , telegram-api
+    , text
+    , time
+    , timezone-olson
+    , timezone-series
+    , twitter-conduit
+    , yaml
+  default-language: Haskell2010
 
-  build-depends:       base
-                     , text
-                     , bytestring
-                     , twitter-conduit
-                     , telegram-api
-                     , authenticate-oauth
-                     , mtl
-                     , servant-client
-                     , http-client
-                     , http-client-tls
-                     , data-default
-                     , containers
-                     , aeson
-                     , yaml
-                     , async
-                     , time
-                     , timezone-olson
-                     , timezone-series
-                     , WhaleChan
-                     , say
-                     , telegram-api
-                     , http-client
-                     , http-client-tls
-
-  default-language:    Haskell2010
-
-test-suite test
-  hs-source-dirs:      test
-  type:                exitcode-stdio-1.0
-  main-is:             Spec.hs
-  ghc-options:         -Wall
-  build-depends:       base
-                     , WhaleChan
-                     , hspec
-                     , time
-  other-modules:       Javran.WhaleChan.ReoccuringEventsSpec
-                     , Javran.WhaleChan.UtilSpec
-  default-language:    Haskell2010
+test-suite hspec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Javran.WhaleChan.ReoccuringEventsSpec
+      Javran.WhaleChan.UtilSpec
+      Javran.WhaleChan.Base
+      Javran.WhaleChan.Main
+      Javran.WhaleChan.ReminderSupply
+      Javran.WhaleChan.ReoccuringEvents
+      Javran.WhaleChan.TelegramThread
+      Javran.WhaleChan.TimerThread
+      Javran.WhaleChan.Types
+      Javran.WhaleChan.Util
+      Main
+      Paths_WhaleChan
+  hs-source-dirs:
+      test
+      src
+  ghc-options: -Wall -O2 -main-is Spec
+  build-tool-depends:
+      hspec-discover:hspec-discover
+  build-depends:
+      aeson
+    , async
+    , authenticate-oauth
+    , base
+    , bytestring
+    , containers
+    , data-default
+    , hspec
+    , http-client
+    , http-client-tls
+    , mtl
+    , say
+    , servant-client
+    , telegram-api
+    , text
+    , time
+    , timezone-olson
+    , timezone-series
+    , twitter-conduit
+    , yaml
+  default-language: Haskell2010

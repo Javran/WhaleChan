@@ -1,0 +1,63 @@
+name: WhaleChan
+version: 0.1.0.0
+synopsis: KanColle game-related event reminder and staff account message re-posting bot.
+description: See README at <https://github.com/Javran/WhaleChan#readme>
+maintainer: Javran Cheng <javran.c@gmail.com>
+github: Javran/WhaleChan
+category: Telegram
+
+ghc-options: -Wall -O2
+
+dependencies:
+  - base
+  - text
+  - bytestring
+  - twitter-conduit
+  - telegram-api
+  - authenticate-oauth
+  - mtl
+  - servant-client
+  - http-client
+  - http-client-tls
+  - data-default
+  - containers
+  - aeson
+  - yaml
+  - async
+  - time
+  - timezone-olson
+  - timezone-series
+  - say
+  - telegram-api
+  - http-client
+  - http-client-tls
+
+library:
+  source-dirs: src
+  exposed-modules:
+    - Javran.WhaleChan.Types
+    - Javran.WhaleChan.Base
+    - Javran.WhaleChan.ReoccuringEvents
+    - Javran.WhaleChan.ReminderSupply
+    - Javran.WhaleChan.Util
+    - Javran.WhaleChan.TimerThread
+    - Javran.WhaleChan.TelegramThread
+    - Javran.WhaleChan.Main
+
+executable:
+  main: Main.hs
+  source-dirs: src
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  dependencies:
+    - WhaleChan
+
+tests:
+  hspec:
+    main: Spec.hs
+    ghc-options: -main-is Spec
+    source-dirs:
+      - test
+      - src
+    dependencies:
+      - hspec
+    build-tools: hspec-discover
