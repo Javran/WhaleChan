@@ -1,6 +1,13 @@
+{-# LANGUAGE
+    OverloadedStrings
+  #-}
 module Javran.WhaleChan.Util
   ( describeDuration
+  , isYamlFileNotFoundException
   ) where
+
+import Data.List (isPrefixOf)
+import qualified Data.Yaml as Yaml
 
 describeDuration :: Int -> String
 describeDuration seconds
@@ -13,3 +20,10 @@ describeDuration seconds
         mmStr = [ if mm == 1 then "1 minute" else show mm <> " minutes" | mm > 0 ]
         ssStr = [ if ss == 1 then "1 second" else show ss <> " seconds" | ss > 0 ]
     in unwords $ concat [hhStr, mmStr, ssStr]
+
+-- stolen from:
+-- https://github.com/snoyberg/yaml/blob/35f0286d83acf6c27e00cf8edbfc43c841109760/yaml/test/Data/Yaml/IncludeSpec.hs#L131-L134
+isYamlFileNotFoundException :: Yaml.ParseException -> Bool
+isYamlFileNotFoundException (Yaml.InvalidYaml (Just (Yaml.YamlException msg)))
+  | "Yaml file not found: " `isPrefixOf` msg = True
+isYamlFileNotFoundException _ = False
