@@ -31,6 +31,7 @@ dependencies:
   - telegram-api
   - http-client
   - http-client-tls
+  - twitter-types
 
 library:
   source-dirs: src
