@@ -17,7 +17,8 @@ import Web.Telegram.API.Bot
 telegramThread :: Manager -> Chan T.Text -> Token -> Int64 -> IO ()
 telegramThread mgr msgChan tok channelId = forever $ do
     msg <- readChan msgChan
-    let req = SendMessageRequest
+    let Token tokContent = tok
+        req = SendMessageRequest
                 { message_chat_id = ChatId channelId
                 , message_text = msg
                 , message_parse_mode = Nothing
@@ -26,5 +27,6 @@ telegramThread mgr msgChan tok channelId = forever $ do
                 , message_reply_to_message_id = Nothing
                 , message_reply_markup = Nothing
                 }
-    result <- sendMessage tok req mgr
-    print result
+    if T.null tokContent
+      then putStrLn $ "[EmptyToken] send " <> show req
+      else sendMessage tok req mgr >>= print
