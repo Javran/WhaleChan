@@ -29,12 +29,7 @@ import qualified Data.Sequence as Seq
 
   data structure:
 
-  - a sequence of TweetInfo { tweetId, tweetContent, tgSyncInfo }
-  - TgSyncInfo =
-    + Pending (just detected, need to send to telegram thread)
-    + Requested (already sent to telegram thread, waiting for confirmation)
-    + Synced <tgId> (response from telegram thread)
-    + Removing <tgId> (a deleted tweet, need to notify telegram thread)
+  - see below
 
   - all detected tweet or deleted tweet will be sent to telegram thread exactly once,
     we'll notify about failure in log (and will never retry for simplicity)
@@ -49,11 +44,14 @@ import qualified Data.Sequence as Seq
 
  -}
 
+-- for keeping track of sync-state between twitter thread and telegram thread
 data TweetState
   = TSPending -- indicate that a tweet is detected but not yet sent to the channel
   | TSynced Int -- indicate that a tweet is already sent as a telegram message
   | TRemoving Int -- indicate that a tweet is removed but channel is not yet notified
-  | TRemoved Int -- indicate that a tweet is removed and ack-ed with another tg message.
+  | TRemoved -- indicate that a tweet is removed and ack-ed with another tg message.
+      Int {- first one is for the existing tg msg id -}
+      Int {- tg msg id that informs about deletion-}
 
 data TwState = TwState
   { userIconURLHttps :: Maybe URIString
