@@ -1,5 +1,8 @@
 module Javran.WhaleChan.TwitterThread where
 
+import Web.Twitter.Types
+import qualified Data.Sequence as Seq
+
 {-
   design draft:
 
@@ -45,3 +48,14 @@ module Javran.WhaleChan.TwitterThread where
   - tentative limit: lower bound = 512, upper bound = 1024 after correctness can be confirmed.
 
  -}
+
+data TweetState
+  = TSPending -- indicate that a tweet is detected but not yet sent to the channel
+  | TSynced Int -- indicate that a tweet is already sent as a telegram message
+  | TRemoving Int -- indicate that a tweet is removed but channel is not yet notified
+  | TRemoved Int -- indicate that a tweet is removed and ack-ed with another tg message.
+
+data TwState = TwState
+  { userIconURLHttps :: Maybe URIString
+  , tweetStates :: Seq.Seq TweetState
+  }
