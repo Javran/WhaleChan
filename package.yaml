@@ -32,6 +32,7 @@ dependencies:
   - http-client
   - http-client-tls
   - twitter-types
+  - lens
 
 library:
   source-dirs: src

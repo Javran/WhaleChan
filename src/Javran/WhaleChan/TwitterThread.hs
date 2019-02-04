@@ -1,7 +1,14 @@
+{-# LANGUAGE NamedFieldPuns, OverloadedStrings #-}
 module Javran.WhaleChan.TwitterThread where
 
 import Web.Twitter.Types
+import Web.Twitter.Conduit
+import Control.Lens
 import qualified Data.Sequence as Seq
+import qualified Data.ByteString.Char8 as BSC
+import Say
+
+import Javran.WhaleChan.Types
 
 {-
   design draft:
@@ -61,5 +68,32 @@ data TweetState
 
 data TwState = TwState
   { userIconURLHttps :: Maybe URIString
-  , tweetStates :: Seq.Seq TweetState
+  , tweetStates :: Seq.Seq (Status, TweetState)
   }
+
+twitterThread :: Manager -> WEnv -> IO ()
+twitterThread mgr wenv = do
+    let WEnv
+          { twWatchingUserId
+          , twConsumerKey
+          , twConsumerSecret
+          , twOAuthToken
+          , twOAuthSecret
+          } = wenv
+        oauth = twitterOAuth
+                  { oauthConsumerKey = twConsumerKey
+                  , oauthConsumerSecret = twConsumerSecret
+                  }
+        credential = Credential
+                       [ ("oauth_token", BSC.pack twOAuthToken)
+                       , ("oauth_token_secret", BSC.pack twOAuthSecret)
+                       ]
+        twTok = TWToken
+                  oauth
+                  credential
+        twInfo = TWInfo twTok Nothing
+        req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
+                & count ?~ 200
+    res <- call twInfo mgr req
+    sayString $ "[twitter] " <> show res
+    pure ()

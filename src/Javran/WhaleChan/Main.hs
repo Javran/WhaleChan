@@ -22,6 +22,7 @@ import System.Exit
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.TimerThread (timerThread)
 import Javran.WhaleChan.TelegramThread (telegramThread)
+import Javran.WhaleChan.TwitterThread (twitterThread)
 import Javran.WhaleChan.Types
 
 {-
@@ -41,8 +42,10 @@ startService wenv = do
   let WEnv {tgBotToken=botToken, tgChannelId=tgChannelId} = wenv
   aTimer <- async (evalStateT (timerThread ch) M.empty)
   aTg <- async (telegramThread mgr ch botToken tgChannelId)
+  aTw <- async (twitterThread mgr wenv)
   wait aTimer
   wait aTg
+  wait aTw
 
 {-
   events to be implemented:
