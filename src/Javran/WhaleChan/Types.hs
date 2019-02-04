@@ -24,6 +24,7 @@ data WEnv = WEnv
   , twOAuthSecret :: String
   , twWatchingUserId :: Int
   , twThreadStateFile :: FilePath
+  , twTweetIdGreaterThan :: Integer
   , tgBotToken :: Tg.Token
   , tgChannelId :: Int64
   } deriving (Show)
@@ -36,9 +37,10 @@ instance ToJSON WEnv where
                , "twitter-oauth-token" .= twOAuthToken
                , "twitter-oauth-secret" .= twOAuthSecret
                , "twitter-watching-user-id" .= twWatchingUserId
+               , "twitter-thread-state-file" .= twThreadStateFile
+               , "twitter-tweet-id-greater-than" .= twTweetIdGreaterThan
                , "telegram-bot-token" .= tok
                , "telegram-channel-id" .= tgChannelId
-               , "twitter-thread-state-file" .= twThreadStateFile
                ]
 
 instance FromJSON WEnv where
@@ -50,6 +52,7 @@ instance FromJSON WEnv where
             <*> o .: "twitter-oauth-secret"
             <*> o .: "twitter-watching-user-id"
             <*> o .: "twitter-thread-state-file"
+            <*> o .: "twitter-tweet-id-greater-than"
             <*> (Tg.Token <$> o .: "telegram-bot-token")
             <*> o .: "telegram-channel-id"
 

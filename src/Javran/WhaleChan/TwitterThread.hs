@@ -42,6 +42,12 @@ import qualified Data.Sequence as Seq
   - initial limit might be just lower bound = 5, upper bound = 10 to see if it works correctly.
   - tentative limit: lower bound = 512, upper bound = 1024 after correctness can be confirmed.
 
+  starting monitoring:
+
+  - we'll need to start monitoring, but we don't want to
+    flood the channel instantly with all messages we got from twitter,
+    in order to do that, we'll set a minimum number of tweet id,
+    and anything we get lower than that, we'll ignore.
  -}
 
 -- for keeping track of sync-state between twitter thread and telegram thread
