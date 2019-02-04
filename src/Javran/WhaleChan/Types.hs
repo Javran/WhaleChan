@@ -23,9 +23,9 @@ data WEnv = WEnv
   , twOAuthToken :: String
   , twOAuthSecret :: String
   , twWatchingUserId :: Int
+  , twThreadStateFile :: FilePath
   , tgBotToken :: Tg.Token
   , tgChannelId :: Int64
-  , twitterThreadStateFile :: FilePath
   } deriving (Show)
 
 instance ToJSON WEnv where
@@ -38,7 +38,7 @@ instance ToJSON WEnv where
                , "twitter-watching-user-id" .= twWatchingUserId
                , "telegram-bot-token" .= tok
                , "telegram-channel-id" .= tgChannelId
-               , "twitter-thread-state-file" .= twitterThreadStateFile
+               , "twitter-thread-state-file" .= twThreadStateFile
                ]
 
 instance FromJSON WEnv where
@@ -49,9 +49,9 @@ instance FromJSON WEnv where
             <*> o .: "twitter-oauth-token"
             <*> o .: "twitter-oauth-secret"
             <*> o .: "twitter-watching-user-id"
+            <*> o .: "twitter-thread-state-file"
             <*> (Tg.Token <$> o .: "telegram-bot-token")
             <*> o .: "telegram-channel-id"
-            <*> o .: "twitter-thread-state-file"
 
 {-
   EventReminder contains info about the time the event will occur
