@@ -79,6 +79,7 @@ twitterThread mgr wenv = do
           , twConsumerSecret
           , twOAuthToken
           , twOAuthSecret
+          , twTweetIdGreaterThan
           } = wenv
         oauth = twitterOAuth
                   { oauthConsumerKey = twConsumerKey
@@ -94,6 +95,6 @@ twitterThread mgr wenv = do
         twInfo = TWInfo twTok Nothing
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
                 & count ?~ 200
-    res <- call twInfo mgr req
-    sayString $ "[twitter] " <> show res
+    statusList <- takeWhile ((> twTweetIdGreaterThan) . statusId) <$> call twInfo mgr req
+    sayString $ "[twitter] printing status ids: " <> show (statusId <$> statusList)
     pure ()
