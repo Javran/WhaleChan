@@ -2,7 +2,8 @@
 module Javran.WhaleChan.TwitterThread where
 
 import Web.Twitter.Types
-import Web.Twitter.Conduit
+import Web.Twitter.Conduit hiding (count)
+import Web.Twitter.Conduit.Parameters
 import Control.Lens
 import qualified Data.Sequence as Seq
 import qualified Data.ByteString.Char8 as BSC
