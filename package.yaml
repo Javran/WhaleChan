@@ -33,6 +33,7 @@ dependencies:
   - http-client-tls
   - twitter-types
   - lens
+  - data-ordlist
 
 library:
   source-dirs: src

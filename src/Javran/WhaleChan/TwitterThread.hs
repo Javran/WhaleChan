@@ -2,6 +2,7 @@
     NamedFieldPuns
   , OverloadedStrings
   , RecordWildCards
+  , TupleSections
   #-}
 module Javran.WhaleChan.TwitterThread where
 
@@ -9,9 +10,12 @@ import Web.Twitter.Types
 import Web.Twitter.Conduit hiding (count)
 import Web.Twitter.Conduit.Parameters
 import Control.Lens
-import qualified Data.Sequence as Seq
 import qualified Data.ByteString.Char8 as BSC
 import Say
+import Data.List
+import Data.Monoid
+import qualified Data.List.Ordered as LO
+import Data.Ord
 
 import Javran.WhaleChan.Types
 
@@ -65,15 +69,16 @@ import Javran.WhaleChan.Types
 -- for keeping track of sync-state between twitter thread and telegram thread
 data TweetState
   = TSPending -- indicate that a tweet is detected but not yet sent to the channel
-  | TSynced Int -- indicate that a tweet is already sent as a telegram message
-  | TRemoving Int -- indicate that a tweet is removed but channel is not yet notified
-  | TRemoved -- indicate that a tweet is removed and ack-ed with another tg message.
+  | TSSynced Int -- indicate that a tweet is already sent as a telegram message
+  | TSRemoving Int -- indicate that a tweet is removed but channel is not yet notified
+  | TSRemoved -- indicate that a tweet is removed and ack-ed with another tg message.
       Int {- first one is for the existing tg msg id -}
       Int {- tg msg id that informs about deletion-}
 
 data TwState = TwState
   { userIconURLHttps :: Maybe URIString
-  , tweetStates :: Seq.Seq (Status, TweetState)
+    -- status id is in descending order to keep it consistent with twitter API
+  , tweetStates :: [(Status, TweetState)]
   }
 
 getTwInfo :: WEnv -> TWInfo
@@ -103,3 +108,57 @@ twitterThread mgr wenv = do
     statusList <- takeWhile ((> twTweetIdGreaterThan) . statusId) <$> call twInfo mgr req
     sayString $ "[twitter] printing status ids: " <> show (statusId <$> statusList)
     pure ()
+
+-- TODO: for removal we need tgId if possible
+updateTweetStates :: [(Status, TweetState)]
+                  -> [Status]
+                  -> (([Status] {- added -}, [Status] {- removed -}), [(Status, TweetState)])
+updateTweetStates xs [] =
+    -- status list empty, should not happen anyway
+    (([],[]), xs)
+updateTweetStates [] upd =
+    -- a new run. we'll need to sync everything
+    -- this assumes that upd has gone through tweet-id-greater-than filtering
+    -- otherwise we will flood the channel
+    ((upd,[]), (,TSPending) <$> upd)
+updateTweetStates cur upd = case cur' of
+    [] -> ((upd,[]), (,TSPending) <$> upd)
+    _ ->
+      let curMaxId = statusId . fst . head $ cur'
+          curMinId = statusId . fst . last $ cur'
+          updMinId = statusId . last $ upd
+          cmp = flip (comparing statusId)
+          -- remove those old ones (shouldn't be any)
+          upd1 = takeWhile ((>= curMinId) . statusId) upd
+          {-
+            now we have:
+            - updIntersect against cur to determine deleted tweets
+            - updNew which consists of all new updates
+           -}
+          (updIntersect, updNew) = span ((<= curMaxId) . statusId) upd1
+          updDeleted =
+              LO.minusBy cmp
+                (takeWhile ((>= updMinId) . statusId) (fst <$> cur'))
+                updIntersect
+          updatedCur :: [(Status, TweetState)]
+          updatedCur =
+              -- marking detected deletion as deleted
+              appEndo (foldMap markDeleted updNew) cur
+            where
+              markDeleted :: Status -> Endo [(Status, TweetState)]
+              markDeleted s = Endo (f <$>)
+                where
+                  f p@(st, ts)
+                    | statusId st == sId = case ts of
+                        TSPending -> (st, TSRemoved 0 0)
+                        TSSynced tgId -> (st, TSRemoving tgId)
+                        _ -> error "unreachable"
+                    | otherwise = p
+                  sId = statusId s
+      in ((updNew, updDeleted), ((,TSPending) <$> updNew) ++ updatedCur)
+  where
+    stillExist TSRemoving{} = False
+    stillExist TSRemoved{} = False
+    stillExist _ = True
+    -- respect the fact that some tweets have been removed
+    cur' = filter (stillExist . snd) cur
