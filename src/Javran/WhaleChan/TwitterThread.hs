@@ -1,4 +1,8 @@
-{-# LANGUAGE NamedFieldPuns, OverloadedStrings #-}
+{-# LANGUAGE
+    NamedFieldPuns
+  , OverloadedStrings
+  , RecordWildCards
+  #-}
 module Javran.WhaleChan.TwitterThread where
 
 import Web.Twitter.Types
@@ -72,28 +76,28 @@ data TwState = TwState
   , tweetStates :: Seq.Seq (Status, TweetState)
   }
 
+getTwInfo :: WEnv -> TWInfo
+getTwInfo WEnv{..} = TWInfo twTok Nothing
+  where
+    oauth = twitterOAuth
+              { oauthConsumerKey = twConsumerKey
+              , oauthConsumerSecret = twConsumerSecret
+              }
+    credential = Credential
+                 [ ("oauth_token", BSC.pack twOAuthToken)
+                 , ("oauth_token_secret", BSC.pack twOAuthSecret)
+                 ]
+    twTok = TWToken
+              oauth
+              credential
+
 twitterThread :: Manager -> WEnv -> IO ()
 twitterThread mgr wenv = do
     let WEnv
           { twWatchingUserId
-          , twConsumerKey
-          , twConsumerSecret
-          , twOAuthToken
-          , twOAuthSecret
           , twTweetIdGreaterThan
           } = wenv
-        oauth = twitterOAuth
-                  { oauthConsumerKey = twConsumerKey
-                  , oauthConsumerSecret = twConsumerSecret
-                  }
-        credential = Credential
-                       [ ("oauth_token", BSC.pack twOAuthToken)
-                       , ("oauth_token_secret", BSC.pack twOAuthSecret)
-                       ]
-        twTok = TWToken
-                  oauth
-                  credential
-        twInfo = TWInfo twTok Nothing
+        twInfo = getTwInfo wenv
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
                 & count ?~ 200
     statusList <- takeWhile ((> twTweetIdGreaterThan) . statusId) <$> call twInfo mgr req
