@@ -109,7 +109,20 @@ twitterThread mgr wenv = do
     sayString $ "[twitter] printing status ids: " <> show (statusId <$> statusList)
     pure ()
 
--- TODO: for removal we need tgId if possible
+{-
+  it might be tempting to use the streaming api, but setting it up is a mess, so, no.
+
+  design assumptions:
+
+  - should tolerate several hours of downtime and we should still be able to catch up
+  - however, to avoid flooding the channel, a sensible tweet-id-greater-than must be picked
+    prior to execution.
+
+
+  - TODO: should we use IntMap?
+
+ -}
+
 updateTweetStates :: [(Status, TweetState)]
                   -> [Status]
                   -> (([Status] {- added -}, [Status] {- removed -}), [(Status, TweetState)])
