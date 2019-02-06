@@ -2,7 +2,6 @@
     NamedFieldPuns
   , OverloadedStrings
   , RecordWildCards
-  , TupleSections
   #-}
 module Javran.WhaleChan.TwitterThread where
 
@@ -12,10 +11,8 @@ import Web.Twitter.Conduit.Parameters
 import Control.Lens
 import qualified Data.ByteString.Char8 as BSC
 import Say
-import Data.List
 import Data.Monoid
-import qualified Data.List.Ordered as LO
-import Data.Ord
+import qualified Data.Map.Strict as M
 
 import Javran.WhaleChan.Types
 
@@ -67,7 +64,7 @@ import Javran.WhaleChan.Types
  -}
 
 -- for keeping track of sync-state between twitter thread and telegram thread
-data TweetState
+data TweetSyncState
   = TSPending -- indicate that a tweet is detected but not yet sent to the channel
   | TSSynced Int -- indicate that a tweet is already sent as a telegram message
   | TSRemoving Int -- indicate that a tweet is removed but channel is not yet notified
@@ -76,10 +73,12 @@ data TweetState
       Int {- tg msg id that informs about deletion-}
   | TSDrop -- a TSPending message is not yet synced, so its deleted form has to be dropped
 
+type TweetTracks = M.Map Integer (Status, TweetSyncState)
+
 data TwState = TwState
   { userIconURLHttps :: Maybe URIString
     -- status id is in descending order to keep it consistent with twitter API
-  , tweetStates :: [(Status, TweetState)]
+  , tweetTracks :: TweetTracks
   }
 
 getTwInfo :: WEnv -> TWInfo
@@ -119,61 +118,72 @@ twitterThread mgr wenv = do
   - however, to avoid flooding the channel, a sensible tweet-id-greater-than must be picked
     prior to execution.
 
+  - more often than not we expect update and cur track to have overlaps,
+    this is based on the idea that a single user won't be able
+    to add or delete >200 tweets during a interval, which should be fairly safe assumption.
 
   - TODO: should we use IntMap?
 
  -}
 
-updateTweetStates :: [(Status, TweetState)]
+updateTweetStates :: TweetTracks
                   -> [Status]
-                  -> (([Status] {- added -}, [Status] {- removed -}), [(Status, TweetState)])
-updateTweetStates xs [] =
-    -- status list empty, should not happen anyway
-    (([],[]), xs)
-updateTweetStates [] upd =
-    -- a new run. we'll need to sync everything
-    -- this assumes that upd has gone through tweet-id-greater-than filtering
-    -- otherwise we will flood the channel
-    ((upd,[]), (,TSPending) <$> upd)
-updateTweetStates cur upd = case cur' of
-    [] -> ((upd,[]), (,TSPending) <$> upd)
-    _ ->
-      let curMaxId = statusId . fst . head $ cur'
-          curMinId = statusId . fst . last $ cur'
+                  -> (([Status] {- added -}, [(Status, Maybe Int)] {- removed -}), TweetTracks)
+updateTweetStates tt upd
+  | null upd =
+      -- status list empty, should not happen anyway
+      (([],[]), tt)
+  | null tt' =
+      -- a new run, or in an almost impossible case
+      -- that all recorded tweets are deleted during the interval.
+      -- in short we'll need to sync everything.
+      -- this assumes that upd has gone through tweet-id-greater-than filtering
+      -- otherwise we will flood the channel
+      let mk s = (statusId s, (s, TSPending))
+      in ((upd,[]), M.fromList (mk <$> upd))
+  | otherwise =
+      -- note that we are using tt rather than tt' here to figure out the correct window
+      let ((ttMinId,_),(ttMaxId,_)) = (M.findMin tt, M.findMax tt)
           updMinId = statusId . last $ upd
-          cmp = flip (comparing statusId)
-          -- remove those old ones (shouldn't be any)
-          upd1 = takeWhile ((>= curMinId) . statusId) upd
+          effMinId = max updMinId ttMinId -- effective minId for the window
+          -- keep only new ones that could intersect with existing records
+          upd1 = takeWhile ((>= effMinId) . statusId) upd
           {-
             now we have:
-            - updIntersect against cur to determine deleted tweets
+            - updIntersect, for comparing against tt to determine deleted tweets
             - updNew which consists of all new updates
            -}
-          (updIntersect, updNew) = span ((<= curMaxId) . statusId) upd1
-          updDeleted =
-              LO.minusBy cmp
-                (takeWhile ((>= updMinId) . statusId) (fst <$> cur'))
-                updIntersect
-          updatedCur :: [(Status, TweetState)]
-          updatedCur =
-              -- marking detected deletion as deleted
-              appEndo (foldMap markDeleted updNew) cur
+          (updIntersect, updNew) = span ((<=ttMaxId).statusId) upd1
+          -- prepare intersect by zooming into the window
+          ttIntersect =
+            M.filter
+              (\(s,ts) ->
+                 stillExist ts &&
+                 let sId = statusId s in sId >= effMinId && sId <= ttMaxId)
+              tt
+          ttToDelete = appEndo (foldMap (Endo . M.delete . statusId) updIntersect) ttIntersect
+          convertDelMark (s,ts) = case ts of
+            TSSynced v -> (s, Just v)
+            _ -> (s, Nothing)
+          -- marking deletion
+          tt1 = appEndo (foldMap mark ttToDelete) tt
             where
-              markDeleted :: Status -> Endo [(Status, TweetState)]
-              markDeleted s = Endo (f <$>)
+              mark :: (Status, TweetSyncState) -> Endo TweetTracks
+              mark (s, ts) = Endo (M.insert k (s,ts'))
                 where
-                  f p@(st, ts)
-                    | statusId st == sId = case ts of
-                        TSPending -> (st, TSDrop)
-                        TSSynced tgId -> (st, TSRemoving tgId)
-                        _ -> error "unreachable"
-                    | otherwise = p
-                  sId = statusId s
-      in ((updNew, updDeleted), ((,TSPending) <$> updNew) ++ updatedCur)
+                  k = statusId s
+                  ts' = case ts of
+                    TSPending -> TSDrop
+                    TSSynced v -> TSRemoving v
+                    _ -> error "unreachable" -- because of "stillExist" predicate.
+          -- inserting new upd
+          mk s = (statusId s, (s, TSPending))
+          tt2 = tt1 <> M.fromList (mk <$> updNew)
+      in ((updNew, convertDelMark <$> M.elems ttToDelete),tt2)
   where
     stillExist TSRemoving{} = False
     stillExist TSRemoved{} = False
     stillExist TSDrop{} = False
     stillExist _ = True
     -- respect the fact that some tweets have been removed
-    cur' = filter (stillExist . snd) cur
+    tt' = M.filter (stillExist . snd) tt
