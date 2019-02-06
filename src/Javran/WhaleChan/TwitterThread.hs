@@ -74,6 +74,7 @@ data TweetState
   | TSRemoved -- indicate that a tweet is removed and ack-ed with another tg message.
       Int {- first one is for the existing tg msg id -}
       Int {- tg msg id that informs about deletion-}
+  | TSDrop -- a TSPending message is not yet synced, so its deleted form has to be dropped
 
 data TwState = TwState
   { userIconURLHttps :: Maybe URIString
@@ -163,7 +164,7 @@ updateTweetStates cur upd = case cur' of
                 where
                   f p@(st, ts)
                     | statusId st == sId = case ts of
-                        TSPending -> (st, TSRemoved 0 0)
+                        TSPending -> (st, TSDrop)
                         TSSynced tgId -> (st, TSRemoving tgId)
                         _ -> error "unreachable"
                     | otherwise = p
@@ -172,6 +173,7 @@ updateTweetStates cur upd = case cur' of
   where
     stillExist TSRemoving{} = False
     stillExist TSRemoved{} = False
+    stillExist TSDrop{} = False
     stillExist _ = True
     -- respect the fact that some tweets have been removed
     cur' = filter (stillExist . snd) cur
