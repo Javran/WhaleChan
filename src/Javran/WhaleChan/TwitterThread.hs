@@ -103,9 +103,6 @@ getTwInfo WEnv{..} = TWInfo twTok Nothing
 oneSec :: Int
 oneSec = 1000000
 
--- TODO: at some point in time we should peek into header just to make sure
--- rate-limit is okay
-
 twitterThread :: Manager -> WEnv -> IO ()
 twitterThread mgr wenv = do
     let WEnv
@@ -117,9 +114,17 @@ twitterThread mgr wenv = do
                 & count ?~ 200
 
     fix (\redo curState -> do
-        statusList <- takeWhile ((> twTweetIdGreaterThan) . statusId) <$> call twInfo mgr req
-        let ((tCreated, tDeleted), nextState) = curState `updateTweetStates` statusList
-        -- sayString $ "[twitter] printing status ids: " <> show (statusId <$> statusList)
+        Response{..} <- callWithResponse twInfo mgr req
+        let statusList = takeWhile ((> twTweetIdGreaterThan) . statusId) responseBody
+            ((tCreated, tDeleted), nextState) = curState `updateTweetStates` statusList
+            [rlLimit,rlRemaining,rlReset] =
+              (`Prelude.lookup` responseHeaders) <$>
+                  [ "x-rate-limit-limit"
+                  , "x-rate-limit-remaining"
+                  , "x-rate-limit-reset"
+                  ]
+        sayString $ "[tw] rate limit: " <> show rlRemaining <> " / " <> show rlLimit <>
+                    " reset=" <> show rlReset
         sayString $ "[tw] created: " <> show (length tCreated) <>
                     ", deleted: " <> show (length tDeleted)
         threadDelay $ 5 * oneSec
@@ -142,6 +147,10 @@ twitterThread mgr wenv = do
 
   - TODO: should we use IntMap?
 
+  - TODO: pending tweets are being counted as new tweets
+  - TODO: tweet deletion would be considered adding one "created"..
+  - TODO: guess we have to record last known timestamp
+    instead of figuring out the intersection
  -}
 
 updateTweetStates :: TweetTracks
