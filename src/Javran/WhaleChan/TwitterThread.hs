@@ -96,6 +96,8 @@ getTwInfo WEnv{..} = TWInfo twTok Nothing
               oauth
               credential
 
+-- TODO: at some point in time we should peek into header just to make sure
+-- rate-limit is okay
 twitterThread :: Manager -> WEnv -> IO ()
 twitterThread mgr wenv = do
     let WEnv
