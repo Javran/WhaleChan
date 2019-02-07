@@ -2,6 +2,7 @@
     NamedFieldPuns
   , OverloadedStrings
   , RecordWildCards
+  , ScopedTypeVariables
   #-}
 module Javran.WhaleChan.TwitterThread where
 
@@ -12,7 +13,9 @@ import Control.Lens
 import qualified Data.ByteString.Char8 as BSC
 import Say
 import Data.Monoid
+import Data.Function
 import qualified Data.Map.Strict as M
+import Control.Concurrent
 
 import Javran.WhaleChan.Types
 
@@ -96,8 +99,13 @@ getTwInfo WEnv{..} = TWInfo twTok Nothing
               oauth
               credential
 
+
+oneSec :: Int
+oneSec = 1000000
+
 -- TODO: at some point in time we should peek into header just to make sure
 -- rate-limit is okay
+
 twitterThread :: Manager -> WEnv -> IO ()
 twitterThread mgr wenv = do
     let WEnv
@@ -107,9 +115,17 @@ twitterThread mgr wenv = do
         twInfo = getTwInfo wenv
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
                 & count ?~ 200
-    statusList <- takeWhile ((> twTweetIdGreaterThan) . statusId) <$> call twInfo mgr req
-    sayString $ "[twitter] printing status ids: " <> show (statusId <$> statusList)
-    pure ()
+
+    fix (\redo curState -> do
+        statusList <- takeWhile ((> twTweetIdGreaterThan) . statusId) <$> call twInfo mgr req
+        let ((tCreated, tDeleted), nextState) = curState `updateTweetStates` statusList
+        -- sayString $ "[twitter] printing status ids: " <> show (statusId <$> statusList)
+        sayString $ "[tw] created: " <> show (length tCreated) <>
+                    ", deleted: " <> show (length tDeleted)
+        threadDelay $ 5 * oneSec
+        redo nextState
+      ) M.empty
+
 
 {-
   it might be tempting to use the streaming api, but setting it up is a mess, so, no.
