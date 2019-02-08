@@ -124,7 +124,7 @@ twitterThread mgr wenv tgChan _twChan = do
               however, the tg-sync should check twTweetIdGreaterThan
               and turn TSPending to TSTimedOut to prevent flooding the channel
              -}
-          -- , twTweetIdGreaterThan
+          , twTweetIdGreaterThan
           } = wenv
         twInfo = getTwInfo wenv
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
@@ -155,7 +155,9 @@ twitterThread mgr wenv tgChan _twChan = do
             intercalate "," (show . statusId <$> tCreated)
           forM_ tCreated $ \st -> do
             let content = "[tw] " <> statusText st
-            writeChan tgChan (TgRMTweetCreate content)
+            -- TODO: set TSTimedOut
+            when (statusId st > twTweetIdGreaterThan) $
+              writeChan tgChan (TgRMTweetCreate content)
         unless (null tDeleted) $ do
           sayString $ "[tw] deleted tweets: " <>
             intercalate "," (show . statusId . fst <$> tDeleted)
