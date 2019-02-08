@@ -20,6 +20,7 @@ import Data.List
 import qualified Data.Map.Strict as M
 import Control.Concurrent
 import Control.Monad
+import Control.Arrow
 import qualified Data.Sequence as Seq
 
 import Javran.WhaleChan.Types
@@ -143,10 +144,23 @@ twitterThread mgr wenv tgChan twMVar = do
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
                 & count ?~ 200
 
-    fix (\redo curState -> do
+    fix (\redo curStatePrev -> do
+        mQueue <- swapMVar twMVar Seq.empty
         -- TODO: check message box ... but first we need a non-blocking readChan ...
         Response{..} <- callWithResponse twInfo mgr req
-        let statusList = responseBody
+        let -- handle received messages
+            curState = appEndo (foldMap (Endo . performUpdate) mQueue) curStatePrev
+              where
+                performUpdate :: TwRxMsg -> TweetTracks -> TweetTracks
+                performUpdate (TwRMTgSent tgMsgId twStId) =
+                    M.adjust
+                      (second $ \case
+                          TSPending -> TSSynced tgMsgId
+                          TSRemoving v -> TSRemoved v tgMsgId
+                          x -> x
+                      )
+                      twStId
+            statusList = responseBody
             ((tCreated, tDeleted), nextState) = curState `updateTweetStates` statusList
             [rlLimit,rlRemaining,_rlReset] =
               ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders) <$>
@@ -170,12 +184,12 @@ twitterThread mgr wenv tgChan twMVar = do
             let content = "[tw] " <> statusText st
             -- TODO: set TSTimedOut
             when (statusId st > twTweetIdGreaterThan) $
-              writeChan tgChan (TgRMTweetCreate content)
+              writeChan tgChan (TgRMTweetCreate (statusId st) content)
         unless (null tDeleted) $ do
           sayString $ "[tw] deleted tweets: " <>
             intercalate "," (show . statusId . fst <$> tDeleted)
           forM_ tDeleted $ \case
-            (_, Just msgId) -> writeChan tgChan (TgRMTweetDestroy msgId)
+            (st, Just msgId) -> writeChan tgChan (TgRMTweetDestroy (statusId st) msgId)
             _ -> pure ()
         threadDelay $ 5 * oneSec
         redo nextState

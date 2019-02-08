@@ -27,15 +27,15 @@ telegramThread mgr msgChan twMVar tok@(Token tokContent) channelId = forever $ d
       then sayString $ "[tg] EmptyToken. Received request: " <> show msg
       else case msg of
         TgRMTimer t -> sendMessageSimple t Nothing >>= print
-        TgRMTweetCreate t ->
+        TgRMTweetCreate stId t ->
             sendMessageSimple t Nothing >>= \case
               Right Response {result = Message {message_id}} ->
-                putTwMsg twMVar (TwRMTgSent message_id)
+                putTwMsg twMVar (TwRMTgSent message_id stId)
               Left err -> sayString $ "[tg] error: " <> displayException err
-        TgRMTweetDestroy msgId ->
+        TgRMTweetDestroy stId msgId ->
             sendMessageSimple "This tweet is deleted." (Just msgId) >>= \case
               Right Response {result = Message {message_id}} ->
-                putTwMsg twMVar (TwRMTgSent message_id)
+                putTwMsg twMVar (TwRMTgSent message_id stId)
               Left err -> sayString $ "[tg] error: " <> displayException err
   where
     sendMessageSimple msg replyTo = sendMessage tok req mgr
