@@ -4,6 +4,7 @@
   , RecordWildCards
   , ScopedTypeVariables
   , TypeApplications
+  , LambdaCase
   #-}
 module Javran.WhaleChan.TwitterThread where
 
@@ -108,8 +109,9 @@ getTwInfo WEnv{..} = TWInfo twTok Nothing
 oneSec :: Int
 oneSec = 1000000
 
+-- TODO: we'll probably just use MVar to hold a List to avoid blocking readChan.
 twitterThread :: Manager -> WEnv -> Chan TgRxMsg -> Chan TwRxMsg -> IO ()
-twitterThread mgr wenv tgChan twChan = do
+twitterThread mgr wenv tgChan _twChan = do
     let WEnv
           { twWatchingUserId
             {-
@@ -129,6 +131,7 @@ twitterThread mgr wenv tgChan twChan = do
                 & count ?~ 200
 
     fix (\redo curState -> do
+        -- TODO: check message box ... but first we need a non-blocking readChan ...
         Response{..} <- callWithResponse twInfo mgr req
         let statusList = responseBody
                -- takeWhile ((> twTweetIdGreaterThan) . statusId) responseBody
@@ -147,12 +150,18 @@ twitterThread mgr wenv tgChan twChan = do
           _ -> pure ()
         sayString $ "[tw] created: " <> show (length tCreated) <>
                     ", deleted: " <> show (length tDeleted)
-        unless (null tCreated) $
+        unless (null tCreated) $ do
           sayString $ "[tw] created tweets: " <>
             intercalate "," (show . statusId <$> tCreated)
-        unless (null tDeleted) $
+          forM_ tCreated $ \st -> do
+            let content = "[tw] " <> statusText st
+            writeChan tgChan (TgRMTweetCreate content)
+        unless (null tDeleted) $ do
           sayString $ "[tw] deleted tweets: " <>
             intercalate "," (show . statusId . fst <$> tDeleted)
+          forM_ tDeleted $ \case
+            (_, Just msgId) -> writeChan tgChan (TgRMTweetDestroy msgId)
+            _ -> pure ()
         threadDelay $ 5 * oneSec
         redo nextState
       ) M.empty
