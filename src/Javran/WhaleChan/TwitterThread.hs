@@ -108,8 +108,8 @@ getTwInfo WEnv{..} = TWInfo twTok Nothing
 oneSec :: Int
 oneSec = 1000000
 
-twitterThread :: Manager -> WEnv -> IO ()
-twitterThread mgr wenv = do
+twitterThread :: Manager -> WEnv -> Chan TgRxMsg -> Chan TwRxMsg -> IO ()
+twitterThread mgr wenv tgChan twChan = do
     let WEnv
           { twWatchingUserId
             {-
