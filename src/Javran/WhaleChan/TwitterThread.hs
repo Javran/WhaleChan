@@ -3,6 +3,7 @@
   , OverloadedStrings
   , RecordWildCards
   , ScopedTypeVariables
+  , TypeApplications
   #-}
 module Javran.WhaleChan.TwitterThread where
 
@@ -132,15 +133,22 @@ twitterThread mgr wenv = do
         let statusList = responseBody
                -- takeWhile ((> twTweetIdGreaterThan) . statusId) responseBody
             ((tCreated, tDeleted), nextState) = curState `updateTweetStates` statusList
-            [rlLimit,rlRemaining,rlReset] =
-              (`Prelude.lookup` responseHeaders) <$>
+            [rlLimit,rlRemaining,_rlReset] =
+              ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders) <$>
                   [ "x-rate-limit-limit"
                   , "x-rate-limit-remaining"
                   , "x-rate-limit-reset"
                   ]
-        sayString $ "[tw] API result length=" <> show (length statusList)
+        {-
         sayString $ "[tw] rate limit: " <> show rlRemaining <> " / " <> show rlLimit <>
                     " reset=" <> show rlReset
+         -}
+        case (rlRemaining, rlLimit) of
+          (Just rRem, Just rLim)
+            | rRem * 5 < rLim ->
+              -- rRem / rLim < 20%=1/5 => 5 * rem < lim
+              sayString "[tw] warning: rate limit availability < 20%"
+          _ -> pure ()
         sayString $ "[tw] created: " <> show (length tCreated) <>
                     ", deleted: " <> show (length tDeleted)
         unless (null tCreated) $
@@ -149,9 +157,11 @@ twitterThread mgr wenv = do
         unless (null tDeleted) $
           sayString $ "[tw] deleted tweets: " <>
             intercalate "," (show . statusId . fst <$> tDeleted)
+        {-
         sayString "[tw] dumping state:"
         forM_ (M.toAscList nextState) $ \(_, (ts, s)) ->
           sayString $ "[tw] >> " <> show (statusId ts) <> ", " <> show s
+         -}
         threadDelay $ 5 * oneSec
         redo nextState
       ) M.empty
