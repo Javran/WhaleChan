@@ -127,7 +127,7 @@ reminderSupplies =
 
 type TimerM a = StateT (M.Map TypeRep EventReminder) IO a
 
-timerThread :: Chan T.Text -> TimerM ()
+timerThread :: Chan TgRxMsg -> TimerM ()
 timerThread tgMsgChan = do
     tzPt <- liftIO $ getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
     tzs <- liftIO $ getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
@@ -193,7 +193,7 @@ timerThread tgMsgChan = do
         sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
         sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
         let tgMsg = "Reminder: " <> T.pack (show tyRep) <> " Remaining time: " <> T.pack timeStr
-        writeChan tgMsgChan tgMsg
+        writeChan tgMsgChan (TgRMTimer tgMsg)
       -- re-stock EventReminder here
       restockReminders
 

@@ -16,6 +16,7 @@ import Data.Time.LocalTime.TimeZone.Series
 import Data.Aeson
 import Data.Typeable
 import Data.Int (Int64)
+import qualified Data.Text as T
 
 data WEnv = WEnv
   { twConsumerKey :: BS.ByteString
@@ -74,3 +75,13 @@ class ReminderSupply (r :: k) where
 
 data EReminderSupply =
   forall rs. (ReminderSupply rs, Typeable rs) => ERS (Proxy rs)
+
+-- messages received by TelegramThread
+data TgRxMsg
+  = TgRMTimer T.Text -- sent from timer
+  | TgRMTweetCreate T.Text -- sent from twitter
+  | TgRMTweetDestroy Int -- sent from twitter
+  deriving (Show)
+
+newtype TwRxMsg
+  = TwRMTgSent Int -- sent from telegram to notify that a message has been sent
