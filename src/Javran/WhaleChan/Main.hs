@@ -22,7 +22,7 @@ import System.Exit
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.TimerThread (timerThread)
 import Javran.WhaleChan.TelegramThread (telegramThread)
-import Javran.WhaleChan.TwitterThread (twitterThread)
+import Javran.WhaleChan.TwitterThread (twitterThread, createTwMVar)
 import Javran.WhaleChan.Types
 
 {-
@@ -40,7 +40,7 @@ startService wenv = do
   mgr <- newManager tlsManagerSettings
   -- TODO: this is messy, consider packing channels with a Reader
   chTg <- newChan
-  chTw <- newChan
+  chTw <- createTwMVar
   let WEnv {tgBotToken=botToken, tgChannelId=tgChannelId} = wenv
   aTimer <- async (evalStateT (timerThread chTg) M.empty)
   aTg <- async (telegramThread mgr chTg chTw botToken tgChannelId)

@@ -18,9 +18,10 @@ import Network.HTTP.Client (Manager)
 import Web.Telegram.API.Bot
 import Javran.WhaleChan.Types
 import Say
+import Javran.WhaleChan.TwitterThread
 
-telegramThread :: Manager -> Chan TgRxMsg -> Chan TwRxMsg -> Token -> Int64 -> IO ()
-telegramThread mgr msgChan twMsgChan tok@(Token tokContent) channelId = forever $ do
+telegramThread :: Manager -> Chan TgRxMsg -> TwMVar -> Token -> Int64 -> IO ()
+telegramThread mgr msgChan twMVar tok@(Token tokContent) channelId = forever $ do
     msg <- readChan msgChan
     if T.null tokContent
       then sayString $ "[tg] EmptyToken. Received request: " <> show msg
@@ -29,12 +30,12 @@ telegramThread mgr msgChan twMsgChan tok@(Token tokContent) channelId = forever 
         TgRMTweetCreate t ->
             sendMessageSimple t Nothing >>= \case
               Right Response {result = Message {message_id}} ->
-                writeChan twMsgChan (TwRMTgSent message_id)
+                putTwMsg twMVar (TwRMTgSent message_id)
               Left err -> sayString $ "[tg] error: " <> displayException err
         TgRMTweetDestroy msgId ->
             sendMessageSimple "This tweet is deleted." (Just msgId) >>= \case
               Right Response {result = Message {message_id}} ->
-                writeChan twMsgChan (TwRMTgSent message_id)
+                putTwMsg twMVar (TwRMTgSent message_id)
               Left err -> sayString $ "[tg] error: " <> displayException err
   where
     sendMessageSimple msg replyTo = sendMessage tok req mgr

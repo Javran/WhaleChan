@@ -20,6 +20,7 @@ import Data.List
 import qualified Data.Map.Strict as M
 import Control.Concurrent
 import Control.Monad
+import qualified Data.Sequence as Seq
 
 import Javran.WhaleChan.Types
 
@@ -109,9 +110,21 @@ getTwInfo WEnv{..} = TWInfo twTok Nothing
 oneSec :: Int
 oneSec = 1000000
 
+type TwMVar = MVar (Seq.Seq TwRxMsg)
+
+createTwMVar :: IO TwMVar
+createTwMVar = newMVar Seq.empty
+
+-- https://ghc.haskell.org/trac/ghc/ticket/14810 always takeX then putX ?
+putTwMsg :: TwMVar -> TwRxMsg -> IO ()
+putTwMsg mv m =
+  -- only atomic when there's no other producer
+  -- in this case only tg thread talks to tw thread
+  modifyMVar_ mv (pure . (Seq.|> m))
+
 -- TODO: we'll probably just use MVar to hold a List to avoid blocking readChan.
-twitterThread :: Manager -> WEnv -> Chan TgRxMsg -> Chan TwRxMsg -> IO ()
-twitterThread mgr wenv tgChan _twChan = do
+twitterThread :: Manager -> WEnv -> Chan TgRxMsg -> TwMVar -> IO ()
+twitterThread mgr wenv tgChan twMVar = do
     let WEnv
           { twWatchingUserId
             {-
@@ -134,7 +147,6 @@ twitterThread mgr wenv tgChan _twChan = do
         -- TODO: check message box ... but first we need a non-blocking readChan ...
         Response{..} <- callWithResponse twInfo mgr req
         let statusList = responseBody
-               -- takeWhile ((> twTweetIdGreaterThan) . statusId) responseBody
             ((tCreated, tDeleted), nextState) = curState `updateTweetStates` statusList
             [rlLimit,rlRemaining,_rlReset] =
               ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders) <$>
@@ -148,8 +160,9 @@ twitterThread mgr wenv tgChan _twChan = do
               -- rRem / rLim < 20%=1/5 => 5 * rem < lim
               sayString "[tw] warning: rate limit availability < 20%"
           _ -> pure ()
-        sayString $ "[tw] created: " <> show (length tCreated) <>
-                    ", deleted: " <> show (length tDeleted)
+        when (length tCreated + length tDeleted > 0) $
+          sayString $ "[tw] created: " <> show (length tCreated) <>
+                      ", deleted: " <> show (length tDeleted)
         unless (null tCreated) $ do
           sayString $ "[tw] created tweets: " <>
             intercalate "," (show . statusId <$> tCreated)
