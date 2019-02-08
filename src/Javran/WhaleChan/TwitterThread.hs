@@ -14,8 +14,10 @@ import qualified Data.ByteString.Char8 as BSC
 import Say
 import Data.Monoid
 import Data.Function
+import Data.List
 import qualified Data.Map.Strict as M
 import Control.Concurrent
+import Control.Monad
 
 import Javran.WhaleChan.Types
 
@@ -75,6 +77,7 @@ data TgSyncState
       Int {- first one is for the existing tg msg id -}
       Int {- tg msg id that informs about deletion-}
   | TSDrop -- a TSPending message is not yet synced, so its deleted form has to be dropped
+    deriving (Show)
 
 type TweetTracks = M.Map Integer (Status, TgSyncState)
 
@@ -111,7 +114,7 @@ twitterThread mgr wenv = do
           } = wenv
         twInfo = getTwInfo wenv
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
-                & count ?~ 200
+                & count ?~ 20 -- 200 TODO: for sake of debugging
 
     fix (\redo curState -> do
         Response{..} <- callWithResponse twInfo mgr req
@@ -123,10 +126,20 @@ twitterThread mgr wenv = do
                   , "x-rate-limit-remaining"
                   , "x-rate-limit-reset"
                   ]
+        sayString $ "[tw] API result length=" <> show (length statusList)
         sayString $ "[tw] rate limit: " <> show rlRemaining <> " / " <> show rlLimit <>
                     " reset=" <> show rlReset
         sayString $ "[tw] created: " <> show (length tCreated) <>
                     ", deleted: " <> show (length tDeleted)
+        unless (null tCreated) $
+          sayString $ "[tw] created tweets: " <>
+            intercalate "," (show . statusId <$> tCreated)
+        unless (null tDeleted) $
+          sayString $ "[tw] deleted tweets: " <>
+            intercalate "," (show . statusId . fst <$> tDeleted)
+        sayString "[tw] dumping state:"
+        forM_ (M.toAscList nextState) $ \(_, (ts, s)) ->
+          sayString $ "[tw] >> " <> show (statusId ts) <> ", " <> show s
         threadDelay $ 5 * oneSec
         redo nextState
       ) M.empty
@@ -149,10 +162,7 @@ twitterThread mgr wenv = do
     messages (messages that are too old to be part of the comparison), which means
     the latest from the state is the latest id we've seen so far.
 
-  - TODO: should we use IntMap?
-
-  - TODO: pending tweets are being counted as new tweets
-  - TODO: tweet deletion would be considered adding one "created"..
+  - TODO: deleted tweets are not being detected
 
  -}
 
@@ -184,8 +194,11 @@ updateTweetStates tt upd
             now we have:
             - updIntersect, for comparing against tt to determine deleted tweets
             - updNew which consists of all new updates
+
+            note that upd and upd1 are in descending order of status id,
+            so upd1 has to be split in this way into updNew and updIntersect
            -}
-          (updIntersect, updNew) = span ((<= ttMaxId) . statusId) upd1
+          (updNew, updIntersect) = span ((> ttMaxId) . statusId) upd1
 
           stillExist TSRemoving {} = False
           stillExist TSRemoved {} = False
