@@ -72,6 +72,7 @@ import Javran.WhaleChan.Types
 data TgSyncState
   = TSPending -- indicate that a tweet is detected but not yet sent to the channel
   | TSSynced Int -- indicate that a tweet is already sent as a telegram message
+  | TSTimedOut -- tweets acknowledged without syncing to tg (<= tweet-id-greater-than)
   | TSRemoving Int -- indicate that a tweet is removed but channel is not yet notified
   | TSRemoved -- indicate that a tweet is removed and ack-ed with another tg message.
       Int {- first one is for the existing tg msg id -}
@@ -110,15 +111,26 @@ twitterThread :: Manager -> WEnv -> IO ()
 twitterThread mgr wenv = do
     let WEnv
           { twWatchingUserId
-          , twTweetIdGreaterThan
+            {-
+              it is intentional that
+              this value is ignored for the creation / deletion detection,
+              as we really need some "old" data so that the comparing process
+              know how to align update list with current state in order to
+              detect deletion.
+
+              however, the tg-sync should check twTweetIdGreaterThan
+              and turn TSPending to TSTimedOut to prevent flooding the channel
+             -}
+          -- , twTweetIdGreaterThan
           } = wenv
         twInfo = getTwInfo wenv
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
-                & count ?~ 20 -- 200 TODO: for sake of debugging
+                & count ?~ 200
 
     fix (\redo curState -> do
         Response{..} <- callWithResponse twInfo mgr req
-        let statusList = takeWhile ((> twTweetIdGreaterThan) . statusId) responseBody
+        let statusList = responseBody
+               -- takeWhile ((> twTweetIdGreaterThan) . statusId) responseBody
             ((tCreated, tDeleted), nextState) = curState `updateTweetStates` statusList
             [rlLimit,rlRemaining,rlReset] =
               (`Prelude.lookup` responseHeaders) <$>
@@ -144,7 +156,6 @@ twitterThread mgr wenv = do
         redo nextState
       ) M.empty
 
-
 {-
   it might be tempting to use the streaming api, but setting it up is a mess, so, no.
 
@@ -162,8 +173,6 @@ twitterThread mgr wenv = do
     messages (messages that are too old to be part of the comparison), which means
     the latest from the state is the latest id we've seen so far.
 
-  - TODO: deleted tweets are not being detected
-
  -}
 
 updateTweetStates :: TweetTracks
@@ -175,8 +184,6 @@ updateTweetStates tt upd
       (([],[]), tt)
   | null tt =
       -- a new run, we'll need to sync everything.
-      -- this assumes that upd has gone through tweet-id-greater-than filtering
-      -- otherwise we will flood the channel
       let mk s = (statusId s, (s, TSPending))
       in ((upd,[]), M.fromList (mk <$> upd))
   | otherwise =
@@ -187,6 +194,9 @@ updateTweetStates tt upd
            -}
           ((ttMinId,_),(ttMaxId,_)) = (M.findMin tt, M.findMax tt)
           updMinId = statusId . last $ upd
+          -- NOTE: due to this we cannot detect removal of last tweet
+          -- the solution is to have enough tweet up front to "anchor" update list
+          -- (this is based on the assumption that user rarely remove old tweets)
           effMinId = max updMinId ttMinId -- effective minId for the window
           -- keep only new ones that could intersect with existing records
           upd1 = takeWhile ((>= effMinId) . statusId) upd
