@@ -139,10 +139,6 @@ twitterThread mgr wenv = do
                   , "x-rate-limit-remaining"
                   , "x-rate-limit-reset"
                   ]
-        {-
-        sayString $ "[tw] rate limit: " <> show rlRemaining <> " / " <> show rlLimit <>
-                    " reset=" <> show rlReset
-         -}
         case (rlRemaining, rlLimit) of
           (Just rRem, Just rLim)
             | rRem * 5 < rLim ->
@@ -157,11 +153,6 @@ twitterThread mgr wenv = do
         unless (null tDeleted) $
           sayString $ "[tw] deleted tweets: " <>
             intercalate "," (show . statusId . fst <$> tDeleted)
-        {-
-        sayString "[tw] dumping state:"
-        forM_ (M.toAscList nextState) $ \(_, (ts, s)) ->
-          sayString $ "[tw] >> " <> show (statusId ts) <> ", " <> show s
-         -}
         threadDelay $ 5 * oneSec
         redo nextState
       ) M.empty
