@@ -111,8 +111,6 @@ getTwInfo WEnv{..} = TWInfo twTok Nothing
 oneSec :: Int
 oneSec = 1000000
 
-type TwMVar = MVar (Seq.Seq TwRxMsg)
-
 createTwMVar :: IO TwMVar
 createTwMVar = newMVar Seq.empty
 

@@ -17,6 +17,8 @@ import Data.Aeson
 import Data.Typeable
 import Data.Int (Int64)
 import qualified Data.Text as T
+import Control.Concurrent
+import qualified Data.Sequence as Seq
 
 data WEnv = WEnv
   { twConsumerKey :: BS.ByteString
@@ -85,3 +87,17 @@ data TgRxMsg
 
 data TwRxMsg
   = TwRMTgSent Int Integer -- sent from telegram to notify that a message has been sent
+
+-- note that for twitter thread we want a non-blocking
+-- read operation, which is not available for Chan
+-- so instead, we'll simulate a FIFO queue by holding Seq in MVar
+type TwMVar = MVar (Seq.Seq TwRxMsg)
+
+data TChans
+  = TChans
+  { tcTg :: Chan TgRxMsg -- channel used by telegram
+  , tcTw :: TwMVar -- channel used by MVar
+  }
+
+-- Runtime enviroment share among threads
+type RtEnv = (WEnv, TChans)
