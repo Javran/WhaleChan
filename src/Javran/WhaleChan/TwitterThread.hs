@@ -8,19 +8,20 @@
   #-}
 module Javran.WhaleChan.TwitterThread where
 
-import Web.Twitter.Types
-import Web.Twitter.Conduit hiding (count)
-import Web.Twitter.Conduit.Parameters
+import Control.Arrow
+import Control.Concurrent
 import Control.Lens
-import qualified Data.ByteString.Char8 as BSC
-import Say
-import Data.Monoid
+import Control.Monad
 import Data.Function
 import Data.List
+import Data.Monoid
+import Say
+import Web.Twitter.Conduit hiding (count)
+import Web.Twitter.Conduit.Parameters
+import Web.Twitter.Types
+
+import qualified Data.ByteString.Char8 as BSC
 import qualified Data.Map.Strict as M
-import Control.Concurrent
-import Control.Monad
-import Control.Arrow
 import qualified Data.Sequence as Seq
 
 import Javran.WhaleChan.Types
@@ -121,7 +122,6 @@ putTwMsg mv m =
   -- in this case only tg thread talks to tw thread
   modifyMVar_ mv (pure . (Seq.|> m))
 
--- TODO: we'll probably just use MVar to hold a List to avoid blocking readChan.
 twitterThread :: Manager -> WEnv -> Chan TgRxMsg -> TwMVar -> IO ()
 twitterThread mgr wenv tgChan twMVar = do
     let WEnv
