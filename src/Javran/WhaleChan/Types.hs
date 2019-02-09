@@ -19,6 +19,10 @@ import Data.Int (Int64)
 import qualified Data.Text as T
 import Control.Concurrent
 import qualified Data.Sequence as Seq
+import Control.Monad.RWS
+import qualified Data.Map.Strict as M
+import Web.Twitter.Types
+import Web.Twitter.Conduit (Manager)
 
 data WEnv = WEnv
   { twConsumerKey :: BS.ByteString
@@ -93,11 +97,29 @@ data TwRxMsg
 -- so instead, we'll simulate a FIFO queue by holding Seq in MVar
 type TwMVar = MVar (Seq.Seq TwRxMsg)
 
-data TChans
-  = TChans
-  { tcTg :: Chan TgRxMsg -- channel used by telegram
-  , tcTw :: TwMVar -- channel used by MVar
+data TCommon
+  = TCommon
+  { tcTelegram :: Chan TgRxMsg -- channel used by telegram
+  , tcTwitter :: TwMVar -- channel used by MVar
+  , tcManager :: Manager -- share manager
   }
 
 -- Runtime enviroment share among threads
-type RtEnv = (WEnv, TChans)
+type RtEnv = (WEnv, TCommon)
+
+-- for keeping track of sync-state between twitter thread and telegram thread
+data TgSyncState
+  = TSPending -- indicate that a tweet is detected but not yet sent to the channel
+  | TSSynced Int -- indicate that a tweet is already sent as a telegram message
+  | TSTimedOut -- tweets acknowledged without syncing to tg (<= tweet-id-greater-than)
+  | TSRemoving Int -- indicate that a tweet is removed but channel is not yet notified
+  | TSRemoved -- indicate that a tweet is removed and ack-ed with another tg message.
+      Int {- first one is for the existing tg msg id -}
+      Int {- tg msg id that informs about deletion-}
+  | TSDrop -- a TSPending message is not yet synced, so its deleted form has to be dropped
+    deriving (Show)
+
+type TweetTracks = M.Map Integer (Status, TgSyncState)
+
+-- monad stack for twitter thread
+type TwM = RWST RtEnv () TweetTracks IO

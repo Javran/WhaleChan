@@ -12,9 +12,8 @@ import Control.Arrow
 import Control.Concurrent
 import Control.Lens
 import Control.Monad
-import Data.Function
+import Control.Monad.RWS
 import Data.List
-import Data.Monoid
 import Say
 import Web.Twitter.Conduit hiding (count)
 import Web.Twitter.Conduit.Parameters
@@ -72,20 +71,6 @@ import Javran.WhaleChan.Types
     in order to do that, we'll set a minimum number of tweet id,
     and anything we get lower than that, we'll ignore.
  -}
-
--- for keeping track of sync-state between twitter thread and telegram thread
-data TgSyncState
-  = TSPending -- indicate that a tweet is detected but not yet sent to the channel
-  | TSSynced Int -- indicate that a tweet is already sent as a telegram message
-  | TSTimedOut -- tweets acknowledged without syncing to tg (<= tweet-id-greater-than)
-  | TSRemoving Int -- indicate that a tweet is removed but channel is not yet notified
-  | TSRemoved -- indicate that a tweet is removed and ack-ed with another tg message.
-      Int {- first one is for the existing tg msg id -}
-      Int {- tg msg id that informs about deletion-}
-  | TSDrop -- a TSPending message is not yet synced, so its deleted form has to be dropped
-    deriving (Show)
-
-type TweetTracks = M.Map Integer (Status, TgSyncState)
 
 data TwState = TwState
   { userIconURLHttps :: Maybe URIString
