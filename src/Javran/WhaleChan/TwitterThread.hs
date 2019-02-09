@@ -5,6 +5,7 @@
   , ScopedTypeVariables
   , TypeApplications
   , LambdaCase
+  , FlexibleContexts
   #-}
 module Javran.WhaleChan.TwitterThread where
 
@@ -107,6 +108,11 @@ putTwMsg mv m =
   -- in this case only tg thread talks to tw thread
   modifyMVar_ mv (pure . (Seq.|> m))
 
+getManager :: MonadReader RtEnv m => m Manager
+getManager = asks (tcManager . snd)
+
+-- TODO: rewrite to use TwM
+-- TODO: after using TwM, State can be seralized on a regular basis
 twitterThread :: Manager -> WEnv -> Chan TgRxMsg -> TwMVar -> IO ()
 twitterThread mgr wenv tgChan twMVar = do
     let WEnv

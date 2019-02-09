@@ -8,21 +8,22 @@
   #-}
 module Javran.WhaleChan.Types where
 
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as BSC
-import qualified Web.Telegram.API.Bot as Tg
 import Data.Time.Clock
 import Data.Time.LocalTime.TimeZone.Series
 import Data.Aeson
 import Data.Typeable
 import Data.Int (Int64)
-import qualified Data.Text as T
 import Control.Concurrent
-import qualified Data.Sequence as Seq
 import Control.Monad.RWS
-import qualified Data.Map.Strict as M
 import Web.Twitter.Types
 import Web.Twitter.Conduit (Manager)
+
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BSC
+import qualified Data.Map.Strict as M
+import qualified Data.Sequence as Seq
+import qualified Data.Text as T
+import qualified Web.Telegram.API.Bot as Tg
 
 data WEnv = WEnv
   { twConsumerKey :: BS.ByteString

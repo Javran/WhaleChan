@@ -13,12 +13,16 @@ import Control.Concurrent.Chan
 import Control.Exception.Base
 import Control.Monad
 import Data.Int (Int64)
-import qualified Data.Text as T
 import Network.HTTP.Client (Manager)
-import Web.Telegram.API.Bot
-import Javran.WhaleChan.Types
 import Say
+import Web.Telegram.API.Bot
+
+import qualified Data.Text as T
+
 import Javran.WhaleChan.TwitterThread
+import Javran.WhaleChan.Types
+
+
 
 telegramThread :: Manager -> Chan TgRxMsg -> TwMVar -> Token -> Int64 -> IO ()
 telegramThread mgr msgChan twMVar tok@(Token tokContent) channelId = forever $ do

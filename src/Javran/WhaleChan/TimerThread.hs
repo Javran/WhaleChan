@@ -15,10 +15,8 @@ import Control.Concurrent.Chan
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Writer
-import qualified Data.Map.Strict as M
 import Data.Maybe
 import Data.Proxy
-import qualified Data.Text as T
 import Data.Time.Clock
 import Data.Time.Format
 import Data.Time.LocalTime
@@ -26,6 +24,9 @@ import Data.Time.LocalTime.TimeZone.Olson
 import Data.Time.LocalTime.TimeZone.Series
 import Data.Typeable
 import Say
+
+import qualified Data.Map.Strict as M
+import qualified Data.Text as T
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.ReminderSupply
