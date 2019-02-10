@@ -132,7 +132,7 @@ twitterThread mgr wenv tgChan twMVar = do
         twInfo = getTwInfo wenv
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
                 & count ?~ 200
-
+                & tweetMode ?~ "extended"
     fix (\redo curStatePrev -> do
         mQueue <- swapMVar twMVar Seq.empty
         -- TODO: check message box ... but first we need a non-blocking readChan ...
