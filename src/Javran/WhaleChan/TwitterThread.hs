@@ -14,6 +14,7 @@ import Control.Concurrent
 import Control.Lens
 import Control.Monad
 import Control.Monad.RWS
+import Control.Exception
 import Data.List
 import Say
 import Web.Twitter.Conduit hiding (count)
@@ -135,8 +136,11 @@ twitterThread mgr wenv tgChan twMVar = do
                 & tweetMode ?~ "extended"
     fix (\redo curStatePrev -> do
         mQueue <- swapMVar twMVar Seq.empty
-        -- TODO: check message box ... but first we need a non-blocking readChan ...
-        Response{..} <- callWithResponse twInfo mgr req
+        resp <- callWithResponse twInfo mgr req `catch`
+          \(e :: SomeException) -> do
+            sayString $ "[tw] err: " <> displayException e
+            throw e
+        let Response{..} = resp
         let -- handle received messages
             curState = appEndo (foldMap (Endo . performUpdate) mQueue) curStatePrev
               where
