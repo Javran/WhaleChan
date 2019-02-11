@@ -122,5 +122,8 @@ data TgSyncState
 
 type TweetTracks = M.Map Integer (Status, TgSyncState)
 
+-- TODO: one monad to rule them all? (shared env with independent state for each thread)
+type WCM s =  RWST RtEnv () s IO
+
 -- monad stack for twitter thread
-type TwM = RWST RtEnv () TweetTracks IO
+type TwM = WCM TweetTracks
