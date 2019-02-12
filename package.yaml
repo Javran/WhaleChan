@@ -34,6 +34,7 @@ dependencies:
   - twitter-types
   - lens
   - data-ordlist
+  - directory
 
 library:
   source-dirs: src

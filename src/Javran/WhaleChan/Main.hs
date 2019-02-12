@@ -18,6 +18,7 @@ import Network.HTTP.Client (newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import System.Environment
 import System.Exit
+import System.Directory
 
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.TimerThread (timerThread)
@@ -66,7 +67,11 @@ startService wenv = do
 
 -- ref: https://stackoverflow.com/q/43835656/315302
 
+-- config file name is implicit, see Javran.WhaleChan.Base
 main :: IO ()
 main = getArgs >>= \case
-    [cfg] -> loadWEnv cfg >>= startService
-    _ -> putStrLn "WhaleChan <config.yaml>" >> exitFailure
+    [workingDir] ->
+      setCurrentDirectory workingDir >>
+      loadWEnv >>= startService
+    _ -> putStrLn "WhaleChan <working_dir>" >> exitFailure
+
