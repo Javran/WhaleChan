@@ -36,16 +36,16 @@ import Javran.WhaleChan.Types
 
  -}
 
-startService :: WEnv -> IO ()
-startService wenv = do
+startService :: WConf -> IO ()
+startService wconf = do
   mgr <- newManager tlsManagerSettings
   -- TODO: this is messy, consider packing channels with a Reader
   chTg <- newChan
   chTw <- createTwMVar
-  let WEnv {tgBotToken=botToken, tgChannelId=tgChannelId} = wenv
+  let WConf {tgBotToken=botToken, tgChannelId=tgChannelId} = wconf
   aTimer <- async (evalStateT (timerThread chTg) M.empty)
   aTg <- async (telegramThread mgr chTg chTw botToken tgChannelId)
-  aTw <- async (twitterThread mgr wenv chTg chTw)
+  aTw <- async (twitterThread mgr wconf chTg chTw)
   wait aTimer
   wait aTg
   wait aTw

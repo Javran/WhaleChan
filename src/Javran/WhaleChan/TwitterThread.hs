@@ -80,8 +80,8 @@ data TwState = TwState
   , tweetTracks :: TweetTracks
   }
 
-getTwInfo :: WEnv -> TWInfo
-getTwInfo WEnv{..} = TWInfo twTok Nothing
+getTwInfo :: WConf -> TWInfo
+getTwInfo WConf{..} = TWInfo twTok Nothing
   where
     oauth = twitterOAuth
               { oauthConsumerKey = twConsumerKey
@@ -109,14 +109,14 @@ putTwMsg mv m =
   -- in this case only tg thread talks to tw thread
   modifyMVar_ mv (pure . (Seq.|> m))
 
-getManager :: MonadReader RtEnv m => m Manager
+getManager :: MonadReader WEnv m => m Manager
 getManager = asks (tcManager . snd)
 
 -- TODO: rewrite to use TwM
 -- TODO: after using TwM, State can be seralized on a regular basis
-twitterThread :: Manager -> WEnv -> Chan TgRxMsg -> TwMVar -> IO ()
+twitterThread :: Manager -> WConf -> Chan TgRxMsg -> TwMVar -> IO ()
 twitterThread mgr wenv tgChan twMVar = do
-    let WEnv
+    let WConf
           { twWatchingUserId
             {-
               it is intentional that

@@ -17,5 +17,5 @@ import qualified Data.Yaml as Yaml
 
  -}
 
-loadWEnv :: IO WEnv
+loadWEnv :: IO WConf
 loadWEnv = Yaml.decodeFileThrow "config.yaml"

@@ -25,7 +25,7 @@ import qualified Data.Sequence as Seq
 import qualified Data.Text as T
 import qualified Web.Telegram.API.Bot as Tg
 
-data WEnv = WEnv
+data WConf = WConf
   { twConsumerKey :: BS.ByteString
   , twConsumerSecret :: BS.ByteString
   , twOAuthToken :: String
@@ -37,8 +37,8 @@ data WEnv = WEnv
   , tgChannelId :: Int64
   } deriving (Show)
 
-instance ToJSON WEnv where
-    toJSON WEnv {..}
+instance ToJSON WConf where
+    toJSON WConf {..}
       | Tg.Token tok <- tgBotToken
       = object [ "twitter-consumer-key" .= BSC.unpack twConsumerKey
                , "twitter-consumer-secret" .= BSC.unpack twConsumerSecret
@@ -51,9 +51,9 @@ instance ToJSON WEnv where
                , "telegram-channel-id" .= tgChannelId
                ]
 
-instance FromJSON WEnv where
+instance FromJSON WConf where
     parseJSON = withObject "WEnv" $ \o ->
-        WEnv
+        WConf
             <$> (BSC.pack <$> o .: "twitter-consumer-key")
             <*> (BSC.pack <$> o .: "twitter-consumer-secret")
             <*> o .: "twitter-oauth-token"
@@ -106,7 +106,7 @@ data TCommon
   }
 
 -- Runtime enviroment share among threads
-type RtEnv = (WEnv, TCommon)
+type WEnv = (WConf, TCommon)
 
 -- for keeping track of sync-state between twitter thread and telegram thread
 data TgSyncState
@@ -123,7 +123,7 @@ data TgSyncState
 type TweetTracks = M.Map Integer (Status, TgSyncState)
 
 -- TODO: one monad to rule them all? (shared env with independent state for each thread)
-type WCM s =  RWST RtEnv () s IO
+type WCM s = RWST WEnv () s IO
 
 -- monad stack for twitter thread
 type TwM = WCM TweetTracks
