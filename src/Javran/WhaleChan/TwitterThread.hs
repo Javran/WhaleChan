@@ -112,8 +112,10 @@ putTwMsg mv m =
 getManager :: MonadReader WEnv m => m Manager
 getManager = asks (tcManager . snd)
 
--- TODO: rewrite to use TwM
+-- TODO: rewrite: TweetThreadM = WCM TweetTracks
 -- TODO: after using TwM, State can be seralized on a regular basis
+-- TODO: flooding prevention can be based on a time-basis, say
+--       never sync tweets older than 10 minutes.
 twitterThread :: Manager -> WConf -> Chan TgRxMsg -> TwMVar -> IO ()
 twitterThread mgr wenv tgChan twMVar = do
     let WConf
