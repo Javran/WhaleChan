@@ -126,4 +126,4 @@ type TweetTracks = M.Map Integer (Status, TgSyncState)
 type WCM s = RWST WEnv () s IO
 
 -- monad stack for twitter thread
-type TwM = WCM TweetTracks
+type TweetSyncM = WCM TweetTracks
