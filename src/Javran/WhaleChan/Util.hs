@@ -1,13 +1,18 @@
 {-# LANGUAGE
     OverloadedStrings
+  , TypeApplications
   #-}
 module Javran.WhaleChan.Util
   ( describeDuration
   , isYamlFileNotFoundException
+  , protectedAction
   ) where
 
 import Data.List (isPrefixOf)
 import qualified Data.Yaml as Yaml
+import Control.Exception
+import Control.Monad
+import Say
 
 describeDuration :: Int -> String
 describeDuration seconds
@@ -27,3 +32,19 @@ isYamlFileNotFoundException :: Yaml.ParseException -> Bool
 isYamlFileNotFoundException (Yaml.InvalidYaml (Just (Yaml.YamlException msg)))
   | "Yaml file not found: " `isPrefixOf` msg = True
 isYamlFileNotFoundException _ = False
+
+-- run an action forever and keep it running as long as # of critical errors
+-- doesn't exceed a limit
+protectedAction :: String -> Int -> IO () -> IO ()
+protectedAction aName maxRetry action = run 0
+  where
+    fAction = forever action
+    errHandler e =
+      sayErrString $ "Exception caught for Action " ++ aName ++ ": " ++ displayException e
+    run retryCount
+      | retryCount > maxRetry =
+          sayErrString $ "Action " ++ aName ++ " exceeded max retry attempt, aborting."
+      | otherwise = do
+          unless (retryCount == 0) $
+            sayErrString $ "At #" ++ show retryCount ++ " reattempt for Action " ++ aName
+          catch @SomeException fAction errHandler >> run (retryCount+1)

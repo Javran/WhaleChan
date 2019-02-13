@@ -74,4 +74,3 @@ main = getArgs >>= \case
       setCurrentDirectory workingDir >>
       loadWEnv >>= startService
     _ -> putStrLn "WhaleChan <working_dir>" >> exitFailure
-
