@@ -4,6 +4,7 @@
   , ScopedTypeVariables
   , DataKinds
   , OverloadedStrings
+  , RecordWildCards
   #-}
 module Javran.WhaleChan.Main
   ( timerThread
@@ -23,7 +24,7 @@ import System.Directory
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.TimerThread (timerThread)
 import Javran.WhaleChan.TelegramThread (telegramThread)
-import Javran.WhaleChan.TwitterThread (twitterThread, createTwMVar)
+import Javran.WhaleChan.TwitterThread (tweetSyncThread, createTwMVar)
 import Javran.WhaleChan.Types
 
 {-
@@ -38,14 +39,15 @@ import Javran.WhaleChan.Types
 
 startService :: WConf -> IO ()
 startService wconf = do
-  mgr <- newManager tlsManagerSettings
-  -- TODO: this is messy, consider packing channels with a Reader
-  chTg <- newChan
-  chTw <- createTwMVar
-  let WConf {tgBotToken=botToken, tgChannelId=tgChannelId} = wconf
-  aTimer <- async (evalStateT (timerThread chTg) M.empty)
-  aTg <- async (telegramThread mgr chTg chTw botToken tgChannelId)
-  aTw <- async (twitterThread mgr wconf chTg chTw)
+  tcManager <- newManager tlsManagerSettings
+  tcTelegram <- newChan
+  tcTwitter <- createTwMVar
+  let tcomm = TCommon {..}
+      WConf {tgBotToken=botToken, tgChannelId=tgChannelId} = wconf
+      wenv = (wconf, tcomm)
+  aTimer <- async (evalStateT (timerThread tcTelegram) M.empty)
+  aTg <- async (telegramThread tcManager tcTelegram tcTwitter botToken tgChannelId)
+  aTw <- async (tweetSyncThread wenv)
   wait aTimer
   wait aTg
   wait aTw

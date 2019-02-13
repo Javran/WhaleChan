@@ -26,6 +26,7 @@ import qualified Data.Map.Strict as M
 import qualified Data.Sequence as Seq
 
 import Javran.WhaleChan.Types
+import Javran.WhaleChan.Util
 
 {-
   design draft:
@@ -111,6 +112,11 @@ putTwMsg mv m =
 
 getManager :: MonadReader WEnv m => m Manager
 getManager = asks (tcManager . snd)
+
+tweetSyncThread :: WEnv -> IO ()
+tweetSyncThread (wconf, TCommon{..}) =
+    protectedAction "TweetSync" 16 $
+      twitterThread tcManager wconf tcTelegram tcTwitter
 
 -- TODO: rewrite: TweetThreadM = WCM TweetTracks
 -- TODO: after using TwM, State can be seralized on a regular basis
