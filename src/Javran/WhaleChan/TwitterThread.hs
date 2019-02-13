@@ -112,19 +112,11 @@ getManager :: MonadReader WEnv m => m Manager
 getManager = asks (tcManager . snd)
 
 tweetSyncThread :: WEnv -> IO ()
-tweetSyncThread (wconf, TCommon{..}) =
-    protectedAction "TweetSync" 16 $
-      twitterThread tcManager wconf tcTelegram tcTwitter
+tweetSyncThread wenv = autoWCM "TweetSync" "tweet-sync.yaml" wenv tweetSyncStep
 
 tweetSyncStep :: TweetSyncM ()
-tweetSyncStep = pure ()
-
--- TODO: rewrite: TweetThreadM = WCM TweetTracks
--- TODO: after using TwM, State can be serialized on a regular basis
--- TODO: flooding prevention can be based on a time-basis, say
---       never sync tweets older than 10 minutes.
-twitterThread :: Manager -> WConf -> Chan TgRxMsg -> TwMVar -> IO ()
-twitterThread mgr wenv tgChan twMVar = do
+tweetSyncStep = do
+    (wconf, TCommon{..}) <- ask
     let WConf
           { twWatchingUserId
             {-
@@ -138,64 +130,63 @@ twitterThread mgr wenv tgChan twMVar = do
               and turn TSPending to TSTimedOut to prevent flooding the channel
              -}
           , twTweetIdGreaterThan
-          } = wenv
-        twInfo = getTwInfo wenv
+          } = wconf
+        twInfo = getTwInfo wconf
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
                 & count ?~ 200
                 & tweetMode ?~ "extended"
-    fix (\redo curStatePrev -> do
-        mQueue <- swapMVar twMVar Seq.empty
-        resp <- callWithResponse twInfo mgr req `catch`
-          \(e :: SomeException) -> do
-            sayString $ "[tw] err: " <> displayException e
-            throw e
-        let Response{..} = resp
-        let -- handle received messages
-            curState = appEndo (foldMap (Endo . performUpdate) mQueue) curStatePrev
-              where
-                performUpdate :: TwRxMsg -> TweetTracks -> TweetTracks
-                performUpdate (TwRMTgSent tgMsgId twStId) =
-                    M.adjust
-                      (second $ \case
-                          TSPending -> TSSynced tgMsgId
-                          TSRemoving v -> TSRemoved v tgMsgId
-                          x -> x
-                      )
-                      twStId
-            statusList = responseBody
-            ((tCreated, tDeleted), nextState) = curState `updateTweetStates` statusList
-            [rlLimit,rlRemaining,_rlReset] =
-              ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders) <$>
-                  [ "x-rate-limit-limit"
-                  , "x-rate-limit-remaining"
-                  , "x-rate-limit-reset"
-                  ]
-        case (rlRemaining, rlLimit) of
+    mQueue <- liftIO $ swapMVar tcTwitter Seq.empty
+    resp <- liftIO $ callWithResponse twInfo tcManager req `catch`
+            \(e :: SomeException) -> do
+              sayErrString $ "[tw] err: " <> displayException e
+              throw e
+    let Response{..} = resp
+        performUpdate :: TwRxMsg -> TweetTracks -> TweetTracks
+        performUpdate (TwRMTgSent tgMsgId twStId) =
+            M.adjust
+              (second $ \case
+                  TSPending -> TSSynced tgMsgId
+                  TSRemoving v -> TSRemoved v tgMsgId
+                  x -> x)
+              twStId
+    -- handle received messages
+    modify (appEndo (foldMap (Endo . performUpdate) mQueue))
+    let statusList = responseBody
+    -- TODO: should have better API to handle gets then modify (const _)
+    ((tCreated, tDeleted), nextState) <- gets (`updateTweetStates` statusList)
+    modify (const nextState)
+    let [rlLimit,rlRemaining,_rlReset] =
+            ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders) <$>
+              [ "x-rate-limit-limit"
+              , "x-rate-limit-remaining"
+              , "x-rate-limit-reset"
+              ]
+    case (rlRemaining, rlLimit) of
           (Just rRem, Just rLim)
             | rRem * 5 < rLim ->
               -- rRem / rLim < 20%=1/5 => 5 * rem < lim
-              sayString "[tw] warning: rate limit availability < 20%"
+              sayErrString "[tw] warning: rate limit availability < 20%"
           _ -> pure ()
-        when (length tCreated + length tDeleted > 0) $
-          sayString $ "[tw] created: " <> show (length tCreated) <>
-                      ", deleted: " <> show (length tDeleted)
-        unless (null tCreated) $ do
-          sayString $ "[tw] created tweets: " <>
-            intercalate "," (show . statusId <$> tCreated)
-          forM_ tCreated $ \st -> do
-            let content = "[tw] " <> statusText st
-            -- TODO: set TSTimedOut
-            when (statusId st > twTweetIdGreaterThan) $
-              writeChan tgChan (TgRMTweetCreate (statusId st) content)
-        unless (null tDeleted) $ do
-          sayString $ "[tw] deleted tweets: " <>
-            intercalate "," (show . statusId . fst <$> tDeleted)
-          forM_ tDeleted $ \case
-            (st, Just msgId) -> writeChan tgChan (TgRMTweetDestroy (statusId st) msgId)
-            _ -> pure ()
-        threadDelay $ 5 * oneSec
-        redo nextState
-      ) M.empty
+    when (length tCreated + length tDeleted > 0) $
+      sayString $ "[tw] created: " <> show (length tCreated) <>
+                  ", deleted: " <> show (length tDeleted)
+    unless (null tCreated) $ liftIO $ do
+      sayString $ "[tw] created tweets: " <>
+        intercalate "," (show . statusId <$> tCreated)
+      forM_ tCreated $ \st -> do
+        let content = "[tw] " <> statusText st
+        -- TODO: set TSTimedOut
+        when (statusId st > twTweetIdGreaterThan) $
+          writeChan tcTelegram (TgRMTweetCreate (statusId st) content)
+    unless (null tDeleted) $ liftIO $  do
+      sayString $ "[tw] deleted tweets: " <>
+        intercalate "," (show . statusId . fst <$> tDeleted)
+      forM_ tDeleted $ \case
+        (st, Just msgId) -> writeChan tcTelegram (TgRMTweetDestroy (statusId st) msgId)
+        _ -> pure ()
+    -- TODO: note that this is without action step, so the save happens
+    -- right after waking up
+    liftIO $ threadDelay $ 5 * oneSec
 
 {-
   it might be tempting to use the streaming api, but setting it up is a mess, so, no.

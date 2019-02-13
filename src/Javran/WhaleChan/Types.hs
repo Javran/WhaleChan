@@ -5,6 +5,7 @@
   , ExistentialQuantification
   , KindSignatures
   , PolyKinds
+  , DeriveGeneric
   #-}
 module Javran.WhaleChan.Types where
 
@@ -17,6 +18,7 @@ import Control.Concurrent
 import Control.Monad.RWS
 import Web.Twitter.Types
 import Web.Twitter.Conduit (Manager)
+import GHC.Generics
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
@@ -24,6 +26,7 @@ import qualified Data.Map.Strict as M
 import qualified Data.Sequence as Seq
 import qualified Data.Text as T
 import qualified Web.Telegram.API.Bot as Tg
+import qualified Data.Yaml as Yaml
 
 data WConf = WConf
   { twConsumerKey :: BS.ByteString
@@ -118,7 +121,10 @@ data TgSyncState
       Int {- first one is for the existing tg msg id -}
       Int {- tg msg id that informs about deletion-}
   | TSDrop -- a TSPending message is not yet synced, so its deleted form has to be dropped
-    deriving (Show)
+    deriving (Show, Eq, Generic)
+
+instance Yaml.ToJSON TgSyncState
+instance Yaml.FromJSON TgSyncState
 
 type TweetTracks = M.Map Integer (Status, TgSyncState)
 
