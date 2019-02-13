@@ -27,7 +27,6 @@ import qualified Data.Sequence as Seq
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
-import Javran.WhaleChan.Util
 
 {-
   design draft:

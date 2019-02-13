@@ -13,7 +13,6 @@ import Data.List (isPrefixOf)
 import qualified Data.Yaml as Yaml
 import Control.Exception
 import Control.Monad
-import Data.Default
 import Say
 
 describeDuration :: Int -> String
