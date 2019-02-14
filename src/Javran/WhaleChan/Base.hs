@@ -40,10 +40,26 @@ loadWEnv = Yaml.decodeFileThrow "config.yaml"
   - every thread loads its own state file at startup
   - then initiate an infinte loop
       + during each loop some amount of work will be performed (i.e. step)
-      + and the thread is intercepted at beginning and ending of a loop
-        to write state to file if the state differs
-  - the thread is protected against SomeException for atmost 16 times.
+      + and the thread is (optionally) intercepted to write state to file if the state differs
+        at begining and end of a "critical section" (see what this means below)
+  - the thread is protected against SomeException for at most 16 times.
     in other words, we tolerate at most 16 critical exception
+  - the "step" function accepts a "markStart" action, whom together with
+    its return value marks the "critical section" of current step
+    (by critical section I mean parts that can get the state modified)
+
+    example impl of `step`:
+
+    step markStart = do
+        <... some stuff that doesn't change state ...>
+        markEnd <- markStart
+        <... some stuff that do change state ...>
+        markEnd
+        <... some other stuff like thread sleep ...>
+  - note that the use of markStart is optional if step has other means
+    of implementing state serialization.
+    but whenever markStart is called, exactly one markEnd should follow.
+    (also it's expected that markStart is called no more than once during current step)
  -}
 autoWCM ::
     forall s m. (Eq s, Yaml.FromJSON s, Yaml.ToJSON s, Default s, m ~ WCM s)
@@ -68,6 +84,6 @@ autoWCM mName stateFp wenv step =
         markStart = do
             oldSt <- get
             pure $ do
-              newSt <- get
-              unless (oldSt == newSt) $
-                liftIO (Yaml.encodeFile stateFp newSt)
+                newSt <- get
+                unless (oldSt == newSt) $
+                  liftIO (Yaml.encodeFile stateFp newSt)
