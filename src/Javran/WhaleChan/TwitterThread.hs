@@ -113,8 +113,9 @@ getManager = asks (tcManager . snd)
 tweetSyncThread :: WEnv -> IO ()
 tweetSyncThread wenv = autoWCM "TweetSync" "tweet-sync.yaml" wenv tweetSyncStep
 
-tweetSyncStep :: TweetSyncM ()
-tweetSyncStep = do
+tweetSyncStep :: TweetSyncM (TweetSyncM ()) -> TweetSyncM ()
+tweetSyncStep markStart = do
+    markEnd <- markStart
     (wconf, TCommon{..}) <- ask
     let WConf
           { twWatchingUserId
@@ -183,8 +184,7 @@ tweetSyncStep = do
       forM_ tDeleted $ \case
         (st, Just msgId) -> writeChan tcTelegram (TgRMTweetDestroy (statusId st) msgId)
         _ -> pure ()
-    -- TODO: note that this is without action step, so the save happens
-    -- right after waking up
+    markEnd
     liftIO $ threadDelay $ 5 * oneSec
 
 {-

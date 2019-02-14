@@ -46,7 +46,8 @@ loadWEnv = Yaml.decodeFileThrow "config.yaml"
  -}
 autoWCM ::
     forall s. (Eq s, Yaml.FromJSON s, Yaml.ToJSON s, Default s)
-    => String -> FilePath -> WEnv -> WCM s () -> IO ()
+    => String -> FilePath -> WEnv
+    -> (WCM s (WCM s ()) -> WCM s ()) -> IO ()
 autoWCM mName stateFp wenv step =
     protectedAction mName 16 $
         Yaml.decodeFileEither @s stateFp >>= \case
@@ -60,9 +61,14 @@ autoWCM mName stateFp wenv step =
             Right st -> run st
   where
     run st = void (evalRWST (forever m) wenv st)
-    m = do
-      oldSt <- get
-      void step
-      newSt <- get
-      unless (oldSt == newSt) $
-        liftIO (Yaml.encodeFile stateFp newSt)
+    m =
+      let markStart :: WCM s (WCM s ())
+          markStart = do
+            liftIO $ putStrLn "marking start"
+            oldSt <- get
+            pure $ do
+              liftIO $ putStrLn "marking end"
+              newSt <- get
+              unless (oldSt == newSt) $
+                liftIO (Yaml.encodeFile stateFp newSt)
+      in void $ step markStart
