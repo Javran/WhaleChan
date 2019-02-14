@@ -3,6 +3,7 @@
   , ExplicitForAll
   , ScopedTypeVariables
   , TypeApplications
+  , TypeFamilies
   #-}
 module Javran.WhaleChan.Base
   ( loadWEnv
@@ -45,9 +46,9 @@ loadWEnv = Yaml.decodeFileThrow "config.yaml"
     in other words, we tolerate at most 16 critical exception
  -}
 autoWCM ::
-    forall s. (Eq s, Yaml.FromJSON s, Yaml.ToJSON s, Default s)
+    forall s m. (Eq s, Yaml.FromJSON s, Yaml.ToJSON s, Default s, m ~ WCM s)
     => String -> FilePath -> WEnv
-    -> (WCM s (WCM s ()) -> WCM s ()) -> IO ()
+    -> (m (m ()) -> m ()) -> IO ()
 autoWCM mName stateFp wenv step =
     protectedAction mName 16 $
         Yaml.decodeFileEither @s stateFp >>= \case
@@ -61,14 +62,12 @@ autoWCM mName stateFp wenv step =
             Right st -> run st
   where
     run st = void (evalRWST (forever m) wenv st)
-    m =
-      let markStart :: WCM s (WCM s ())
-          markStart = do
-            liftIO $ putStrLn "marking start"
+    m = void $ step markStart
+      where
+        markStart :: m (m ())
+        markStart = do
             oldSt <- get
             pure $ do
-              liftIO $ putStrLn "marking end"
               newSt <- get
               unless (oldSt == newSt) $
                 liftIO (Yaml.encodeFile stateFp newSt)
-      in void $ step markStart
