@@ -5,6 +5,7 @@
   , ScopedTypeVariables
   , DataKinds
   , OverloadedStrings
+  , DeriveGeneric
   #-}
 module Javran.WhaleChan.TimerThread
  ( timerThread
@@ -22,7 +23,12 @@ import Data.Time.Format
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Olson
 import Data.Time.LocalTime.TimeZone.Series
+import Data.Aeson
+import Data.Aeson.Types (Parser)
+import Control.Arrow
+import Data.Default
 import Data.Typeable
+import GHC.Generics
 import Say
 
 import qualified Data.Map.Strict as M
@@ -127,6 +133,18 @@ reminderSupplies =
     , ERS (Proxy :: Proxy 'QuestPointDeadline)
     ]
 
+-- a hack to allow "encoding / decoding" of TypeRep through Show instance
+-- for now it's a safe assumption that conversion through Show is consistent
+reminders :: [(String, TypeRep)]
+reminders = f <$> reminderSupplies
+  where
+    f (ERS ty) = (show tRep, tRep)
+      where
+        tRep = typeRep ty
+
+strToReminderTypeRep :: String -> Parser TypeRep
+strToReminderTypeRep raw = maybe mzero pure (lookup raw reminders)
+
 type TimerM = StateT (M.Map TypeRep EventReminder) IO
 
 timerThread :: Chan TgRxMsg -> TimerM ()
@@ -201,14 +219,25 @@ timerThread tgMsgChan = do
 
 -- TODO: use lens-datetime
 
-type EventReminders = M.Map TypeRep [EventReminder]
+newtype ReminderDict = RD (M.Map TypeRep [EventReminder]) deriving (Eq, Generic)
 
-type ReminderM = WCM EventReminders
+instance Default ReminderDict
 
-{-
+instance ToJSON ReminderDict where
+  toJSON (RD d) = toJSON @[(String,[EventReminder])] (first show <$> M.toList d)
+
+instance FromJSON ReminderDict where
+  parseJSON o =
+      RD . M.fromList <$>
+        (parseJSON @[(String, [EventReminder])] o >>= mapM convert)
+    where
+      convert :: (String, [EventReminder]) -> Parser (TypeRep, [EventReminder])
+      convert (r, er) = (,) <$> strToReminderTypeRep r <*> pure er
+
+type ReminderM = WCM ReminderDict
+
 -- tricky to do in TypeRep?
 reminderThread :: WEnv -> IO ()
 reminderThread wenv = do
-    autoWCM @EventReminders "Reminder" "reminder.yaml" wenv $ \_markStart -> do
+    autoWCM @ReminderDict "Reminder" "reminder.yaml" wenv $ \_markStart -> do
       pure ()
- -}
