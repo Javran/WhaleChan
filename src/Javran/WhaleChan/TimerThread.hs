@@ -126,7 +126,7 @@ reminderSupplies =
     , ERS (Proxy :: Proxy 'QuestPointDeadline)
     ]
 
-type TimerM a = StateT (M.Map TypeRep EventReminder) IO a
+type TimerM = StateT (M.Map TypeRep EventReminder) IO
 
 timerThread :: Chan TgRxMsg -> TimerM ()
 timerThread tgMsgChan = do

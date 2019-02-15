@@ -1,7 +1,6 @@
 {-# LANGUAGE
     OverloadedStrings
   , TypeApplications
-  , LambdaCase
   #-}
 module Javran.WhaleChan.Util
   ( describeDuration
@@ -14,6 +13,8 @@ import qualified Data.Yaml as Yaml
 import Control.Exception
 import Control.Monad
 import Say
+
+-- TODO: whether to put things in Base or Util is not clear for now.
 
 describeDuration :: Int -> String
 describeDuration seconds
