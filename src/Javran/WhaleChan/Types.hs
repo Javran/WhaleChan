@@ -74,7 +74,7 @@ instance FromJSON WConf where
 data EventReminder = EventReminder
   { eventOccurTime :: UTCTime
   , eventReminderDues :: [UTCTime]
-  } deriving (Show)
+  } deriving (Show, Eq)
 
 {-
   a ReminderSupply, when given current time,

@@ -29,6 +29,7 @@ import qualified Data.Map.Strict as M
 import qualified Data.Text as T
 
 import Javran.WhaleChan.Types
+import Javran.WhaleChan.Base
 import Javran.WhaleChan.ReminderSupply
 import Javran.WhaleChan.Util
 
@@ -200,3 +201,14 @@ timerThread tgMsgChan = do
 
 -- TODO: use lens-datetime
 
+type EventReminders = M.Map TypeRep [EventReminder]
+
+type ReminderM = WCM EventReminders
+
+{-
+-- tricky to do in TypeRep?
+reminderThread :: WEnv -> IO ()
+reminderThread wenv = do
+    autoWCM @EventReminders "Reminder" "reminder.yaml" wenv $ \_markStart -> do
+      pure ()
+ -}
