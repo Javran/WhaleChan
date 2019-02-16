@@ -7,14 +7,11 @@
   , RecordWildCards
   #-}
 module Javran.WhaleChan.Main
-  ( timerThread
-  , main
+  ( main
   ) where
 
 import Control.Concurrent.Async
 import Control.Concurrent.Chan
-import Control.Monad.State
-import qualified Data.Map.Strict as M
 import Network.HTTP.Client (newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import System.Environment
@@ -22,7 +19,7 @@ import System.Exit
 import System.Directory
 
 import Javran.WhaleChan.Base
-import Javran.WhaleChan.TimerThread (timerThread, reminderThread)
+import Javran.WhaleChan.TimerThread (reminderThread)
 import Javran.WhaleChan.TelegramThread (telegramThread)
 import Javran.WhaleChan.TwitterThread (tweetSyncThread, createTwMVar)
 import Javran.WhaleChan.Types
