@@ -26,6 +26,7 @@ import Data.List.Ordered
 import Data.Maybe
 import Data.Ord
 import Data.Proxy
+import Data.Text.Lazy (toStrict)
 import Data.Time.Clock
 import Data.Time.LocalTime.TimeZone.Olson
 import Data.Typeable
@@ -33,7 +34,6 @@ import GHC.Generics
 import Web.Telegram.API.Bot
 
 import qualified Data.Map.Strict as M
-import Data.Text.Lazy (toStrict)
 import qualified Data.Text.Lazy.Builder as TB
 
 import Javran.WhaleChan.Types
