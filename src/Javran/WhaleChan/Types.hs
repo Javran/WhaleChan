@@ -91,7 +91,7 @@ data EReminderSupply =
 
 -- messages received by TelegramThread
 data TgRxMsg
-  = TgRMTimer T.Text -- sent from timer
+  = TgRMTimer T.Text (Maybe Tg.ParseMode) -- sent from timer
   | TgRMTweetCreate Integer T.Text -- sent from twitter
   | TgRMTweetDestroy Integer Int -- sent from twitter
   deriving (Show)

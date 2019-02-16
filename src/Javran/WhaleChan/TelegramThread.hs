@@ -22,15 +22,15 @@ import qualified Data.Text as T
 import Javran.WhaleChan.TwitterThread
 import Javran.WhaleChan.Types
 
-
-
 telegramThread :: Manager -> Chan TgRxMsg -> TwMVar -> Token -> Int64 -> IO ()
 telegramThread mgr msgChan twMVar tok@(Token tokContent) channelId = forever $ do
     msg <- readChan msgChan
     if T.null tokContent
       then sayString $ "[tg] EmptyToken. Received request: " <> show msg
       else case msg of
-        TgRMTimer t -> sendMessageSimple t Nothing >>= print
+        TgRMTimer t pm ->
+            let req = (sendMessageRequest (ChatId channelId) t) {message_parse_mode=pm}
+            in void $ sendMessage tok req mgr
         TgRMTweetCreate stId t ->
             sendMessageSimple t Nothing >>= \case
               Right Response {result = Message {message_id}} ->
