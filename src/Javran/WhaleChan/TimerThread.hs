@@ -8,31 +8,40 @@
   , DeriveGeneric
   #-}
 module Javran.WhaleChan.TimerThread
- ( timerThread
+ ( reminderThread
  ) where
 
+import Control.Arrow
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Chan
 import Control.Monad
+import Control.Monad.RWS
 import Control.Monad.State
 import Control.Monad.Writer
+import Data.Aeson
+import Data.Aeson.Types (Parser)
+import Data.Coerce
+import Data.Default
+import Data.Function
+import Data.List
+import Data.List.Ordered
 import Data.Maybe
+import Data.Ord
 import Data.Proxy
 import Data.Time.Clock
 import Data.Time.Format
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Olson
 import Data.Time.LocalTime.TimeZone.Series
-import Data.Aeson
-import Data.Aeson.Types (Parser)
-import Control.Arrow
-import Data.Default
 import Data.Typeable
 import GHC.Generics
 import Say
+import Web.Telegram.API.Bot
 
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
+import Data.Text.Lazy (toStrict)
+import qualified Data.Text.Lazy.Builder as TB
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
@@ -147,75 +156,13 @@ strToReminderTypeRep raw = maybe mzero pure (lookup raw reminders)
 
 type TimerM = StateT (M.Map TypeRep EventReminder) IO
 
-timerThread :: Chan TgRxMsg -> TimerM ()
-timerThread tgMsgChan = do
-    tzPt <- liftIO $ getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
-    tzs <- liftIO $ getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
-    -- TODO: in future we'll need to persistent the thread state
-    -- INVARIANT: all values of the State Map shouldn't
-    -- contain EventReminder whose eventReminderDues is empty
-
-    -- note: cleaning-up here might not be a good idea as
-    -- it might lead to some reminder times being discharged without being
-    -- considered
-    let restockReminders = do
-          -- re-stock EventReminder here
-          -- we've been careful to make sure EventReminder whose erds is empty
-          -- is removed instead of being kept. which means we just need to restock those
-          -- that returns Nothing by lookup
-          tDone <- liftIO getCurrentTime
-          let restock (ERS tp) = Endo (M.alter altVal tyRep)
-                where
-                  tyRep = typeRep tp
-                  altVal x = case x of
-                    Nothing -> Just (renewSupply tp tzs tDone)
-                    Just _ -> x
-          modify (appEndo (foldMap restock reminderSupplies))
-    restockReminders
-    -- into infinite loop
-    forever $ do
-      -- wait until the start of next minute
-      t' <- liftIO (waitUntilStartOfNextMinute >> getCurrentTime)
-      let timeRep = formatTime defaultTimeLocale (iso8601DateFormat $ Just "%H:%M:%S%Q") t'
-          -- any event in future within 20 seconds is also included
-          -- this assume that we can always process all reminders within 20 seconds
-          -- which should be way more than enough.
-          tThres = addUTCTime 20 t'
-      liftIO $ sayString $ "Woke up at " ++ timeRep
-      -- scan & update reminders, and collect things needed to be displayed
-      displayList <- (catMaybes <$>) . forM reminderSupplies $ \e@(ERS tp) ->
-        let tyRep = typeRep tp
-        in gets (M.lookup tyRep) >>= \case
-            Nothing -> pure Nothing
-            Just (EventReminder eot erds) -> do
-              -- if remindsDue contains anything, we should send current reminder
-              let (remindsDue, erds') = span (< tThres) erds
-                  newVal = if null erds'
-                    then Nothing
-                    else Just (EventReminder eot erds')
-              modify (M.update (const newVal) tyRep)
-              pure $ if null remindsDue
-                then Nothing
-                else Just (e, eot)
-      -- process display, IO is sufficient
-      liftIO $ forM_ displayList $ \(ERS tp, eTime) -> do
-        let tyRep = typeRep tp
-        sayString $ "Reminder: " <> show tyRep
-        let lt = utcToLocalTime' tzs eTime
-            lt' = utcToLocalTime' tzPt eTime
-        -- round to closest second, this would hopefully
-        -- give us xxx minutes 0 seconds instead of some 59 seconds
-        -- well, technically we are right by taking the floor
-        -- as we are processing it at this second but sounds
-        -- unhappy to always have some 59 seconds around
-        let timeStr = describeDuration (round (eTime `diffUTCTime` t') :: Int)
-        sayString $ "  Remaining time: " <> timeStr
-        sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
-        sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
-        let tgMsg = "Reminder: " <> T.pack (show tyRep) <> " Remaining time: " <> T.pack timeStr
-        writeChan tgMsgChan (TgRMTimer tgMsg)
-      -- re-stock EventReminder here
-      restockReminders
+{-
+  keeping old time message in case needed
+  sayString $ "  Remaining time: " <> timeStr
+  sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
+  sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
+  let tgMsg = "Reminder: " <> T.pack (show tyRep) <> " Remaining time: " <> T.pack timeStr
+ -}
 
 -- TODO: use lens-datetime
 
@@ -229,7 +176,9 @@ timerThread tgMsgChan = do
   will have a relatively large interval between them, large enough that the overlapping
   of beforehand reminds are very unlikely.
  -}
-newtype ReminderDict = RD (M.Map TypeRep [EventReminder]) deriving (Eq, Generic)
+newtype ReminderDict
+  = RD {getRD :: M.Map TypeRep [EventReminder] }
+  deriving (Eq, Generic)
 
 instance Default ReminderDict
 
@@ -246,19 +195,76 @@ instance FromJSON ReminderDict where
 
 type ReminderM = WCM ReminderDict
 
--- tricky to do in TypeRep?
 reminderThread :: WEnv -> IO ()
 reminderThread wenv = do
+    let cv :: forall a. WCM (M.Map TypeRep [EventReminder]) a -> ReminderM a
+        cv = coerce -- to avoid the noise introduced by newtype
+        (_, TCommon{tcTelegram}) = wenv
     -- load tz info before starting the loop
-    tzPt <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
+    _tzPt <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
     tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
     waitUntilStartOfNextMinute
-    autoWCM @ReminderDict "Reminder" "reminder.yaml" wenv $ \markStart -> do
+    autoWCM @ReminderDict "Reminder" "reminder.yaml" wenv $ \markStart' -> cv $ do
+      let markStart = coerce markStart' ::
+            WCM (M.Map TypeRep [EventReminder]) (WCM (M.Map TypeRep [EventReminder]) ())
       -- note that unlike other threads, this one begins by thread sleep
       -- the idea is to start working immediately after wake up
       -- so we get the most accurate timestamp to work with
       curTime <- liftIO (waitUntilStartOfNextMinute >> getCurrentTime)
+      -- any event in future within 20 seconds is also include
+      -- this assume that we can always process all reminders within 20 seconds
+      -- which should be way more than enough.
+      let tThres = addUTCTime 20 curTime
       markEnd <- markStart
+      let collectResults :: Endo [(EReminderSupply, UTCTime)] -> [(EReminderSupply, [UTCTime])]
+          collectResults xsPre = convert <$> ys
+            where
+              ersToTyRep (ERS tp) = typeRep tp
+              xs = appEndo xsPre []
+              ys = groupBy ((==) `on` ersToTyRep . fst) xs
+              convert ts = (fst . head $ ts, snd <$> ts)
       -- scan through supplies and try restocking if an new event timestamp is found
-      pure ()
+      displayList <- collectResults <$>
+        execWriterT (forM reminderSupplies (\e@(ERS tp) -> do
+            let tyRep = typeRep tp
+                -- always compute new supply (lazily)
+                newSupply = renewSupply tp tzs curTime
+                cmp = comparing eventOccurTime
+            mValue <- gets (M.lookup tyRep)
+            -- restock step
+            case mValue of
+              Nothing ->
+                modify (M.insert tyRep [newSupply])
+              Just ers ->
+                -- skip restocking if timestamp mismatches
+                unless (hasBy cmp ers newSupply) $
+                  modify (M.adjust (insertSetBy cmp newSupply) tyRep)
+            eventReminders <- fromMaybe [] <$> gets (M.lookup tyRep)
+            newEventReminders <-
+              catMaybes <$> forM eventReminders (\(EventReminder eot erds) -> do
+                -- if remindsDue contains anything, we should send current reminder
+                let (remindsDue, erds') = span (< tThres) erds
+                unless (null remindsDue) $ tell . Endo $ ([(e, eot)] ++)
+                pure $ if null erds'
+                    then Nothing
+                    else Just (EventReminder eot erds')
+              )
+            let newVal =
+                  if null newEventReminders
+                    then Nothing
+                    else Just newEventReminders
+            modify (M.update (const newVal) tyRep)
+        ))
       markEnd
+      let txt = toStrict (TB.toLazyText md)
+          md = foldMap pprERS displayList
+          pprERS (ERS tp, eTimes) =
+              "- Reminder: **" <> TB.fromString (show tyRep) <> "**\n" <>
+                foldMap pprTime eTimes
+            where
+              tyRep = typeRep tp
+              pprTime eTime =
+                  "    + " <> TB.fromString timeStr <> "\n"
+                where
+                  timeStr = describeDuration (round (eTime `diffUTCTime` curTime) :: Int)
+      void $ liftIO $ writeChan tcTelegram (TgRMTimer txt (Just Markdown))

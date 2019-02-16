@@ -22,7 +22,7 @@ import System.Exit
 import System.Directory
 
 import Javran.WhaleChan.Base
-import Javran.WhaleChan.TimerThread (timerThread)
+import Javran.WhaleChan.TimerThread (timerThread, reminderThread)
 import Javran.WhaleChan.TelegramThread (telegramThread)
 import Javran.WhaleChan.TwitterThread (tweetSyncThread, createTwMVar)
 import Javran.WhaleChan.Types
@@ -45,7 +45,7 @@ startService wconf = do
   let tcomm = TCommon {..}
       WConf {tgBotToken=botToken, tgChannelId=tgChannelId} = wconf
       wenv = (wconf, tcomm)
-  aTimer <- async (evalStateT (timerThread tcTelegram) M.empty)
+  aTimer <- async (reminderThread wenv)
   aTg <- async (telegramThread tcManager tcTelegram tcTwitter botToken tgChannelId)
   aTw <- async (tweetSyncThread wenv)
   wait aTimer
