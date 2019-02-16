@@ -246,15 +246,16 @@ reminderThread wenv = do
             modify (M.update (const newVal) tyRep)
         ))
       markEnd
-      let txt = toStrict (TB.toLazyText md)
-          md = foldMap pprERS displayList
-          pprERS (ERS tp, eTimes) =
-              "- Reminder: **" <> TB.fromString (show tyRep) <> "**\n" <>
-                foldMap pprTime eTimes
-            where
-              tyRep = typeRep tp
-              pprTime eTime =
-                  "    + " <> TB.fromString timeStr <> "\n"
-                where
-                  timeStr = describeDuration (round (eTime `diffUTCTime` curTime) :: Int)
-      void $ liftIO $ writeChan tcTelegram (TgRMTimer txt (Just Markdown))
+      unless (null displayList) $ do
+        let txt = toStrict (TB.toLazyText md)
+            md = foldMap pprERS displayList
+            pprERS (ERS tp, eTimes) =
+                "- Reminder: **" <> TB.fromString (show tyRep) <> "**\n" <>
+                  foldMap pprTime eTimes
+              where
+                tyRep = typeRep tp
+                pprTime eTime =
+                    "    + " <> TB.fromString timeStr <> "\n"
+                  where
+                    timeStr = describeDuration (round (eTime `diffUTCTime` curTime) :: Int)
+        void $ liftIO $ writeChan tcTelegram (TgRMTimer txt (Just Markdown))
