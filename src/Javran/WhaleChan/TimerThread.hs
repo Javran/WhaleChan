@@ -249,5 +249,16 @@ type ReminderM = WCM ReminderDict
 -- tricky to do in TypeRep?
 reminderThread :: WEnv -> IO ()
 reminderThread wenv = do
-    autoWCM @ReminderDict "Reminder" "reminder.yaml" wenv $ \_markStart -> do
+    -- load tz info before starting the loop
+    tzPt <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
+    tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
+    waitUntilStartOfNextMinute
+    autoWCM @ReminderDict "Reminder" "reminder.yaml" wenv $ \markStart -> do
+      -- note that unlike other threads, this one begins by thread sleep
+      -- the idea is to start working immediately after wake up
+      -- so we get the most accurate timestamp to work with
+      curTime <- liftIO (waitUntilStartOfNextMinute >> getCurrentTime)
+      markEnd <- markStart
+      -- scan through supplies and try restocking if an new event timestamp is found
       pure ()
+      markEnd
