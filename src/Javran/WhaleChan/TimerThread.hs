@@ -1,6 +1,5 @@
 {-# LANGUAGE
-    LambdaCase
-  , TypeApplications
+    TypeApplications
   , NamedFieldPuns
   , ScopedTypeVariables
   , DataKinds
@@ -16,7 +15,6 @@ import Control.Concurrent (threadDelay)
 import Control.Concurrent.Chan
 import Control.Monad
 import Control.Monad.RWS
-import Control.Monad.State
 import Control.Monad.Writer
 import Data.Aeson
 import Data.Aeson.Types (Parser)
@@ -29,17 +27,12 @@ import Data.Maybe
 import Data.Ord
 import Data.Proxy
 import Data.Time.Clock
-import Data.Time.Format
-import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Olson
-import Data.Time.LocalTime.TimeZone.Series
 import Data.Typeable
 import GHC.Generics
-import Say
 import Web.Telegram.API.Bot
 
 import qualified Data.Map.Strict as M
-import qualified Data.Text as T
 import Data.Text.Lazy (toStrict)
 import qualified Data.Text.Lazy.Builder as TB
 
@@ -153,8 +146,6 @@ reminders = f <$> reminderSupplies
 
 strToReminderTypeRep :: String -> Parser TypeRep
 strToReminderTypeRep raw = maybe mzero pure (lookup raw reminders)
-
-type TimerM = StateT (M.Map TypeRep EventReminder) IO
 
 {-
   keeping old time message in case needed
