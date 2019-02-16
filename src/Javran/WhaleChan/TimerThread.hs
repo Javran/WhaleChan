@@ -194,7 +194,6 @@ reminderThread wenv = do
     -- load tz info before starting the loop
     _tzPt <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
     tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
-    waitUntilStartOfNextMinute
     autoWCM @ReminderDict "Reminder" "reminder.yaml" wenv $ \markStart' -> cv $ do
       let markStart = coerce markStart' ::
             WCM (M.Map TypeRep [EventReminder]) (WCM (M.Map TypeRep [EventReminder]) ())
