@@ -219,6 +219,16 @@ timerThread tgMsgChan = do
 
 -- TODO: use lens-datetime
 
+{-
+  note that [EventReminder] is sorted in time order,
+  and is supposed to have no more than 2 items - as reminders are restocked at that
+  exact moment, there should be one passing (0 seconds) and new one being added.
+  we are still under the assumption that no more than 2 reminders (with beforhand reminders)
+  will happen at the same time, which is quite safe considering the nature of this game
+  (i.e. frequent events shouldn't be reminded too often (< 24 hours) and less frequent
+  will have a relatively large interval between them, large enough that the overlapping
+  of beforehand reminds are very unlikely.
+ -}
 newtype ReminderDict = RD (M.Map TypeRep [EventReminder]) deriving (Eq, Generic)
 
 instance Default ReminderDict
