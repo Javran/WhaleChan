@@ -113,84 +113,75 @@ getManager = asks (tcManager . snd)
 
 tweetSyncThread :: WEnv -> IO ()
 tweetSyncThread wenv = do
-    let (WConf{twIgnoreOlderThan}, _) = wenv
     t <- getCurrentTime
-    let startTime = addUTCTime (fromIntegral twIgnoreOlderThan) t
-    autoWCM "TweetSync" "tweet-sync.yaml" wenv (tweetSyncStep startTime)
-
-tweetSyncStep :: UTCTime -> TweetSyncM (TweetSyncM ()) -> TweetSyncM ()
-tweetSyncStep startTime markStart = do
-    markEnd <- markStart
-    (wconf, TCommon{..}) <- ask
-    let WConf
-          { twWatchingUserId
-            {-
-              it is intentional that
-              this value is ignored for the creation / deletion detection,
-              as we really need some "old" data so that the comparing process
-              know how to align update list with current state in order to
-              detect deletion.
-
-              however, the tg-sync should check twTweetIdGreaterThan
-              and turn TSPending to TSTimedOut to prevent flooding the channel
-             -}
-          } = wconf
+    {-
+      it is intentional that
+      "twIgnoreOlderThan"  is ignored for the creation / deletion detection,
+      as we really need some "old" data so that the comparing process
+      know how to align update list with current state in order to
+      detect deletion.
+     -}
+    let (wconf@WConf{twIgnoreOlderThan, twWatchingUserId}, TCommon{..}) = wenv
         twInfo = getTwInfo wconf
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
                 & count ?~ 200
                 & tweetMode ?~ "extended"
-    mQueue <- liftIO $ swapMVar tcTwitter Seq.empty
-    resp <- liftIO $ callWithResponse twInfo tcManager req `catch`
-            \(e :: SomeException) -> do
-              sayErrString $ "[tw] err: " <> displayException e
-              throw e
-    let Response{..} = resp
-        performUpdate :: TwRxMsg -> TweetTracks -> TweetTracks
-        performUpdate (TwRMTgSent tgMsgId twStId) =
-            M.adjust
-              (second $ \case
-                  TSPending -> TSSynced tgMsgId
-                  TSRemoving v -> TSRemoved v tgMsgId
-                  x -> x)
-              twStId
-    -- handle received messages
-    modify (appEndo (foldMap (Endo . performUpdate) mQueue))
-    let statusList = responseBody
-    -- TODO: should have better API to handle gets then modify (const _)
-    ((tCreated, tDeleted), nextState) <- gets (`updateTweetStates` statusList)
-    modify (const nextState)
-    let [rlLimit,rlRemaining,_rlReset] =
-            ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders) <$>
-              [ "x-rate-limit-limit"
-              , "x-rate-limit-remaining"
-              , "x-rate-limit-reset"
-              ]
-    case (rlRemaining, rlLimit) of
-          (Just rRem, Just rLim)
-            | rRem * 5 < rLim ->
-              -- rRem / rLim < 20%=1/5 => 5 * rem < lim
-              sayErrString "[tw] warning: rate limit availability < 20%"
-          _ -> pure ()
-    when (length tCreated + length tDeleted > 0) $
-      sayString $ "[tw] created: " <> show (length tCreated) <>
-                  ", deleted: " <> show (length tDeleted)
-    unless (null tCreated) $ liftIO $ do
-      sayString $ "[tw] created tweets: " <>
-        intercalate "," (show . statusId <$> tCreated)
-      forM_ tCreated $ \st -> do
-        let content = "[tw] " <> statusText st
-        -- TODO: set TSTimedOut
-        when (statusCreatedAt st > startTime) $
-          writeChan tcTelegram (TgRMTweetCreate (statusId st) content)
-    unless (null tDeleted) $ liftIO $  do
-      sayString $ "[tw] deleted tweets: " <>
-        intercalate "," (show . statusId . fst <$> tDeleted)
-      forM_ tDeleted $ \case
-        (st, Just msgId) -> writeChan tcTelegram (TgRMTweetDestroy (statusId st) msgId)
-        _ -> pure ()
-    markEnd
-    liftIO $ threadDelay $ 5 * oneSec
-
+        startTime = addUTCTime (fromIntegral twIgnoreOlderThan) t
+        tweetSyncStep :: TweetSyncM (TweetSyncM ()) -> TweetSyncM ()
+        tweetSyncStep markStart = do
+            markEnd <- markStart
+            mQueue <- liftIO $ swapMVar tcTwitter Seq.empty
+            resp <- liftIO $ callWithResponse twInfo tcManager req `catch`
+                    \(e :: SomeException) -> do
+                      sayErrString $ "[tw] err: " <> displayException e
+                      throw e
+            let Response{..} = resp
+                performUpdate :: TwRxMsg -> TweetTracks -> TweetTracks
+                performUpdate (TwRMTgSent tgMsgId twStId) =
+                    M.adjust
+                      (second $ \case
+                          TSPending -> TSSynced tgMsgId
+                          TSRemoving v -> TSRemoved v tgMsgId
+                          x -> x)
+                      twStId
+            -- handle received messages
+            modify (appEndo (foldMap (Endo . performUpdate) mQueue))
+            let statusList = responseBody
+            -- TODO: should have better API to handle gets then modify (const _)
+            ((tCreated, tDeleted), nextState) <- gets (`updateTweetStates` statusList)
+            modify (const nextState)
+            let [rlLimit,rlRemaining,_rlReset] =
+                    ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders) <$>
+                      [ "x-rate-limit-limit"
+                      , "x-rate-limit-remaining"
+                      , "x-rate-limit-reset"
+                      ]
+            case (rlRemaining, rlLimit) of
+                  (Just rRem, Just rLim)
+                    | rRem * 5 < rLim ->
+                      -- rRem / rLim < 20%=1/5 => 5 * rem < lim
+                      sayErrString "[tw] warning: rate limit availability < 20%"
+                  _ -> pure ()
+            when (length tCreated + length tDeleted > 0) $
+              sayString $ "[tw] created: " <> show (length tCreated) <>
+                          ", deleted: " <> show (length tDeleted)
+            unless (null tCreated) $ liftIO $ do
+              sayString $ "[tw] created tweets: " <>
+                intercalate "," (show . statusId <$> tCreated)
+              forM_ tCreated $ \st -> do
+                let content = "[tw] " <> statusText st
+                -- TODO: set TSTimedOut
+                when (statusCreatedAt st > startTime) $
+                  writeChan tcTelegram (TgRMTweetCreate (statusId st) content)
+            unless (null tDeleted) $ liftIO $  do
+              sayString $ "[tw] deleted tweets: " <>
+                intercalate "," (show . statusId . fst <$> tDeleted)
+              forM_ tDeleted $ \case
+                (st, Just msgId) -> writeChan tcTelegram (TgRMTweetDestroy (statusId st) msgId)
+                _ -> pure ()
+            markEnd
+            liftIO $ threadDelay $ 5 * oneSec
+    autoWCM "TweetSync" "tweet-sync.yaml" wenv tweetSyncStep
 {-
   it might be tempting to use the streaming api, but setting it up is a mess, so, no.
 
