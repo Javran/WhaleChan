@@ -186,6 +186,8 @@ instance FromJSON ReminderDict where
 
 type ReminderM = WCM ReminderDict
 
+-- TODO: we should really remove old reminders when it's loaded from state file
+
 reminderThread :: WEnv -> IO ()
 reminderThread wenv = do
     let cv :: forall a. WCM (M.Map TypeRep [EventReminder]) a -> ReminderM a
