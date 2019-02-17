@@ -20,6 +20,7 @@ import Say
 import Web.Twitter.Conduit hiding (count)
 import Web.Twitter.Conduit.Parameters
 import Web.Twitter.Types
+import Data.Time.Clock
 
 import qualified Data.ByteString.Char8 as BSC
 import qualified Data.Map.Strict as M
@@ -111,10 +112,14 @@ getManager :: MonadReader WEnv m => m Manager
 getManager = asks (tcManager . snd)
 
 tweetSyncThread :: WEnv -> IO ()
-tweetSyncThread wenv = autoWCM "TweetSync" "tweet-sync.yaml" wenv tweetSyncStep
+tweetSyncThread wenv = do
+    let (WConf{twIgnoreOlderThan}, _) = wenv
+    t <- getCurrentTime
+    let startTime = addUTCTime (fromIntegral twIgnoreOlderThan) t
+    autoWCM "TweetSync" "tweet-sync.yaml" wenv (tweetSyncStep startTime)
 
-tweetSyncStep :: TweetSyncM (TweetSyncM ()) -> TweetSyncM ()
-tweetSyncStep markStart = do
+tweetSyncStep :: UTCTime -> TweetSyncM (TweetSyncM ()) -> TweetSyncM ()
+tweetSyncStep startTime markStart = do
     markEnd <- markStart
     (wconf, TCommon{..}) <- ask
     let WConf
@@ -129,7 +134,6 @@ tweetSyncStep markStart = do
               however, the tg-sync should check twTweetIdGreaterThan
               and turn TSPending to TSTimedOut to prevent flooding the channel
              -}
-          , twTweetIdGreaterThan
           } = wconf
         twInfo = getTwInfo wconf
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
@@ -176,7 +180,7 @@ tweetSyncStep markStart = do
       forM_ tCreated $ \st -> do
         let content = "[tw] " <> statusText st
         -- TODO: set TSTimedOut
-        when (statusId st > twTweetIdGreaterThan) $
+        when (statusCreatedAt st > startTime) $
           writeChan tcTelegram (TgRMTweetCreate (statusId st) content)
     unless (null tDeleted) $ liftIO $  do
       sayString $ "[tw] deleted tweets: " <>
