@@ -29,11 +29,9 @@ startService wconf = do
   tcManager <- newManager tlsManagerSettings
   tcTelegram <- newChan
   tcTwitter <- createTwMVar
-  let tcomm = TCommon {..}
-      WConf {tgBotToken=botToken, tgChannelId=tgChannelId} = wconf
-      wenv = (wconf, tcomm)
+  let wenv = (wconf,TCommon {..})
   aTimer <- async (reminderThread wenv)
-  aTg <- async (telegramThread tcManager tcTelegram tcTwitter botToken tgChannelId)
+  aTg <- async (telegramThread wenv)
   aTw <- async (tweetSyncThread wenv)
   wait aTimer
   wait aTg
