@@ -46,6 +46,7 @@ library:
     - Javran.WhaleChan.Util
     - Javran.WhaleChan.TimerThread
     - Javran.WhaleChan.TelegramThread
+    - Javran.WhaleChan.TweetSyncThread
     - Javran.WhaleChan.Main
 
 executable:

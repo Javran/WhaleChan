@@ -21,7 +21,7 @@ import System.Exit
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.TelegramThread (telegramThread)
 import Javran.WhaleChan.TimerThread (reminderThread)
-import Javran.WhaleChan.TwitterThread (tweetSyncThread, createTwMVar)
+import Javran.WhaleChan.TweetSyncThread (tweetSyncThread, createTwMVar)
 import Javran.WhaleChan.Types
 
 startService :: WConf -> IO ()

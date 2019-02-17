@@ -18,7 +18,7 @@ import Web.Telegram.API.Bot
 
 import qualified Data.Text as T
 
-import Javran.WhaleChan.TwitterThread
+import Javran.WhaleChan.TweetSyncThread
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Util
 

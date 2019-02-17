@@ -7,7 +7,7 @@
   , LambdaCase
   , FlexibleContexts
   #-}
-module Javran.WhaleChan.TwitterThread
+module Javran.WhaleChan.TweetSyncThread
   ( tweetSyncThread
   , createTwMVar
   , putTwMsg
