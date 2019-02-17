@@ -29,6 +29,8 @@ import Javran.WhaleChan.Util
   without using subdirectories.
 
   - config.yaml: config file
+  - reminder.yaml: for the reminder thread
+  - tweet-sync.yaml: for the tweet sync thread
 
  -}
 

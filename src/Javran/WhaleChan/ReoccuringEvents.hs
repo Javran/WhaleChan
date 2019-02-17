@@ -2,22 +2,6 @@
     TypeApplications
   , NamedFieldPuns
   #-}
-
-{-
-  this module implements a bunch of nextXXXX functions
-  corresponding to the game.
-
-  - all times are in JST
-  - the input is current time
-  - the output is next time that the event happens
-  - note that we consider input time to be in the past
-    at the time that this function is called,
-    which means input should never be the same as output:
-    say if you call nextDailyQuestReset with exact reseting time 5:00 JST,
-    today's 5:00 JST is already a "past" so you'll get 5:00 JST of next day back instead
-
- -}
-
 module Javran.WhaleChan.ReoccuringEvents
   ( nextPracticeReset
   , nextDailyQuestReset
@@ -32,6 +16,35 @@ module Javran.WhaleChan.ReoccuringEvents
 import Data.Time.Calendar
 import Data.Time.Calendar.WeekDate
 import Data.Time.LocalTime
+
+{-
+  this module implements a bunch of nextXXXX functions
+  corresponding to the game.
+
+  - all times are in JST
+  - the input is current time
+  - the output is next time that the event happens
+  - note that we consider input time to be in the past
+    at the time that this function is called,
+    which means input should never be the same as output:
+    say if you call nextDailyQuestReset with exact reseting time 5:00 JST,
+    today's 5:00 JST is already a "past" so you'll get 5:00 JST of next day back instead
+ -}
+
+{-
+  events to be implemented:
+
+  - [x] daily quest reset
+  - [x] practice reset
+  - [x] senka accounting (3 times at the end of each month)
+  - [x] EO reset
+  - [x] quest senka freeze
+  - [ ] secretary & comment accounting
+  - [x] weekly quest reset
+  - [x] monthly quest reset
+  - [x] quaterly quest reset: 3 6 9 12
+
+ -}
 
 localDayAdd :: Int -> LocalTime -> LocalTime
 localDayAdd n lt@LocalTime{localDay = ld} = lt {localDay = addDays (fromIntegral n) ld}

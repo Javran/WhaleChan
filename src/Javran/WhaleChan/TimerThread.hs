@@ -191,6 +191,7 @@ reminderThread wenv = do
     let cv :: forall a. WCM (M.Map TypeRep [EventReminder]) a -> ReminderM a
         cv = coerce -- to avoid the noise introduced by newtype
         (_, TCommon{tcTelegram}) = wenv
+    -- ref: https://stackoverflow.com/q/43835656/315302
     -- load tz info before starting the loop
     _tzPt <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
     tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
