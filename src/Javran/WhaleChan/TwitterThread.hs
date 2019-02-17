@@ -7,7 +7,11 @@
   , LambdaCase
   , FlexibleContexts
   #-}
-module Javran.WhaleChan.TwitterThread where
+module Javran.WhaleChan.TwitterThread
+  ( tweetSyncThread
+  , createTwMVar
+  , putTwMsg
+  ) where
 
 import Control.Arrow
 import Control.Concurrent
@@ -76,12 +80,6 @@ import Javran.WhaleChan.Base
     and anything we get lower than that, we'll ignore.
  -}
 
-data TwState = TwState
-  { userIconURLHttps :: Maybe URIString
-    -- status id is in descending order to keep it consistent with twitter API
-  , tweetTracks :: TweetTracks
-  }
-
 getTwInfo :: WConf -> TWInfo
 getTwInfo WConf{..} = TWInfo twTok Nothing
   where
@@ -107,9 +105,6 @@ putTwMsg mv m =
   -- only atomic when there's no other producer
   -- in this case only tg thread talks to tw thread
   modifyMVar_ mv (pure . (Seq.|> m))
-
-getManager :: MonadReader WEnv m => m Manager
-getManager = asks (tcManager . snd)
 
 tweetSyncThread :: WEnv -> IO ()
 tweetSyncThread wenv = do
