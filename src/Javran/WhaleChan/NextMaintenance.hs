@@ -18,13 +18,24 @@ import Javran.WhaleChan.Types
 
 mTimeFieldP :: String -> ReadP String
 mTimeFieldP fd =
-    string fd *> skipSpaces *>
-    string "=" *> skipSpaces *> string "Date.parse(\"" *>
-    munch1 (/='\"') <* string "\");" <* skipSpaces <* eof
+    string fd *> skipSpaces *> string "=" *> skipSpaces
+    *> string "Date.parse(\"" *> munch1 (/='\"') <* string "\");"
+    <* skipSpaces <* eof
 
 mStartTimeP, mEndTimeP :: ReadP String
 mStartTimeP = mTimeFieldP "MaintenanceInfo.StartDateTime"
 mEndTimeP = mTimeFieldP "MaintenanceInfo.EndDateTime"
+
+serverInfoP :: ReadP (Int, String)
+serverInfoP =
+    (,) <$> ( string "ConstServerInfo.World_"
+              *> readS_to_P reads
+              <* skipSpaces <* string "=" <* skipSpaces
+            )
+        <*> ( string "\""
+              *> munch1 (/='\"')
+              <* string "\";" <* skipSpaces <* eof
+            )
 
 {-
   possible sources:
