@@ -22,8 +22,18 @@ import Javran.WhaleChan.Base
 import Javran.WhaleChan.TelegramThread (telegramThread)
 import Javran.WhaleChan.TimerThread (reminderThread)
 import Javran.WhaleChan.TweetSyncThread (tweetSyncThread, createTwMVar)
+import Javran.WhaleChan.NextMaintenance
 import Javran.WhaleChan.Types
 
+{-
+  TODO
+
+  [ ] dev twitter icon change detection
+  [ ] maintenance time reminder
+  [ ] kcs2/version.json could be used to detect server availability?
+  [ ] track daily twitter follower change
+
+ -}
 startService :: WConf -> IO ()
 startService wconf = do
   tcManager <- newManager tlsManagerSettings
@@ -33,6 +43,7 @@ startService wconf = do
   aTimer <- async (reminderThread wenv)
   aTg <- async (telegramThread wenv)
   aTw <- async (tweetSyncThread wenv)
+  getInfoFromGameSource wenv
   wait aTimer
   wait aTg
   wait aTw
