@@ -44,6 +44,7 @@ startService wconf = do
   aTg <- async (telegramThread wenv)
   aTw <- async (tweetSyncThread wenv)
   getInfoFromGameSource wenv
+  getInfoFromKC3Kai wenv
   wait aTimer
   wait aTg
   wait aTw
