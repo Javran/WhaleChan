@@ -15,18 +15,17 @@ import Javran.WhaleChan.Types
 import Javran.WhaleChan.FromSource.KcsConst
 import Javran.WhaleChan.FromSource.Kc3Kai
 import Javran.WhaleChan.FromSource.Wikia
+import Javran.WhaleChan.FromSource.Kcwiki
 
 {-
-  for figuring out next maintenance time
- -}
+  this module is for figuring out next maintenance time from various sources
 
-{-
-  possible sources:
+  possible sources are:
 
-  - [x] game source: http://203.104.209.7/gadget_html5/js/kcs_const.js
-  - [x] Kc3Kai: https://raw.githubusercontent.com/KC3Kai/KC3Kai/master/update
-  - [ ] Kcwiki: https://zh.kcwiki.org/wiki/Template:维护倒数
-  - [x] Wikia: https://kancolle.fandom.com/wiki/Recent_Updates
+  - game source: http://203.104.209.7/gadget_html5/js/kcs_const.js
+  - Kc3Kai: https://raw.githubusercontent.com/KC3Kai/KC3Kai/master/update
+  - Kcwiki: https://zh.kcwiki.org/wiki/Template:维护倒数
+  - Wikia: https://kancolle.fandom.com/wiki/Recent_Updates
  -}
 
 decodeFromRaw :: BSL.ByteString -> String
@@ -53,3 +52,9 @@ getInfoFromWikia (_,TCommon{tcManager}) = do
     req <- parseRequest "https://kancolle.fandom.com/wiki/Recent_Updates?action=render"
     resp <- httpLbs req tcManager
     print (parseMaintenanceTime (responseBody resp))
+
+getInfoFromKcwiki :: WEnv -> IO ()
+getInfoFromKcwiki (_,TCommon{tcManager}) = do
+    req <- parseRequest "https://zh.kcwiki.org/wiki/Template:维护倒数?action=render"
+    resp <- httpLbs req tcManager
+    print (parseKcwikiMaintenanceStartTime (responseBody resp))
