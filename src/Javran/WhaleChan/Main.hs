@@ -45,6 +45,7 @@ startService wconf = do
   aTg <- async (telegramThread wenv)
   aTw <- async (tweetSyncThread wenv)
   sourceTest wenv
+  test
   wait aTimer
   wait aTg
   wait aTw
