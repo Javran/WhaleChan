@@ -14,7 +14,10 @@ import Control.Exception
 import Control.Monad
 import Say
 
--- TODO: whether to put things in Base or Util is not clear for now.
+{-
+  place for some commonly used functions.
+  functions here should not require Javran.WhaleChan.* to work
+ -}
 
 describeDuration :: Int -> String
 describeDuration seconds
