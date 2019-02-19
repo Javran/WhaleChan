@@ -135,3 +135,19 @@ type WCM s = RWST WEnv () s IO
 
 -- monad stack for twitter thread
 type TweetSyncM = WCM TweetTracks
+
+{-
+  representation for a potentially partial range
+  this type is for maintaining a consistent range for maintenance times,
+  as parsers are only responsible for the syntactic wellformness
+ -}
+data PRange a
+  = PL a -- a range that only has left side
+  | PR a a -- a range that has both sides
+
+toPRange :: Ord a => Maybe a -> Maybe a -> Maybe (PRange a)
+toPRange Nothing _ = Nothing
+toPRange (Just x) Nothing = Just (PL x)
+toPRange (Just x) (Just y)
+  | x <= y = Just (PR x y)
+  | otherwise = Just (PL x)

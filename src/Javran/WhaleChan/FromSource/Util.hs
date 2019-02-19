@@ -29,3 +29,4 @@ fetchUrl :: Manager -> String -> IO BSL.ByteString
 fetchUrl mgr url = do
     req <- parseRequest url
     responseBody <$> httpLbs req mgr
+
