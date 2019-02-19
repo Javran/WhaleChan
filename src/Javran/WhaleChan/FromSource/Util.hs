@@ -7,6 +7,7 @@ module Javran.WhaleChan.FromSource.Util
   ( tell'
   , expectOne
   , fetchUrl
+  , Manager
   ) where
 
 import Control.Monad
@@ -29,3 +30,4 @@ fetchUrl :: Manager -> String -> IO BSL.ByteString
 fetchUrl mgr url = do
     req <- parseRequest url
     responseBody <$> httpLbs req mgr
+

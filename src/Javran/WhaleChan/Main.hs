@@ -24,7 +24,6 @@ import Javran.WhaleChan.TimerThread (reminderThread)
 import Javran.WhaleChan.TweetSyncThread (tweetSyncThread, createTwMVar)
 import Javran.WhaleChan.NextMaintenance
 import Javran.WhaleChan.Types
-import Javran.WhaleChan.FromSource.TimeFormat
 
 {-
   TODO
@@ -45,7 +44,6 @@ startService wconf = do
   aTg <- async (telegramThread wenv)
   aTw <- async (tweetSyncThread wenv)
   sourceTest wenv
-  test
   wait aTimer
   wait aTg
   wait aTw

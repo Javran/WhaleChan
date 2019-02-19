@@ -1,4 +1,9 @@
-module Javran.WhaleChan.FromSource.TimeFormat where
+module Javran.WhaleChan.FromSource.TimeFormat
+  ( jst
+  , timeLocale
+  , mkTimeParser
+  , ZonedTime(..)
+  ) where
 
 import Data.Time.LocalTime (TimeZone(..), ZonedTime(..))
 import Data.Time.Format
@@ -21,8 +26,8 @@ fmtKcwiki = "%Y/%-m/%-d %T %z"
   we are not using m ~ (Either String) here as it calls
   "Monad.fail" instead of "Monad.Fail.fail", the result is unsafe.
  -}
-mkParser :: String -> String -> Either String ZonedTime
-mkParser fmt inp = case readSTime True timeLocale fmt inp of
+mkTimeParser :: ParseTime t => String -> String -> Either String t
+mkTimeParser fmt inp = case readSTime True timeLocale fmt inp of
     [] -> Left "no parse"
     [(x,"")] -> Right x
     [(_,ys@(_:_))] -> Left $ "leftover found: " ++ ys
@@ -30,7 +35,7 @@ mkParser fmt inp = case readSTime True timeLocale fmt inp of
 
 test :: IO ()
 test = do
-  let t fs r = print (mkParser fs r)
+  let t fs r = print (mkTimeParser fs r :: Either String ZonedTime)
   t fmtKcsConst "2019/02/08 11:00:00"
   t fmtKcsConst "2019/02/08 20:25:00"
   t fmtKcsConst "invalid?"

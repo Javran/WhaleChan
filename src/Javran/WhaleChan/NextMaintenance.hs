@@ -12,7 +12,7 @@ import Data.Text.Encoding (decodeUtf8)
 import Data.Aeson
 
 import Javran.WhaleChan.Types
-import Javran.WhaleChan.FromSource.KcsConst
+import qualified Javran.WhaleChan.FromSource.KcsConst as KcsConst
 import Javran.WhaleChan.FromSource.Kc3Kai
 import Javran.WhaleChan.FromSource.Wikia
 import Javran.WhaleChan.FromSource.Kcwiki
@@ -61,13 +61,6 @@ Kcwiki
 decodeFromRaw :: BSL.ByteString -> String
 decodeFromRaw = T.unpack . decodeUtf8 . BSL.toStrict
 
-getInfoFromGameSource :: WEnv -> IO ()
-getInfoFromGameSource (_,TCommon{tcManager}) = do
-    req <- parseRequest "http://203.104.209.7/gadget_html5/js/kcs_const.js"
-    resp <- httpLbs req tcManager
-    print ((maintenanceTime <$>) $ kcsConstFromRaw $ decodeFromRaw $ responseBody resp)
-    pure ()
-
 getInfoFromKc3Kai :: WEnv -> IO ()
 getInfoFromKc3Kai (_,TCommon{tcManager}) = do
     req <- parseRequest "https://raw.githubusercontent.com/KC3Kai/KC3Kai/master/update"
@@ -91,8 +84,9 @@ getInfoFromKcwiki (_,TCommon{tcManager}) = do
 
 sourceTest :: WEnv -> IO ()
 sourceTest e = do
+    let (_,TCommon{tcManager = mgr}) = e
     putStrLn "KcsConst"
-    putStr "  " >> getInfoFromGameSource e
+    putStr "  " >> KcsConst.getInfo mgr >>= \(Just (KcsConst.KcsConst _ t)) -> print t
     putStrLn "Kc3Kai"
     putStr "  " >> getInfoFromKc3Kai e
     putStrLn "Wikia"

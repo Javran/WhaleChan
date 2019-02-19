@@ -6,6 +6,7 @@ module Javran.WhaleChan.Util
   ( describeDuration
   , isYamlFileNotFoundException
   , protectedAction
+  , eitherToMaybe
   ) where
 
 import Data.List (isPrefixOf)
@@ -52,3 +53,7 @@ protectedAction aName maxRetry action = run 0
           unless (retryCount == 0) $
             sayErrString $ "At #" ++ show retryCount ++ " reattempt for Action " ++ aName
           catch @SomeException action errHandler >> run (retryCount+1)
+
+eitherToMaybe :: Either a b -> Maybe b
+eitherToMaybe (Left _) = Nothing
+eitherToMaybe (Right v) = Just v
