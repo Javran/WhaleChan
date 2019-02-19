@@ -27,7 +27,7 @@ parseMaintenanceTime =
 
 collectResult :: [(Bool, T.Text)] -> ((Maybe T.Text, Maybe T.Text), Endo [String])
 collectResult xs
-  | (starts, ends) <- partition fst xs
+  | (ends{- True (in front) for end-}, starts) <- partition fst xs
   = runWriter $
       (,) <$> expectOne "start time" (snd <$> starts)
           <*> expectOne "end time" (snd <$> ends)
