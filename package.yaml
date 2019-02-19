@@ -50,11 +50,12 @@ library:
     - Javran.WhaleChan.TimerThread
     - Javran.WhaleChan.TelegramThread
     - Javran.WhaleChan.TweetSyncThread
+    - Javran.WhaleChan.FromSource.Util
+    - Javran.WhaleChan.FromSource.TimeFormat
     - Javran.WhaleChan.FromSource.KcsConst
     - Javran.WhaleChan.FromSource.Kc3Kai
     - Javran.WhaleChan.FromSource.Wikia
     - Javran.WhaleChan.FromSource.Kcwiki
-    - Javran.WhaleChan.FromSource.Util
     - Javran.WhaleChan.NextMaintenance
     - Javran.WhaleChan.Main
 
