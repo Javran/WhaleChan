@@ -35,6 +35,9 @@ dependencies:
   - lens
   - data-ordlist
   - directory
+  - tagsoup
+  - html-conduit
+  - xml-conduit
 
 library:
   source-dirs: src
@@ -48,6 +51,8 @@ library:
     - Javran.WhaleChan.TelegramThread
     - Javran.WhaleChan.TweetSyncThread
     - Javran.WhaleChan.FromSource.KcsConst
+    - Javran.WhaleChan.FromSource.Kc3Kai
+    - Javran.WhaleChan.FromSource.Wikia
     - Javran.WhaleChan.NextMaintenance
     - Javran.WhaleChan.Main
 

@@ -13,6 +13,8 @@ import Data.Aeson
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.FromSource.KcsConst
+import Javran.WhaleChan.FromSource.Kc3Kai
+import Javran.WhaleChan.FromSource.Wikia
 
 {-
   for figuring out next maintenance time
@@ -22,9 +24,9 @@ import Javran.WhaleChan.FromSource.KcsConst
   possible sources:
 
   - [x] game source: http://203.104.209.7/gadget_html5/js/kcs_const.js
-  - [ ] KC3Kai: https://raw.githubusercontent.com/KC3Kai/KC3Kai/master/update
+  - [x] Kc3Kai: https://raw.githubusercontent.com/KC3Kai/KC3Kai/master/update
   - [ ] Kcwiki: https://zh.kcwiki.org/wiki/Template:维护倒数
-  - [ ] Wikia: https://kancolle.fandom.com/wiki/Recent_Updates
+  - [x] Wikia: https://kancolle.fandom.com/wiki/Recent_Updates
  -}
 
 decodeFromRaw :: BSL.ByteString -> String
@@ -37,15 +39,8 @@ getInfoFromGameSource (_,TCommon{tcManager}) = do
     print (kcsConstFromRaw $ decodeFromRaw $ responseBody resp)
     pure ()
 
-data KC3TimeRaw = KC3TimeRaw String String
-
-instance FromJSON KC3TimeRaw where
-  parseJSON = withObject "KC3TimeRaw" $ \o ->
-      KC3TimeRaw <$> o .: "maintenance_start"
-                 <*> o .: "maintenance_end"
-
-getInfoFromKC3Kai :: WEnv -> IO ()
-getInfoFromKC3Kai (_,TCommon{tcManager}) = do
+getInfoFromKc3Kai :: WEnv -> IO ()
+getInfoFromKc3Kai (_,TCommon{tcManager}) = do
     req <- parseRequest "https://raw.githubusercontent.com/KC3Kai/KC3Kai/master/update"
     resp <- httpLbs req tcManager
     case eitherDecode (responseBody resp) of
@@ -57,4 +52,4 @@ getInfoFromWikia :: WEnv -> IO ()
 getInfoFromWikia (_,TCommon{tcManager}) = do
     req <- parseRequest "https://kancolle.fandom.com/wiki/Recent_Updates?action=render"
     resp <- httpLbs req tcManager
-    pure ()
+    print (parseMaintenanceTime (responseBody resp))
