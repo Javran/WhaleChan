@@ -8,7 +8,6 @@ module Javran.WhaleChan.FromSource.KcsConst where
 import Control.Applicative
 import Data.Either
 import Data.Maybe
-import Data.Time.Clock
 import Text.ParserCombinators.ReadP
 
 import qualified Data.IntMap as IM
@@ -18,7 +17,6 @@ import qualified Data.ByteString.Lazy as BSL
 import Data.Time.LocalTime
 
 import Javran.WhaleChan.Types
-import Javran.WhaleChan.Util
 import Javran.WhaleChan.FromSource.Util
 import Javran.WhaleChan.FromSource.TimeFormat
 
@@ -67,12 +65,12 @@ kcsConstFromRaw = tr . mapMaybe parseLine . lines
 decodeFromRaw :: BSL.ByteString -> String
 decodeFromRaw = T.unpack . decodeUtf8 . BSL.toStrict
 
-fmtKcsConst :: String
-fmtKcsConst = "%Y/%m/%d %T"
+timeFmt :: String
+timeFmt = "%Y/%m/%d %T"
 
 parseTime :: String -> Maybe UTCTime
 parseTime raw = do
-    t <- eitherToMaybe $ mkTimeParser @LocalTime fmtKcsConst raw
+    t <- eitherToMaybe $ mkTimeParser @LocalTime timeFmt raw
     pure $ zonedTimeToUTC (ZonedTime t jst)
 
 getInfo :: Manager -> IO (Maybe (KcsConst (Maybe (PRange UTCTime))))

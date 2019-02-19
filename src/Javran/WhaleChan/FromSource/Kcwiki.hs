@@ -14,9 +14,10 @@ import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Text as T
 
 import Javran.WhaleChan.FromSource.Util
+import Javran.WhaleChan.FromSource.TimeFormat
 
-parseKcwikiMaintenanceStartTime :: BSL.ByteString -> (Maybe T.Text, [String])
-parseKcwikiMaintenanceStartTime =
+parseTime :: BSL.ByteString -> (Maybe T.Text, [String])
+parseTime =
     second (`appEndo` [])
     . runWriter
     . expectOne "start time"
@@ -29,3 +30,12 @@ searchAndExtract =
     element "span"
     >=> "class" `attributeIs` "countdown"
     >=> attribute "data-until"
+
+parse :: T.Text -> Maybe UTCTime
+parse t = eitherToMaybe $ mkTimeParser "%Y/%-m/%-d %T %z" (T.unpack t)
+
+getInfo :: Manager -> IO (Maybe (PRange UTCTime))
+getInfo mgr = do
+    raw <- fetchUrl mgr "https://zh.kcwiki.org/wiki/Template:维护倒数?action=render"
+    let (lRaw, _) = parseTime raw
+    pure (toPRange (lRaw >>= parse) Nothing)

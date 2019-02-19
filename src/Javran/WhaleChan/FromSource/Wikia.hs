@@ -16,6 +16,7 @@ import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Text as T
 
 import Javran.WhaleChan.FromSource.Util
+import Javran.WhaleChan.FromSource.TimeFormat
 
 parseMaintenanceTime :: BSL.ByteString -> ((Maybe T.Text, Maybe T.Text), [String])
 parseMaintenanceTime =
@@ -47,3 +48,13 @@ searchAndExtractCountdownStrs =
         element "span"
         >=> "class" `attributeIs` "countdowndate"
         >=> child >=> content
+
+parse :: T.Text -> Maybe UTCTime
+parse t = eitherToMaybe $ mkTimeParser "%B %-d %Y %T %z" (T.unpack t)
+
+getInfo :: Manager -> IO (Maybe (PRange UTCTime))
+getInfo mgr = do
+    raw <- fetchUrl mgr "https://kancolle.fandom.com/wiki/Recent_Updates?action=render"
+    -- TODO: error message
+    let ((lRaw, rRaw), _) = parseMaintenanceTime raw
+    pure (toPRange (lRaw >>= parse) (rRaw >>= parse))

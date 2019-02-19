@@ -6,16 +6,11 @@ module Javran.WhaleChan.NextMaintenance where
 
 import Network.HTTP.Client
 
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.Text as T
-import Data.Text.Encoding (decodeUtf8)
-import Data.Aeson
-
 import Javran.WhaleChan.Types
 import qualified Javran.WhaleChan.FromSource.KcsConst as KcsConst
-import Javran.WhaleChan.FromSource.Kc3Kai
-import Javran.WhaleChan.FromSource.Wikia
-import Javran.WhaleChan.FromSource.Kcwiki
+import qualified Javran.WhaleChan.FromSource.Kc3Kai as Kc3Kai
+import qualified Javran.WhaleChan.FromSource.Wikia as Wikia
+import qualified Javran.WhaleChan.FromSource.Kcwiki as Kcwiki
 
 {-
   this module is for figuring out next maintenance time from various sources
@@ -58,38 +53,14 @@ Kcwiki
 
  -}
 
-decodeFromRaw :: BSL.ByteString -> String
-decodeFromRaw = T.unpack . decodeUtf8 . BSL.toStrict
-
-getInfoFromKc3Kai :: WEnv -> IO ()
-getInfoFromKc3Kai (_,TCommon{tcManager}) = do
-    req <- parseRequest "https://raw.githubusercontent.com/KC3Kai/KC3Kai/master/update"
-    resp <- httpLbs req tcManager
-    case eitherDecode (responseBody resp) of
-      Left e -> putStrLn $ "parse error: " ++ show e
-      Right (KC3TimeRaw sTime eTime) ->
-        putStrLn $ "KC3TimeRaw" ++ " start: " ++ sTime ++ ", end: " ++ eTime
-
-getInfoFromWikia :: WEnv -> IO ()
-getInfoFromWikia (_,TCommon{tcManager}) = do
-    req <- parseRequest "https://kancolle.fandom.com/wiki/Recent_Updates?action=render"
-    resp <- httpLbs req tcManager
-    print (parseMaintenanceTime (responseBody resp))
-
-getInfoFromKcwiki :: WEnv -> IO ()
-getInfoFromKcwiki (_,TCommon{tcManager}) = do
-    req <- parseRequest "https://zh.kcwiki.org/wiki/Template:维护倒数?action=render"
-    resp <- httpLbs req tcManager
-    print (parseKcwikiMaintenanceStartTime (responseBody resp))
-
 sourceTest :: WEnv -> IO ()
 sourceTest e = do
     let (_,TCommon{tcManager = mgr}) = e
     putStrLn "KcsConst"
     putStr "  " >> KcsConst.getInfo mgr >>= \(Just (KcsConst.KcsConst _ t)) -> print t
     putStrLn "Kc3Kai"
-    putStr "  " >> getInfoFromKc3Kai e
+    putStr "  " >> Kc3Kai.getInfo mgr >>= print
     putStrLn "Wikia"
-    putStr "  " >> getInfoFromWikia e
+    putStr "  " >> Wikia.getInfo mgr >>= print
     putStrLn "Kcwiki"
-    putStr "  " >> getInfoFromKcwiki e
+    putStr "  " >> Kcwiki.getInfo mgr >>= print
