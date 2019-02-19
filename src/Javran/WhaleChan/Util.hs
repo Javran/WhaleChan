@@ -1,14 +1,11 @@
 {-# LANGUAGE
     OverloadedStrings
   , TypeApplications
-  , FlexibleContexts
   #-}
 module Javran.WhaleChan.Util
   ( describeDuration
   , isYamlFileNotFoundException
   , protectedAction
-  , tell'
-  , expectOne
   ) where
 
 import Data.List (isPrefixOf)
@@ -16,7 +13,6 @@ import qualified Data.Yaml as Yaml
 import Control.Exception
 import Control.Monad
 import Say
-import Control.Monad.Writer
 
 -- TODO: whether to put things in Base or Util is not clear for now.
 
@@ -53,13 +49,3 @@ protectedAction aName maxRetry action = run 0
           unless (retryCount == 0) $
             sayErrString $ "At #" ++ show retryCount ++ " reattempt for Action " ++ aName
           catch @SomeException action errHandler >> run (retryCount+1)
-
-tell' :: MonadWriter (Endo [a]) m => a -> m ()
-tell' x = tell $ Endo ([x] ++)
-
-expectOne :: (MonadWriter (Endo [String]) m, Show a) => String -> [a] -> m (Maybe a)
-expectOne tag [] = tell' ("no parse for " ++ tag) >> pure Nothing
-expectOne tag (x:xs) = do
-    unless (null xs) $
-      tell' $"extra result for " ++ tag ++ ": " ++ show xs
-    pure (Just x)

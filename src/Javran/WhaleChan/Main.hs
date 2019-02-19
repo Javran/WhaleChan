@@ -43,7 +43,7 @@ startService wconf = do
   aTimer <- async (reminderThread wenv)
   aTg <- async (telegramThread wenv)
   aTw <- async (tweetSyncThread wenv)
-  getInfoFromKcwiki wenv
+  sourceTest wenv
   wait aTimer
   wait aTg
   wait aTw

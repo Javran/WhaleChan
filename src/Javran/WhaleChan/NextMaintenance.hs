@@ -35,7 +35,7 @@ getInfoFromGameSource :: WEnv -> IO ()
 getInfoFromGameSource (_,TCommon{tcManager}) = do
     req <- parseRequest "http://203.104.209.7/gadget_html5/js/kcs_const.js"
     resp <- httpLbs req tcManager
-    print (kcsConstFromRaw $ decodeFromRaw $ responseBody resp)
+    print ((maintenanceTime <$>) $ kcsConstFromRaw $ decodeFromRaw $ responseBody resp)
     pure ()
 
 getInfoFromKc3Kai :: WEnv -> IO ()
@@ -58,3 +58,14 @@ getInfoFromKcwiki (_,TCommon{tcManager}) = do
     req <- parseRequest "https://zh.kcwiki.org/wiki/Template:维护倒数?action=render"
     resp <- httpLbs req tcManager
     print (parseKcwikiMaintenanceStartTime (responseBody resp))
+
+sourceTest :: WEnv -> IO ()
+sourceTest e = do
+    putStrLn "KcsConst"
+    putStr "  " >> getInfoFromGameSource e
+    putStrLn "Kc3Kai"
+    putStr "  " >> getInfoFromKc3Kai e
+    putStrLn "Wikia"
+    putStr "  " >> getInfoFromWikia e
+    putStrLn "Kcwiki"
+    putStr "  " >> getInfoFromKcwiki e

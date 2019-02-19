@@ -15,7 +15,7 @@ import Text.XML.Cursor
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Text as T
 
-import Javran.WhaleChan.Util
+import Javran.WhaleChan.FromSource.Util
 
 parseMaintenanceTime :: BSL.ByteString -> ((Maybe T.Text, Maybe T.Text), [String])
 parseMaintenanceTime =
