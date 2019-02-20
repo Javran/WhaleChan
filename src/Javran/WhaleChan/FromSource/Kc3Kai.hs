@@ -15,7 +15,7 @@ import Javran.WhaleChan.FromSource.Util
 data KC3Time = KC3Time UTCTime UTCTime
 
 instance FromJSON KC3Time where
-  parseJSON = withObject "KC3TimeRaw" $ \o ->
+  parseJSON = withObject "KC3Time" $ \o ->
       KC3Time <$> (o .: "maintenance_start" >>= parseTime)
               <*> (o .: "maintenance_end" >>= parseTime)
 
