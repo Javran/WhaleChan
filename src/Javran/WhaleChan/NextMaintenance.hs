@@ -25,29 +25,10 @@ import qualified Javran.WhaleChan.FromSource.Kcwiki as Kcwiki
   - Date.parse spec as impl in v8: https://github.com/v8/v8/blob/8bb236d7c91cc1cbc5ddb656b57bcaa51eeb5b54/src/dateparser-inl.h#L24-L70
     too complicated to impl for our case.
 
-  - data sample:
-
-```
-KcsConst
-  Just ("2019/02/08 11:00:00","2019/02/08 20:25:00")
-Kc3Kai
-  KC3TimeRaw start: Fri, 08 February 2019 11:00:00 +0900, end: Fri, 08 February 2019 21:00:00 +0900
-Wikia
-  ((Just "February 27 2019 11:00:00 +0900",Just "February 27 2019 19:00:00 +0900"),[])
-Kcwiki
-  (Just "2019/2/27 11:00:00 +0900",[])
-```
-
-  - potential impl: date parser + time parser + timezone parser (missing -> maybe)
-    + date parser: "YYYY/M[M]/D[D]" or "[Month name] day year" or "day [Month name] year"
-    + time parser: "HH:MM:SS"
-    + timezone: "[+-]0000"
-
-  - steps:
-    + construct as Date.Time.LocalTime, convert to UTCTime with UTC timezone
-    + timezone is then added as offset
-    + these steps are to avoid `timeZoneSummerOnly` and `timeZoneName`
-  - alternatively http://hackage.haskell.org/package/time-1.8.0.2/docs/Data-Time-Format.html could be of interest
+  - what we do instead is to create just the right date format for time package to parse
+    certainly this is not the idea solution, but given that all these sources are
+    maintained and kept sane by human, I would't expect the format to be change much,
+    plus we'll immediate notice if there are changes that breaks the format.
 
  -}
 
