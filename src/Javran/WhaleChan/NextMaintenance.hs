@@ -4,8 +4,6 @@
   #-}
 module Javran.WhaleChan.NextMaintenance where
 
-import Network.HTTP.Client
-
 import Javran.WhaleChan.Types
 import qualified Javran.WhaleChan.FromSource.KcsConst as KcsConst
 import qualified Javran.WhaleChan.FromSource.Kc3Kai as Kc3Kai

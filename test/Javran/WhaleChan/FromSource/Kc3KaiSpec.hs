@@ -1,11 +1,10 @@
 module Javran.WhaleChan.FromSource.Kc3KaiSpec where
 
+import Data.Aeson.Types
 import Test.Hspec
 
 import Javran.WhaleChan.FromSource.TimeFormat
 import Javran.WhaleChan.FromSource.Kc3Kai
-
-import Data.Aeson.Types
 
 spec :: Spec
 spec = do

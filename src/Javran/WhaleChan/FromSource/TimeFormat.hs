@@ -35,10 +35,6 @@ mkUtcInJst year month day hh mm ss =
           (TimeOfDay hh mm (fromIntegral ss)))
         jst
 
-fmtWikia, fmtKcwiki :: String
-fmtWikia = "%B %-d %Y %T %z"
-fmtKcwiki = "%Y/%-m/%-d %T %z"
-
 {-
   we are not using m ~ (Either String) here as it calls
   "Monad.fail" instead of "Monad.Fail.fail", the result is unsafe.
@@ -49,10 +45,3 @@ mkTimeParser fmt inp = case readSTime True timeLocale fmt inp of
     [(x,"")] -> Right x
     [(_,ys@(_:_))] -> Left $ "leftover found: " ++ ys
     _:_ -> Left "multiple parses found"
-
-test :: IO ()
-test = do
-  let t fs r = print (mkTimeParser fs r :: Either String ZonedTime)
-  t fmtWikia "February 27 2019 11:00:00 +0900"
-  t fmtWikia "February 27 2019 19:00:00 +0900"
-  t fmtKcwiki  "2019/2/27 11:00:00 +0900"
