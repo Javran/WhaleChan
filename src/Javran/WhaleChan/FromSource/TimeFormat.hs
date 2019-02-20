@@ -7,11 +7,13 @@ module Javran.WhaleChan.FromSource.TimeFormat
   , toPRange
   , UTCTime(..)
   , eitherToMaybe
+  , mkUtcInJst
   ) where
 
-import Data.Time.LocalTime (TimeZone(..), ZonedTime(..))
 import Data.Time.Format
 import Data.Time.Clock
+import Data.Time.Calendar
+import Data.Time.LocalTime
 
 import Javran.WhaleChan.Util
 import Javran.WhaleChan.Types
@@ -24,8 +26,16 @@ timeLocale :: TimeLocale
 timeLocale = defaultTimeLocale
     { knownTimeZones = jst : knownTimeZones defaultTimeLocale }
 
-fmtKcsConst, fmtKc3Kai, fmtWikia, fmtKcwiki :: String
-fmtKcsConst = "%Y/%m/%d %T"
+mkUtcInJst :: Integer -> Int -> Int -> Int -> Int -> Int -> UTCTime
+mkUtcInJst year month day hh mm ss =
+    zonedTimeToUTC $
+      ZonedTime
+        (LocalTime
+          (fromGregorian year month day)
+          (TimeOfDay hh mm (fromIntegral ss)))
+        jst
+
+fmtKc3Kai, fmtWikia, fmtKcwiki :: String
 fmtKc3Kai = "%a, %d %B %Y %T %z"
 fmtWikia = "%B %-d %Y %T %z"
 fmtKcwiki = "%Y/%-m/%-d %T %z"
@@ -44,9 +54,6 @@ mkTimeParser fmt inp = case readSTime True timeLocale fmt inp of
 test :: IO ()
 test = do
   let t fs r = print (mkTimeParser fs r :: Either String ZonedTime)
-  t fmtKcsConst "2019/02/08 11:00:00"
-  t fmtKcsConst "2019/02/08 20:25:00"
-  t fmtKcsConst "invalid?"
   t fmtKc3Kai "Fri, 08 February 2019 11:00:00 +0900"
   t fmtKc3Kai" Fri, 08 February 2019 21:00:00 +0900"
   t fmtWikia "February 27 2019 11:00:00 +0900"
