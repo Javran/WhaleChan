@@ -12,6 +12,7 @@ module Javran.WhaleChan.Base
 
 import qualified Data.Yaml as Yaml
 import Control.Monad
+import Control.Monad.Logger
 import Control.Exception
 import Control.Monad.RWS
 import Data.Default
@@ -79,7 +80,7 @@ autoWCM mName stateFp wenv step =
                 run def
             Right st -> run st
   where
-    run st = void (evalRWST (forever m) wenv st)
+    run st = void (evalRWST (runStderrLoggingT (forever m)) wenv st)
     m = void $ step markStart
       where
         markStart :: m (m ())

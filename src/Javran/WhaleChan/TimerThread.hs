@@ -16,6 +16,7 @@ import Control.Concurrent.Chan
 import Control.Monad
 import Control.Monad.RWS
 import Control.Monad.Writer
+import Control.Monad.Logger
 import Data.Aeson
 import Data.Aeson.Types (Parser)
 import Data.Coerce

@@ -19,6 +19,7 @@ import Control.Monad.RWS
 import Web.Twitter.Types
 import Web.Twitter.Conduit (Manager)
 import GHC.Generics
+import Control.Monad.Logger
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
@@ -131,7 +132,7 @@ instance Yaml.FromJSON TgSyncState
 
 type TweetTracks = M.Map Integer (Status, TgSyncState)
 
-type WCM s = RWST WEnv () s IO
+type WCM s = LoggingT (RWST WEnv () s IO)
 
 -- monad stack for twitter thread
 type TweetSyncM = WCM TweetTracks
