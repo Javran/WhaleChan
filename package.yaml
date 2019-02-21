@@ -39,6 +39,7 @@ dependencies:
   - html-conduit
   - xml-conduit
   - monad-logger
+  - fast-logger
 
 library:
   source-dirs: src

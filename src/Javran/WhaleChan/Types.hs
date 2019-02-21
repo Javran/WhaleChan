@@ -20,6 +20,7 @@ import Web.Twitter.Types
 import Web.Twitter.Conduit (Manager)
 import GHC.Generics
 import Control.Monad.Logger
+import System.IO
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
@@ -110,6 +111,7 @@ data TCommon
   { tcTelegram :: Chan TgRxMsg -- channel used by telegram
   , tcTwitter :: TwMVar -- channel used by MVar
   , tcManager :: Manager -- share manager
+  , logHandle :: Handle
   }
 
 -- Runtime enviroment share among threads
