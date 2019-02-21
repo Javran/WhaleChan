@@ -32,6 +32,10 @@ import System.Log.FastLogger
 
 import qualified Data.ByteString as BS
 import qualified Data.Yaml as Yaml
+import System.Console.Terminfo.Base
+import System.Console.Terminfo.Color
+import Data.Text.Encoding (decodeUtf8)
+import qualified Data.Text as T
 
 {-
   it is assumed that all files related to the current
@@ -123,13 +127,28 @@ logCurrentMessage ch _ _ lvl msg = do
     t <- getCurrentTime
     writeChan ch (WLog t lvl msg)
 
+lvlToColor:: LogLevel -> Color
+lvlToColor = \case
+  LevelDebug -> White
+  LevelInfo -> Green
+  LevelWarn -> Yellow
+  LevelError -> Red
+  LevelOther {} -> Blue
+
 startLogger :: Chan WLog -> IO ()
 startLogger ch = do
+    term <- setupTermFromEnv
     logHandle <- openFile "WhaleChan.log" AppendMode
     hSetBuffering logHandle LineBuffering
     void $ forever $ do
         WLog t lvl msg <- readChan ch
         let msg' = utcTimeToLogStr t <> " [" <> logLevelToLogStr lvl <> "] " <> msg <> "\n"
             raw = fromLogStr msg'
-        BS.hPut stderr raw
+            msgStr = T.unpack (decodeUtf8 raw)
+            c = lvlToColor lvl
         BS.hPut logHandle raw
+        case getCapability term withForegroundColor of
+          Nothing ->
+            BS.hPut stderr raw
+          Just colored ->
+            hRunTermOutput stderr term $ termText (colored c msgStr)
