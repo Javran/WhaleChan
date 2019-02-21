@@ -135,20 +135,23 @@ lvlToColor = \case
   LevelError -> Red
   LevelOther {} -> Blue
 
+-- TODO: with new logging facility ready we can attempt to remove Say
+
 startLogger :: Chan WLog -> IO ()
 startLogger ch = do
     term <- setupTermFromEnv
     logHandle <- openFile "WhaleChan.log" AppendMode
     hSetBuffering logHandle LineBuffering
+    let errOut lvl raw = case getCapability term withForegroundColor of
+            Nothing ->
+              BS.hPut stderr raw
+            Just colored ->
+              hRunTermOutput stderr term $
+                termText $ colored (lvlToColor lvl) (T.unpack (decodeUtf8 raw))
+
     void $ forever $ do
         WLog t lvl msg <- readChan ch
         let msg' = utcTimeToLogStr t <> " [" <> logLevelToLogStr lvl <> "] " <> msg <> "\n"
             raw = fromLogStr msg'
-            msgStr = T.unpack (decodeUtf8 raw)
-            c = lvlToColor lvl
         BS.hPut logHandle raw
-        case getCapability term withForegroundColor of
-          Nothing ->
-            BS.hPut stderr raw
-          Just colored ->
-            hRunTermOutput stderr term $ termText (colored c msgStr)
+        errOut lvl raw
