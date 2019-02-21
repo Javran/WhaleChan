@@ -4,22 +4,34 @@
   , ScopedTypeVariables
   , TypeApplications
   , TypeFamilies
+  , NamedFieldPuns
+  , OverloadedStrings
   #-}
 module Javran.WhaleChan.Base
   ( loadWEnv
   , autoWCM
+  , logCurrentMessage
+  , startLogger
   ) where
 
-import qualified Data.Yaml as Yaml
 import Control.Monad
 import Control.Monad.Logger
 import Control.Exception
 import Control.Monad.RWS
 import Data.Default
 import Say
+import Control.Concurrent
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Util
+import Data.Time.Clock
+import Data.Time.Format
+import Data.String
+import System.IO
+import System.Log.FastLogger
+
+import qualified Data.ByteString as BS
+import qualified Data.Yaml as Yaml
 
 {-
   it is assumed that all files related to the current
@@ -80,7 +92,9 @@ autoWCM mName stateFp wenv step =
                 run def
             Right st -> run st
   where
-    run st = void (evalRWST (runStderrLoggingT (forever m)) wenv st)
+    (_, TCommon{tcLogger=ch}) = wenv
+    loggingFunc = logCurrentMessage ch
+    run st = void (evalRWST (runLoggingT (forever m) loggingFunc) wenv st)
     m = void $ step markStart
       where
         markStart :: m (m ())
@@ -90,3 +104,32 @@ autoWCM mName stateFp wenv step =
                 newSt <- get
                 unless (oldSt == newSt) $
                   liftIO (Yaml.encodeFile stateFp newSt)
+
+logLevelToLogStr :: LogLevel -> LogStr
+logLevelToLogStr = \case
+    LevelDebug -> "D"
+    LevelInfo -> "I"
+    LevelWarn -> "W"
+    LevelError -> "E"
+    LevelOther {} -> "?"
+
+utcTimeToLogStr :: UTCTime -> LogStr
+utcTimeToLogStr = fromString . formatTime defaultTimeLocale fmtStr
+  where
+    fmtStr = iso8601DateFormat (Just "%T%04Q")
+
+logCurrentMessage :: Chan WLog -> Loc -> LogSource -> LogLevel -> LogStr -> IO ()
+logCurrentMessage ch _ _ lvl msg = do
+    t <- getCurrentTime
+    writeChan ch (WLog t lvl msg)
+
+startLogger :: Chan WLog -> IO ()
+startLogger ch = do
+    logHandle <- openFile "WhaleChan.log" AppendMode
+    hSetBuffering logHandle LineBuffering
+    void $ forever $ do
+        WLog t lvl msg <- readChan ch
+        let msg' = utcTimeToLogStr t <> " [" <> logLevelToLogStr lvl <> "] " <> msg <> "\n"
+            raw = fromLogStr msg'
+        BS.hPut stderr raw
+        BS.hPut logHandle raw

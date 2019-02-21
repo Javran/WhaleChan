@@ -32,6 +32,7 @@ import qualified Data.Sequence as Seq
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
+import qualified Javran.WhaleChan.Log as Log
 
 {-
   design draft:
@@ -125,11 +126,13 @@ tweetSyncThread wenv = do
         tweetSyncStep :: TweetSyncM (TweetSyncM ()) -> TweetSyncM ()
         tweetSyncStep markStart = do
             markEnd <- markStart
+            Log.w "tw" "warn"
             mQueue <- liftIO $ swapMVar tcTwitter Seq.empty
             resp <- liftIO $ callWithResponse twInfo tcManager req `catch`
                     \(e :: SomeException) -> do
                       sayErrString $ "[tw] err: " <> displayException e
                       throw e
+            Log.e "tw" "error"
             let Response{..} = resp
                 performUpdate :: TwRxMsg -> TweetTracks -> TweetTracks
                 performUpdate (TwRMTgSent tgMsgId twStId) =
@@ -141,6 +144,7 @@ tweetSyncThread wenv = do
                       twStId
             -- handle received messages
             modify (appEndo (foldMap (Endo . performUpdate) mQueue))
+            Log.d "tw" "debug"
             let statusList = responseBody
             -- TODO: should have better API to handle gets then modify (const _)
             ((tCreated, tDeleted), nextState) <- gets (`updateTweetStates` statusList)
@@ -174,6 +178,7 @@ tweetSyncThread wenv = do
               forM_ tDeleted $ \case
                 (st, Just msgId) -> writeChan tcTelegram (TgRMTweetDestroy (statusId st) msgId)
                 _ -> pure ()
+            Log.i "tw" "info"
             markEnd
             liftIO $ threadDelay $ 5 * oneSec
     autoWCM "TweetSync" "tweet-sync.yaml" wenv tweetSyncStep

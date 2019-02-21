@@ -1,35 +1,18 @@
 {-# LANGUAGE
     OverloadedStrings
-  , LambdaCase
   #-}
 module Javran.WhaleChan.Log
-  (
+  ( d, i, w, e
   ) where
 
-import System.IO
 import Control.Monad.Logger
-import System.Log.FastLogger
-import Say
-import Data.String
 
-import Data.Time.Clock
-import Data.Time.Format
+withLvl :: (MonadLogger m, ToLogStr a, ToLogStr b) => LogLevel -> a -> b -> m ()
+withLvl lvl who msg = logWithoutLoc "" lvl (toLogStr who <> ": " <> toLogStr msg)
 
-logLevelToLogStr :: LogLevel -> LogStr
-logLevelToLogStr = \case
-    LevelDebug -> "D"
-    LevelInfo -> "I"
-    LevelWarn -> "W"
-    LevelError -> "E"
-    LevelOther {} -> "?"
+d,i,w,e :: MonadLogger m => String -> String -> m ()
 
-utcTimeToLogStr :: UTCTime -> LogStr
-utcTimeToLogStr = fromString . formatTime defaultTimeLocale fmtStr
-  where
-    fmtStr = iso8601DateFormat (Just "%T")
-
-logCurrentMessage :: Handle -> Loc -> LogSource -> LogLevel -> LogStr -> IO ()
-logCurrentMessage h _ _ lvl msg = do
-    t <- utcTimeToLogStr <$> getCurrentTime
-    let timedMsg = t <> "[" <> logLevelToLogStr lvl <> "] " <> msg
-    pure () -- TODO
+d = withLvl LevelDebug
+i = withLvl LevelInfo
+w = withLvl LevelWarn
+e = withLvl LevelError
