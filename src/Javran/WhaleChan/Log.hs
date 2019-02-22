@@ -5,6 +5,10 @@ module Javran.WhaleChan.Log
   ( d, i, w, e
   ) where
 
+{-
+  Logging facility. This module is meant to be import qualified.
+ -}
+
 import Control.Monad.Logger
 
 withLvl :: (MonadLogger m, ToLogStr a, ToLogStr b) => LogLevel -> a -> b -> m ()
