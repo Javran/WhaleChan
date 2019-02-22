@@ -156,3 +156,16 @@ toPRange (Just x) Nothing = Just (PL x)
 toPRange (Just x) (Just y)
   | x <= y = Just (PR x y)
   | otherwise = Just (PL x)
+
+{-
+  make type synonym of Dual of Endo
+  this is to allow expressions that foldMap over a list
+  to work from left to right instead of the traditional function composition
+ -}
+type DEndo a = Dual (Endo a)
+
+appDEndo :: DEndo a -> (a -> a)
+appDEndo = appEndo . getDual
+
+mkDEndo :: (a -> a) -> DEndo a
+mkDEndo = Dual . Endo
