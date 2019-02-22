@@ -140,7 +140,7 @@ tweetSyncThread wenv = do
                           x -> x)
                       twStId
             -- handle received messages
-            modify (appEndo (foldMap (Endo . performUpdate) mQueue))
+            modify (appDEndo (foldMap (mkDEndo . performUpdate) mQueue))
             let statusList = responseBody
             -- TODO: should have better API to handle gets then modify (const _)
             ((tCreated, tDeleted), nextState) <- gets (`updateTweetStates` statusList)
@@ -243,15 +243,15 @@ updateTweetStates tt upd
                  let sId = statusId s in sId >= effMinId && sId <= ttMaxId)
               tt
           -- effectively ttIntersect - updIntersect = ttToDelete
-          ttToDelete = appEndo (foldMap (Endo . M.delete . statusId) updIntersect) ttIntersect
+          ttToDelete = appDEndo (foldMap (mkDEndo . M.delete . statusId) updIntersect) ttIntersect
           convertDelMark (s,ts) = case ts of
             TSSynced v -> (s, Just v)
             _ -> (s, Nothing)
           -- marking deletion
-          tt1 = appEndo (foldMap mark ttToDelete) tt
+          tt1 = appDEndo (foldMap mark ttToDelete) tt
             where
-              mark :: (Status, TgSyncState) -> Endo TweetTracks
-              mark (s, ts) = Endo (M.insert k (s,ts'))
+              mark :: (Status, TgSyncState) -> DEndo TweetTracks
+              mark (s, ts) = mkDEndo (M.insert k (s,ts'))
                 where
                   k = statusId s
                   ts' = case ts of
