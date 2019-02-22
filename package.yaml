@@ -27,7 +27,6 @@ dependencies:
   - time
   - timezone-olson
   - timezone-series
-  - say
   - telegram-api
   - http-client
   - http-client-tls

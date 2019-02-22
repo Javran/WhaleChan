@@ -12,6 +12,7 @@ module Javran.WhaleChan.Base
   , autoWCM
   , logCurrentMessage
   , startLogger
+  , wenvToLoggerIO
   ) where
 
 import Control.Monad
@@ -19,10 +20,10 @@ import Control.Monad.Logger
 import Control.Exception
 import Control.Monad.RWS
 import Data.Default
-import Say
 import Control.Concurrent
 
 import Javran.WhaleChan.Types
+import qualified Javran.WhaleChan.Log as Log
 import Javran.WhaleChan.Util
 import Data.Time.Clock
 import Data.Time.Format
@@ -36,6 +37,8 @@ import System.Console.Terminfo.Base
 import System.Console.Terminfo.Color
 import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Text as T
+
+type LoggerIO = Loc -> LogSource -> LogLevel -> LogStr -> IO ()
 
 {-
   it is assumed that all files related to the current
@@ -85,20 +88,20 @@ autoWCM ::
     => String -> FilePath -> WEnv
     -> (m (m ()) -> m ()) -> IO ()
 autoWCM mName stateFp wenv step =
-    protectedAction mName 16 $
+    protectedAction loggerIO mName 16 $
         Yaml.decodeFileEither @s stateFp >>= \case
             Left e -> do
                 unless (isYamlFileNotFoundException e) $ do
-                  sayErrString $
+                  logErr $
                     "Exception caught while loading state file for " ++ mName
                     ++ ": " ++ displayException e
-                  sayErrString $ "Will use default state for " ++ mName
+                  logErr $ "Will use default state for " ++ mName
                 run def
             Right st -> run st
   where
-    (_, TCommon{tcLogger=ch}) = wenv
-    loggingFunc = logCurrentMessage ch
-    run st = void (evalRWST (runLoggingT (forever m) loggingFunc) wenv st)
+    loggerIO = wenvToLoggerIO wenv
+    logErr = Log.e' loggerIO mName
+    run st = void (evalRWST (runLoggingT (forever m) loggerIO) wenv st)
     m = void $ step markStart
       where
         markStart :: m (m ())
@@ -155,3 +158,6 @@ startLogger ch = do
             raw = fromLogStr msg'
         BS.hPut logHandle raw
         errOut lvl raw
+
+wenvToLoggerIO :: WEnv -> LoggerIO
+wenvToLoggerIO (_, TCommon{tcLogger=ch}) = logCurrentMessage ch

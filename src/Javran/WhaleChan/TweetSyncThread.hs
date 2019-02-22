@@ -18,6 +18,7 @@ import Control.Concurrent
 import Control.Lens
 import Control.Monad
 import Control.Monad.RWS
+import Control.Monad.Logger
 import Control.Exception
 import Data.List
 import Web.Twitter.Conduit hiding (count)
@@ -127,10 +128,13 @@ tweetSyncThread wenv = do
         tweetSyncStep markStart = do
             markEnd <- markStart
             mQueue <- liftIO $ swapMVar tcTwitter Seq.empty
+            loggerIO <- askLoggerIO
+            let info = Log.i' loggerIO "TweetSync"
             respM <- liftIO $ (Right <$> callWithResponse twInfo tcManager req) `catch`
                     \(e :: SomeException) -> pure (Left e)
             case respM of
               Left e -> do
+                -- note that we cannot be in IO, as markEnd will require WCM.
                 Log.e "TweetSync" (displayException e)
                 markEnd
                 liftIO $ throw e
@@ -165,21 +169,23 @@ tweetSyncThread wenv = do
             when (length tCreated + length tDeleted > 0) $
               Log.i "TweetSync" $ "created: " <> show (length tCreated) <>
                           ", deleted: " <> show (length tDeleted)
-            unless (null tCreated) $ do
-              Log.i "TweetSync" $ "created tweets: " <>
-                intercalate "," (show . statusId <$> tCreated)
-              forM_ tCreated $ \st -> liftIO $  do
-                let content = "[tw] " <> statusText st
-                -- TODO: set TSTimedOut
-                when (statusCreatedAt st > startTime) $
-                  writeChan tcTelegram (TgRMTweetCreate (statusId st) content)
-            unless (null tDeleted) $ do
-              Log.i "TweetSync" $ "deleted tweets: " <>
-                intercalate "," (show . statusId . fst <$> tDeleted)
-              forM_ tDeleted $ \case
-                (st, Just msgId) ->
-                  liftIO $ writeChan tcTelegram (TgRMTweetDestroy (statusId st) msgId)
-                _ -> pure ()
+
+            liftIO $ do
+              unless (null tCreated) $ do
+                info $ "created tweets: " <>
+                  intercalate "," (show . statusId <$> tCreated)
+                forM_ tCreated $ \st -> liftIO $  do
+                  let content = "[tw] " <> statusText st
+                  -- TODO: set TSTimedOut
+                  when (statusCreatedAt st > startTime) $
+                    writeChan tcTelegram (TgRMTweetCreate (statusId st) content)
+              unless (null tDeleted) $ do
+                info $ "deleted tweets: " <>
+                  intercalate "," (show . statusId . fst <$> tDeleted)
+                forM_ tDeleted $ \case
+                  (st, Just msgId) ->
+                    liftIO $ writeChan tcTelegram (TgRMTweetDestroy (statusId st) msgId)
+                  _ -> pure ()
             markEnd
             liftIO $ threadDelay $ 5 * oneSec
     autoWCM "TweetSync" "tweet-sync.yaml" wenv tweetSyncStep

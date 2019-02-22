@@ -4,6 +4,7 @@
 module Javran.WhaleChan.Log
   ( d, i, w, e
   , d', i', w', e'
+  , LoggerIO
   ) where
 
 {-
