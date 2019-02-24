@@ -9,6 +9,7 @@ import Data.Time.LocalTime.TimeZone.Series
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.ReoccuringEvents
 
+-- TODO: should we switch to use symbols rather than promoted data type?
 data ReminderSupplier
   = PracticeReset
   | DailyQuestReset
