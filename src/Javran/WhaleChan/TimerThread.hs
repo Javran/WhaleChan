@@ -54,42 +54,52 @@ import Javran.WhaleChan.Util
       (NOTE: this is a pure function, we'll worry about parsing maintenance times later)
     + these types are promoted data types, unified by a common kind: ReminderSupplier
 
-- we'll have a list of reminders implemented, visible to the reminder thread
+  - we'll have a list of reminders implemented, visible to the reminder thread
 
-- this thread keeps track of a Map from TypeRep of ReminderSupplier
-  to a List of EventReminder (sorted ascendingly by event happening time)
+  - this thread keeps track of a Map from TypeRep of ReminderSupplier
+    to a List of EventReminder (sorted ascendingly by event happening time)
 
-- the reminder thread is a loop that:
+  - the reminder thread is a loop that:
 
-  + wakes up at (roughly) the beginning of every minute
-  + maintains the Map
-    - (TODO) if current time exceeds 10 mins more than an event's happening time, it should be dropped.
-      (this will prevent old persisted states say few days ago or something from showing up)
-    - calls all ReminderSupply to see if the Map needs to be updated
-      (this is done by comparing events' happening time of new supply to existing ones,
-      new supply gets added to the list only if it does not match any known event happening time)
+    + wakes up at (roughly) the beginning of every minute
+    + maintains the Map
+      - (TODO) if current time exceeds 10 mins more than an event's happening time, it should be dropped.
+        (this will prevent old persisted states say few days ago or something from showing up)
+      - calls all ReminderSupply to see if the Map needs to be updated
+        (this is done by comparing events' happening time of new supply to existing ones,
+        new supply gets added to the list only if it does not match any known event happening time)
 
-      Note that it's important that we do this "re-supply" during this step on every loop,
-      this allows same event to show different time reminders in the situations that we have overlap
+        Note that it's important that we do this "re-supply" during this step on every loop,
+        this allows same event to show different time reminders in the situations that we have overlap
 
-      e.g. a daily practice might have two reminding events happening at the same time:
-      one that happens right now, and another happens 12 hours after.
-      in this case, the Map from daily practice to the list will contain two elements corresponding
-      to these two event times.
-    - now an extra traverse on reminders is performed to split the Map into those that will need to be reminded
-      and remaining part of the Map becomes the new state.
-  + if it's time to send a new reminder, the thread will construct the message and send it to telegramThread
-    through channel
+        e.g. a daily practice might have two reminding events happening at the same time:
+        one that happens right now, and another happens 12 hours after.
+        in this case, the Map from daily practice to the list will contain two elements corresponding
+        to these two event times.
+      - now an extra traverse on reminders is performed to split the Map into those that will need to be reminded
+        and remaining part of the Map becomes the new state.
+    + if it's time to send a new reminder, the thread will construct the message and send it to telegramThread
+      through channel
 
-- we'll basically reminder the following events:
+  - we'll basically reminder the following events:
 
-    + "30 mins before [some event]"
-    + "10 mins before [some event]"
-    + "5 mins before [some event]"
-    + "[some event] is happening"
+      + "30 mins before [some event]"
+      + "10 mins before [some event]"
+      + "5 mins before [some event]"
+      + "[some event] is happening"
 
-  but this is by no meaning a limit, the definition of ReminderSupply
-  is flexible to allow time much more longer - for example
+    but this is by no meaning a limit, the definition of ReminderSupply
+    is flexible to allow time much more longer - for example
+
+  - (draft) for reminding about maintenance events
+
+    + a dedicated thread will try to grab maintenance from multiple sources
+      (core logic are already implemented through Javran.WhaleChan.FromSource.*)
+      and send parsed maintenance updates to this thread
+      (in future we can make this dedicated thread stateful so it only sends update message
+      when a difference is detected)
+    + note that it's important that we use PRange for this purpose, rather than
+      dealing with maintenance start and end time separately
 
  -}
 
