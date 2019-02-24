@@ -125,10 +125,16 @@ utcTimeToLogStr = fromString . formatTime defaultTimeLocale fmtStr
   where
     fmtStr = iso8601DateFormat (Just "%T%04Q")
 
-logCurrentMessage :: Chan WLog -> Loc -> LogSource -> LogLevel -> LogStr -> IO ()
+-- as long as we know the channel, it'll be possible to route logs to
+-- the dedicated logger thread
+logCurrentMessage :: Chan WLog -> LoggerIO
 logCurrentMessage ch _ _ lvl msg = do
     t <- getCurrentTime
     writeChan ch (WLog t lvl msg)
+
+-- helper that operates on WEnv instead of the channel
+wenvToLoggerIO :: WEnv -> LoggerIO
+wenvToLoggerIO (_, TCommon{tcLogger=ch}) = logCurrentMessage ch
 
 lvlToColor:: LogLevel -> Color
 lvlToColor = \case
@@ -137,8 +143,6 @@ lvlToColor = \case
   LevelWarn -> Yellow
   LevelError -> Red
   LevelOther {} -> Blue
-
--- TODO: with new logging facility ready we can attempt to remove Say
 
 startLogger :: Chan WLog -> IO ()
 startLogger ch = do
@@ -158,6 +162,3 @@ startLogger ch = do
             raw = fromLogStr msg'
         BS.hPut logHandle raw
         errOut lvl raw
-
-wenvToLoggerIO :: WEnv -> LoggerIO
-wenvToLoggerIO (_, TCommon{tcLogger=ch}) = logCurrentMessage ch
