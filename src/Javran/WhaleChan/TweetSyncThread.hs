@@ -137,6 +137,7 @@ tweetSyncThread wenv = do
                 -- note that we cannot be in IO, as markEnd will require WCM.
                 Log.e "TweetSync" (displayException e)
                 markEnd
+                -- TODO: tolerate network outage
                 liftIO $ throw e
               _ -> pure ()
             let Right Response{..} = respM
