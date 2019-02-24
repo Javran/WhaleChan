@@ -20,7 +20,6 @@ import qualified Data.Text as T
 import Javran.WhaleChan.TweetSyncThread
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
-import Javran.WhaleChan.Util
 import qualified Javran.WhaleChan.Log as Log
 
 {-

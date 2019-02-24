@@ -31,6 +31,7 @@ i = withLvl LevelInfo
 w = withLvl LevelWarn
 e = withLvl LevelError
 
+-- TODO: better just use WEnv or the channel, but that'll bring in Types as base.
 d',i',w',e' :: LoggerIO -> String -> String -> IO ()
 
 d' = withLvlIO LevelDebug

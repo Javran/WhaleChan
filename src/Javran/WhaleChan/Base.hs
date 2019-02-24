@@ -13,6 +13,7 @@ module Javran.WhaleChan.Base
   , logCurrentMessage
   , startLogger
   , wenvToLoggerIO
+  , protectedAction
   ) where
 
 import Control.Monad
@@ -37,8 +38,6 @@ import System.Console.Terminfo.Base
 import System.Console.Terminfo.Color
 import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Text as T
-
-type LoggerIO = Loc -> LogSource -> LogLevel -> LogStr -> IO ()
 
 {-
   it is assumed that all files related to the current
@@ -127,22 +126,22 @@ utcTimeToLogStr = fromString . formatTime defaultTimeLocale fmtStr
 
 -- as long as we know the channel, it'll be possible to route logs to
 -- the dedicated logger thread
-logCurrentMessage :: Chan WLog -> LoggerIO
+logCurrentMessage :: Chan WLog -> Log.LoggerIO
 logCurrentMessage ch _ _ lvl msg = do
     t <- getCurrentTime
     writeChan ch (WLog t lvl msg)
 
 -- helper that operates on WEnv instead of the channel
-wenvToLoggerIO :: WEnv -> LoggerIO
+wenvToLoggerIO :: WEnv -> Log.LoggerIO
 wenvToLoggerIO (_, TCommon{tcLogger=ch}) = logCurrentMessage ch
 
 lvlToColor:: LogLevel -> Color
 lvlToColor = \case
-  LevelDebug -> White
-  LevelInfo -> Green
-  LevelWarn -> Yellow
-  LevelError -> Red
-  LevelOther {} -> Blue
+    LevelDebug -> White
+    LevelInfo -> Green
+    LevelWarn -> Yellow
+    LevelError -> Red
+    LevelOther {} -> Blue
 
 startLogger :: Chan WLog -> IO ()
 startLogger ch = do
@@ -162,3 +161,19 @@ startLogger ch = do
             raw = fromLogStr msg'
         BS.hPut logHandle raw
         errOut lvl raw
+
+-- run an action and keep reattempting upon failure as long as # of critical errors
+-- doesn't exceed a limit
+protectedAction :: Log.LoggerIO -> String -> Int -> IO () -> IO ()
+protectedAction loggerIO aName maxRetry action = run 0
+  where
+    logErr = Log.e' loggerIO aName
+    errHandler e =
+      logErr $ "Exception caught for Action " ++ aName ++ ": " ++ displayException e
+    run retryCount
+      | retryCount > maxRetry =
+          logErr $ "Action " ++ aName ++ " exceeded max retry attempt, aborting."
+      | otherwise = do
+          unless (retryCount == 0) $
+            logErr $ "At #" ++ show retryCount ++ " reattempt for Action " ++ aName
+          catch @SomeException action errHandler >> run (retryCount+1)

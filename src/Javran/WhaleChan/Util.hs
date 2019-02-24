@@ -1,22 +1,14 @@
 {-# LANGUAGE
     OverloadedStrings
-  , TypeApplications
   #-}
 module Javran.WhaleChan.Util
   ( describeDuration
   , isYamlFileNotFoundException
-  , protectedAction
   , eitherToMaybe
   ) where
 
 import Data.List (isPrefixOf)
 import qualified Data.Yaml as Yaml
-import Control.Exception
-import Control.Monad
-import Control.Monad.Logger
-import qualified Javran.WhaleChan.Log as Log -- TODO: shouldn't require this, maybe time to move out protectedAction
-
-type LoggerIO = Loc -> LogSource -> LogLevel -> LogStr -> IO ()
 
 {-
   place for some commonly used functions.
@@ -41,22 +33,6 @@ isYamlFileNotFoundException :: Yaml.ParseException -> Bool
 isYamlFileNotFoundException (Yaml.InvalidYaml (Just (Yaml.YamlException msg)))
   | "Yaml file not found: " `isPrefixOf` msg = True
 isYamlFileNotFoundException _ = False
-
--- run an action and keep reattempting upon failure as long as # of critical errors
--- doesn't exceed a limit
-protectedAction :: LoggerIO -> String -> Int -> IO () -> IO ()
-protectedAction loggerIO aName maxRetry action = run 0
-  where
-    logErr = Log.e' loggerIO aName
-    errHandler e =
-      logErr $ "Exception caught for Action " ++ aName ++ ": " ++ displayException e
-    run retryCount
-      | retryCount > maxRetry =
-          logErr $ "Action " ++ aName ++ " exceeded max retry attempt, aborting."
-      | otherwise = do
-          unless (retryCount == 0) $
-            logErr $ "At #" ++ show retryCount ++ " reattempt for Action " ++ aName
-          catch @SomeException action errHandler >> run (retryCount+1)
 
 eitherToMaybe :: Either a b -> Maybe b
 eitherToMaybe (Left _) = Nothing
