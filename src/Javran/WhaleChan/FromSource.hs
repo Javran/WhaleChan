@@ -84,6 +84,10 @@ sources =
     maintained and kept sane by human, I would't expect the format to be change much,
     plus we'll immediate notice if there are changes that breaks the format.
 
+  TODO: we really need to this "in reverse": we'll have a common data structure
+  for the thread for easy serialization, rather than using existential types
+  to enforce many constraints and doing runtime type-level thingy
+
  -}
 
 sourceTest :: WEnv -> IO ()
