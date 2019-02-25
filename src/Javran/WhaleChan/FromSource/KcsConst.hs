@@ -46,6 +46,8 @@ data KcsConst a = KcsConst
   , maintenanceTime :: a
   } deriving (Show)
 
+type KcsConst' = KcsConst (Maybe (PRange UTCTime))
+
 kcsConstFromRaw :: String -> Maybe (KcsConst (String, String))
 kcsConstFromRaw = tr . mapMaybe parseLine . lines
   where
@@ -73,7 +75,7 @@ parseTime raw = do
     t <- eitherToMaybe $ mkTimeParser @LocalTime timeFmt raw
     pure $ zonedTimeToUTC (ZonedTime t jst)
 
-getInfo :: Manager -> IO (Maybe (KcsConst (Maybe (PRange UTCTime))))
+getInfo :: Manager -> IO (Maybe KcsConst')
 getInfo mgr = do
     content <- fetchUrl mgr "http://203.104.209.7/gadget_html5/js/kcs_const.js"
     case kcsConstFromRaw (decodeFromRaw content) of

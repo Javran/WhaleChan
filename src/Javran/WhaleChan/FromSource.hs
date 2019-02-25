@@ -32,7 +32,7 @@ class FromSource (src :: Symbol) where
   toMaintenanceTime _ = pure
 
 instance FromSource "KcsConst" where
-  type ExtData "KcsConst" = KcsConst.KcsConst (Maybe (PRange UTCTime))
+  type ExtData "KcsConst" = KcsConst.KcsConst'
   fetchInfo _ = KcsConst.getInfo
   toMaintenanceTime _ = KcsConst.maintenanceTime
 
