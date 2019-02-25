@@ -1,14 +1,33 @@
 {-# LANGUAGE
     NamedFieldPuns
   , OverloadedStrings
+  , DefaultSignatures
+  , TypeFamilies
+  , DataKinds
   #-}
-module Javran.WhaleChan.NextMaintenance where
+module Javran.WhaleChan.FromSource where
+
+import Data.Time.Clock
+import Web.Twitter.Conduit (Manager)
 
 import Javran.WhaleChan.Types
 import qualified Javran.WhaleChan.FromSource.KcsConst as KcsConst
 import qualified Javran.WhaleChan.FromSource.Kc3Kai as Kc3Kai
 import qualified Javran.WhaleChan.FromSource.Wikia as Wikia
 import qualified Javran.WhaleChan.FromSource.Kcwiki as Kcwiki
+
+-- typeclass for external sources (e.g. Wikia, Kc3Kai)
+class FromSource src where
+  type ExtData src
+
+  -- for fetching & parsing info from raw sources
+  fetchInfo :: p src -> Manager -> IO (Maybe (ExtData src))
+  -- for getting maintenance time from parsed external data
+  toMaintenanceTime :: p src -> ExtData src -> Maybe (PRange UTCTime)
+
+  default toMaintenanceTime ::
+    (PRange UTCTime ~ ExtData src) => p src -> ExtData src -> Maybe (PRange UTCTime)
+  toMaintenanceTime _ = pure
 
 {-
   this module is for figuring out next maintenance time from various sources

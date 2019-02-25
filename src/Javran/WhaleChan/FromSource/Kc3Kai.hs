@@ -1,5 +1,7 @@
 {-# LANGUAGE
     OverloadedStrings
+  , DataKinds
+  , TypeFamilies
   #-}
 module Javran.WhaleChan.FromSource.Kc3Kai where
 
@@ -9,6 +11,7 @@ import Data.Aeson
 import Data.Aeson.Types (Parser)
 import Data.Time.Clock
 
+import Javran.WhaleChan.Types
 import Javran.WhaleChan.FromSource.TimeFormat
 import Javran.WhaleChan.FromSource.Util
 

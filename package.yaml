@@ -59,7 +59,7 @@ library:
     - Javran.WhaleChan.FromSource.Kc3Kai
     - Javran.WhaleChan.FromSource.Wikia
     - Javran.WhaleChan.FromSource.Kcwiki
-    - Javran.WhaleChan.NextMaintenance
+    - Javran.WhaleChan.FromSource
     - Javran.WhaleChan.Main
 
 executable:

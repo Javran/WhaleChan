@@ -22,7 +22,7 @@ import Javran.WhaleChan.Base
 import Javran.WhaleChan.TelegramThread (telegramThread)
 import Javran.WhaleChan.TimerThread (reminderThread)
 import Javran.WhaleChan.TweetSyncThread (tweetSyncThread, createTwMVar)
-import Javran.WhaleChan.NextMaintenance
+import Javran.WhaleChan.FromSource
 import Javran.WhaleChan.Types
 
 {-

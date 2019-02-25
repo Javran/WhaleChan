@@ -6,6 +6,7 @@
   , KindSignatures
   , PolyKinds
   , DeriveGeneric
+  , TypeFamilies
   #-}
 module Javran.WhaleChan.Types where
 
