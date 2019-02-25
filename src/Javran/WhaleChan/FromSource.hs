@@ -5,7 +5,6 @@
   , TypeFamilies
   , DataKinds
   , PolyKinds
-  , LambdaCase
   , ExistentialQuantification
   #-}
 module Javran.WhaleChan.FromSource where
@@ -53,10 +52,7 @@ instance FromSource "Kcwiki" where
   fetchInfo _ = Kcwiki.getInfo
 
 getFromESource :: Manager -> ESource -> IO (Maybe (PRange UTCTime))
-getFromESource mgr (ESource p) =
-    fetchInfo p mgr >>= \case
-      Nothing -> pure Nothing
-      Just d -> pure (toMaintenanceTime p d)
+getFromESource mgr (ESource p) = (>>= toMaintenanceTime p) <$> fetchInfo p mgr
 
 data ESource = forall src. (KnownSymbol src, FromSource src) => ESource (Proxy src)
 
