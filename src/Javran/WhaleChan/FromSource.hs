@@ -4,11 +4,13 @@
   , DefaultSignatures
   , TypeFamilies
   , DataKinds
+  , PolyKinds
   #-}
 module Javran.WhaleChan.FromSource where
 
 import Data.Time.Clock
 import Web.Twitter.Conduit (Manager)
+import GHC.TypeLits
 
 import Javran.WhaleChan.Types
 import qualified Javran.WhaleChan.FromSource.KcsConst as KcsConst
@@ -17,7 +19,7 @@ import qualified Javran.WhaleChan.FromSource.Wikia as Wikia
 import qualified Javran.WhaleChan.FromSource.Kcwiki as Kcwiki
 
 -- typeclass for external sources (e.g. Wikia, Kc3Kai)
-class FromSource src where
+class FromSource (src :: Symbol) where
   type ExtData src
 
   -- for fetching & parsing info from raw sources
@@ -28,6 +30,15 @@ class FromSource src where
   default toMaintenanceTime ::
     (PRange UTCTime ~ ExtData src) => p src -> ExtData src -> Maybe (PRange UTCTime)
   toMaintenanceTime _ = pure
+
+instance FromSource "KcsConst" where
+  type ExtData "KcsConst" = KcsConst.KcsConst (Maybe (PRange UTCTime))
+  fetchInfo _ = KcsConst.getInfo
+  toMaintenanceTime _ = KcsConst.maintenanceTime
+
+instance FromSource "Kc3Kai" where
+  type ExtData "Kc3Kai" = PRange UTCTime
+  fetchInfo _ = Kc3Kai.getInfo
 
 {-
   this module is for figuring out next maintenance time from various sources
