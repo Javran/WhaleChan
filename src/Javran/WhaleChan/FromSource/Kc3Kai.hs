@@ -15,11 +15,11 @@ import Javran.WhaleChan.Types
 import Javran.WhaleChan.FromSource.TimeFormat
 import Javran.WhaleChan.FromSource.Util
 
-data KC3Time = KC3Time UTCTime UTCTime
+data Kc3Time = Kc3Time UTCTime UTCTime
 
-instance FromJSON KC3Time where
-  parseJSON = withObject "KC3Time" $ \o ->
-      KC3Time <$> (o .: "maintenance_start" >>= parseTime)
+instance FromJSON Kc3Time where
+  parseJSON = withObject "Kc3Time" $ \o ->
+      Kc3Time <$> (o .: "maintenance_start" >>= parseTime)
               <*> (o .: "maintenance_end" >>= parseTime)
 
 fmtStr :: String
@@ -37,5 +37,5 @@ getInfo mgr = do
       Left e -> do
         putStrLn $ "parse error: " ++ show e
         pure Nothing
-      Right (KC3Time sTime eTime) ->
+      Right (Kc3Time sTime eTime) ->
         pure $ toPRange (Just sTime) (Just eTime)
