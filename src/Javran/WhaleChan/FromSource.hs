@@ -5,12 +5,16 @@
   , TypeFamilies
   , DataKinds
   , PolyKinds
+  , LambdaCase
+  , ExistentialQuantification
   #-}
 module Javran.WhaleChan.FromSource where
 
 import Data.Time.Clock
 import Web.Twitter.Conduit (Manager)
 import GHC.TypeLits
+import Data.Proxy
+import Control.Monad
 
 import Javran.WhaleChan.Types
 import qualified Javran.WhaleChan.FromSource.KcsConst as KcsConst
@@ -48,6 +52,22 @@ instance FromSource "Kcwiki" where
   type ExtData "Kcwiki" = PRange UTCTime
   fetchInfo _ = Kcwiki.getInfo
 
+getFromESource :: Manager -> ESource -> IO (Maybe (PRange UTCTime))
+getFromESource mgr (ESource p) =
+    fetchInfo p mgr >>= \case
+      Nothing -> pure Nothing
+      Just d -> pure (toMaintenanceTime p d)
+
+data ESource = forall src. (KnownSymbol src, FromSource src) => ESource (Proxy src)
+
+sources :: [ESource]
+sources =
+    [ ESource (Proxy :: Proxy "KcsConst")
+    , ESource (Proxy :: Proxy "Kc3Kai")
+    , ESource (Proxy :: Proxy "Wikia")
+    , ESource (Proxy :: Proxy "Kcwiki")
+    ]
+
 {-
   this module is for figuring out next maintenance time from various sources
 
@@ -73,11 +93,6 @@ instance FromSource "Kcwiki" where
 sourceTest :: WEnv -> IO ()
 sourceTest e = do
     let (_,TCommon{tcManager = mgr}) = e
-    putStrLn "KcsConst"
-    putStr "  " >> KcsConst.getInfo mgr >>= \(Just (KcsConst.KcsConst _ t)) -> print t
-    putStrLn "Kc3Kai"
-    putStr "  " >> Kc3Kai.getInfo mgr >>= print
-    putStrLn "Wikia"
-    putStr "  " >> Wikia.getInfo mgr >>= print
-    putStrLn "Kcwiki"
-    putStr "  " >> Kcwiki.getInfo mgr >>= print
+    forM_ sources $ \es@(ESource p) -> do
+        putStrLn (symbolVal p)
+        putStr "  " >> getFromESource mgr es >>= print
