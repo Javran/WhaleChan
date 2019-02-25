@@ -40,6 +40,14 @@ instance FromSource "Kc3Kai" where
   type ExtData "Kc3Kai" = PRange UTCTime
   fetchInfo _ = Kc3Kai.getInfo
 
+instance FromSource "Wikia" where
+  type ExtData "Wikia" = PRange UTCTime
+  fetchInfo _ = Wikia.getInfo
+
+instance FromSource "Kcwiki" where
+  type ExtData "Kcwiki" = PRange UTCTime
+  fetchInfo _ = Kcwiki.getInfo
+
 {-
   this module is for figuring out next maintenance time from various sources
 
