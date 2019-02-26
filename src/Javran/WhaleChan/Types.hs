@@ -149,7 +149,10 @@ type TweetSyncM = WCM TweetTracks
 data PRange a
   = PL a -- a range that only has left side
   | PR a a -- a range that has both sides
-    deriving (Show)
+    deriving (Show, Eq, Generic)
+
+instance FromJSON a => FromJSON (PRange a)
+instance ToJSON a => ToJSON (PRange a)
 
 toPRange :: Ord a => Maybe a -> Maybe a -> Maybe (PRange a)
 toPRange Nothing _ = Nothing
