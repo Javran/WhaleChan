@@ -5,10 +5,13 @@ module Javran.WhaleChan.Util
   ( describeDuration
   , isYamlFileNotFoundException
   , eitherToMaybe
+  , guardHttpException
   ) where
 
 import Data.List (isPrefixOf)
 import qualified Data.Yaml as Yaml
+import Network.HTTP.Client
+import Control.Exception
 
 {-
   place for some commonly used functions.
@@ -37,3 +40,8 @@ isYamlFileNotFoundException _ = False
 eitherToMaybe :: Either a b -> Maybe b
 eitherToMaybe (Left _) = Nothing
 eitherToMaybe (Right v) = Just v
+
+-- for guarding against http-client related exceptions
+guardHttpException :: IO a -> IO (Either HttpException a)
+guardHttpException action =
+  (Right <$> action) `catch` (pure . Left)
