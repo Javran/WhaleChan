@@ -22,7 +22,7 @@ import Javran.WhaleChan.Base
 import Javran.WhaleChan.TelegramThread (telegramThread)
 import Javran.WhaleChan.ReminderThread (reminderThread)
 import Javran.WhaleChan.TweetSyncThread (tweetSyncThread, createTwMVar)
-import Javran.WhaleChan.FromSource
+import Javran.WhaleChan.ExtInfoThread (extInfoThread)
 import Javran.WhaleChan.Types
 
 {-
@@ -45,10 +45,11 @@ startService wconf = do
   aTimer <- async (reminderThread wenv)
   aTg <- async (telegramThread wenv)
   aTw <- async (tweetSyncThread wenv)
-  sourceTest wenv
-  wait aTimer
-  wait aTg
+  aEi <- async (extInfoThread wenv)
+  wait aEi
   wait aTw
+  wait aTg
+  wait aTimer
   wait aLog
 
 -- config file name is implicit, see Javran.WhaleChan.Base

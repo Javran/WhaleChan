@@ -46,11 +46,11 @@ library:
   exposed-modules:
     - Javran.WhaleChan.Types
     - Javran.WhaleChan.Base
+    - Javran.WhaleChan.Util
     - Javran.WhaleChan.Log
     - Javran.WhaleChan.ReoccuringEvents
     - Javran.WhaleChan.ReminderSupply
-    - Javran.WhaleChan.Util
-    - Javran.WhaleChan.TimerThread
+    - Javran.WhaleChan.ReminderThread
     - Javran.WhaleChan.TelegramThread
     - Javran.WhaleChan.TweetSyncThread
     - Javran.WhaleChan.FromSource.Util
