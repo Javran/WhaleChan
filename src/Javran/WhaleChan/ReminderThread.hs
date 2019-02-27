@@ -6,7 +6,7 @@
   , OverloadedStrings
   , DeriveGeneric
   #-}
-module Javran.WhaleChan.TimerThread
+module Javran.WhaleChan.ReminderThread
  ( reminderThread
  ) where
 
