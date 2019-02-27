@@ -165,10 +165,11 @@ strToReminderTypeRep raw = maybe mzero pure (lookup raw reminders)
   will happen at the same time, which is quite safe considering the nature of this game
   (i.e. frequent events shouldn't be reminded too often (< 24 hours) and less frequent
   will have a relatively large interval between them, large enough that the overlapping
-  of beforehand reminds are very unlikely.
+  of beforehand reminds are very unlikely.)
  -}
+type ReminderMap = M.Map TypeRep [EventReminder]
 newtype ReminderDict
-  = RD {getRD :: M.Map TypeRep [EventReminder] }
+  = RD {getRD :: ReminderMap }
   deriving (Eq, Generic)
 
 instance Default ReminderDict
@@ -184,22 +185,30 @@ instance FromJSON ReminderDict where
       convert :: (String, [EventReminder]) -> Parser (TypeRep, [EventReminder])
       convert (r, er) = (,) <$> strToReminderTypeRep r <*> pure er
 
-type ReminderM = WCM ReminderDict
+type MaintenanceEventReminder =
+  ( Maybe (EventReminder, [String])
+  , Maybe (EventReminder, [String])
+  )
+
+-- the ' version is actual resentation without newtype wrappers
+type ReminderState = (ReminderDict, MaintenanceEventReminder)
+type ReminderState' = (ReminderMap, MaintenanceEventReminder)
+type ReminderM = WCM ReminderState
+type ReminderM' = WCM ReminderState'
 
 -- TODO: we should really remove old reminders when it's loaded from state file
 
 reminderThread :: WEnv -> IO ()
 reminderThread wenv = do
-    let cv :: forall a. WCM (M.Map TypeRep [EventReminder]) a -> ReminderM a
+    let cv :: forall a. ReminderM' a -> ReminderM a
         cv = coerce -- to avoid the noise introduced by newtype
         (_, TCommon{tcTelegram, tcReminder}) = wenv
     -- ref: https://stackoverflow.com/q/43835656/315302
     -- load tz info before starting the loop
     _tzPt <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
     tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
-    autoWCM @ReminderDict "Reminder" "reminder.yaml" wenv $ \markStart' -> cv $ do
-      let markStart = coerce markStart' ::
-            WCM (M.Map TypeRep [EventReminder]) (WCM (M.Map TypeRep [EventReminder]) ())
+    autoWCM @ReminderState "Reminder" "reminder.yaml" wenv $ \markStart' -> cv $ do
+      let markStart = coerce markStart' :: ReminderM' (ReminderM' ())
       -- note that unlike other threads, this one begins by thread sleep
       -- the idea is to start working immediately after wake up
       -- so we get the most accurate timestamp to work with
@@ -213,7 +222,7 @@ reminderThread wenv = do
         v <- readMVar tcReminder
         putMVar tcReminder v
         pure v
-      Log.e "Reminder" ("MaintenanceInfo: " <> show mInfo)
+      Log.i "Reminder" ("MaintenanceInfo: " <> show mInfo)
       let collectResults :: Endo [(EReminderSupply, UTCTime)] -> [(EReminderSupply, [UTCTime])]
           collectResults xsPre = convert <$> ys
             where
@@ -228,16 +237,16 @@ reminderThread wenv = do
                 -- always compute new supply (lazily)
                 newSupply = renewSupply tp tzs curTime
                 cmp = comparing eventOccurTime
-            mValue <- gets (M.lookup tyRep)
+            mValue <- gets (M.lookup tyRep . fst)
             -- restock step
             case mValue of
               Nothing ->
-                modify (M.insert tyRep [newSupply])
+                modify (first $ M.insert tyRep [newSupply])
               Just ers ->
                 -- skip restocking if timestamp mismatches
                 unless (hasBy cmp ers newSupply) $
-                  modify (M.adjust (insertSetBy cmp newSupply) tyRep)
-            eventReminders <- fromMaybe [] <$> gets (M.lookup tyRep)
+                  modify (first $ M.adjust (insertSetBy cmp newSupply) tyRep)
+            eventReminders <- fromMaybe [] <$> gets (M.lookup tyRep . fst)
             newEventReminders <-
               catMaybes <$> forM eventReminders (\(EventReminder eot erds) -> do
                 -- if remindsDue contains anything, we should send current reminder
@@ -251,7 +260,7 @@ reminderThread wenv = do
                   if null newEventReminders
                     then Nothing
                     else Just newEventReminders
-            modify (M.update (const newVal) tyRep)
+            modify (first $ M.update (const newVal) tyRep)
         ))
       markEnd
       unless (null displayList) $ do
