@@ -108,11 +108,23 @@ type TwMVar = MVar (Seq.Seq TwRxMsg)
 
 data WLog = WLog !UTCTime !LogLevel !LogStr
 
+{-
+  maintenance produced by ExtInfoThread and consumed by ReminderThread
+  the idea is to minimize the amount of work ReminderThread has to do
+  (as it's time-sensitive), so we'll let ExtInfoThread summarize
+  results grabbed from multiple sources and ReminderThread do the easy part of work
+ -}
+type MaintenanceInfo =
+  ( Maybe (UTCTime, [String]) -- maintenance start time with confirming sources
+  , Maybe (UTCTime, [String]) -- maintenance end time with confirming sources
+  )
+
 data TCommon
   = TCommon
   { tcTelegram :: Chan TgRxMsg -- channel used by telegram
   , tcTwitter :: TwMVar -- channel used by MVar
   , tcManager :: Manager -- share manager
+  , tcReminder :: MVar MaintenanceInfo -- mvar for reminder thread
   , tcLogger :: Chan WLog
   }
 
@@ -145,21 +157,18 @@ type TweetSyncM = WCM TweetTracks
   representation for a potentially partial range
   this type is for maintaining a consistent range for maintenance times,
   as parsers are only responsible for the syntactic wellformness
+
+  TODO: to make things easier to implement,
+  we'll turn this in a pair-or-nothing structure.
  -}
-data PRange a
-  = PL a -- a range that only has left side
-  | PR a a -- a range that has both sides
-    deriving (Show, Eq, Generic)
+type PRange a = Maybe (a,a)
 
-instance FromJSON a => FromJSON (PRange a)
-instance ToJSON a => ToJSON (PRange a)
-
-toPRange :: Ord a => Maybe a -> Maybe a -> Maybe (PRange a)
-toPRange Nothing _ = Nothing
-toPRange (Just x) Nothing = Just (PL x)
-toPRange (Just x) (Just y)
-  | x <= y = Just (PR x y)
-  | otherwise = Just (PL x)
+toPRange :: Ord a => Maybe a -> Maybe a -> PRange a
+toPRange mx my = do
+    x <- mx
+    y <- my
+    guard (x <= y)
+    pure (x,y)
 
 {-
   make type synonym of Dual of Endo

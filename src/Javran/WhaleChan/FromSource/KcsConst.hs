@@ -46,7 +46,7 @@ data KcsConst a = KcsConst
   , maintenanceTime :: a
   } deriving (Show)
 
-type KcsConst' = KcsConst (Maybe (PRange UTCTime))
+type KcsConst' = KcsConst (PRange UTCTime)
 
 kcsConstFromRaw :: String -> Maybe (KcsConst (String, String))
 kcsConstFromRaw = tr . mapMaybe parseLine . lines

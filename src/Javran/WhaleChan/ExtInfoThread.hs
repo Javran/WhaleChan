@@ -35,7 +35,7 @@ import qualified Javran.WhaleChan.FromSource.Kcwiki as Kcwiki
 
 data ExtInfo
   = ExtInfo
-  { maintenanceTimes :: M.Map String (PRange UTCTime)
+  { maintenanceTimes :: M.Map String (UTCTime, UTCTime)
   , serverInfo :: IM.IntMap String
   } deriving (Eq, Generic)
 
@@ -52,7 +52,7 @@ oneSec = 1000000
   - as KcsConst also contains server info,
     we want to give it a special treatment
  -}
-sources :: [(String, Manager -> IO (Maybe (PRange UTCTime)))]
+sources :: [(String, Manager -> IO (PRange UTCTime))]
 sources =
     [ ("Kc3Kai", Kc3Kai.getInfo)
     , ("Wikia", Wikia.getInfo)

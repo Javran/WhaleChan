@@ -52,7 +52,7 @@ searchAndExtractCountdownStrs =
 parse :: T.Text -> Maybe UTCTime
 parse t = eitherToMaybe $ mkTimeParser "%B %-d %Y %T %z" (T.unpack t)
 
-getInfo :: Manager -> IO (Maybe (PRange UTCTime))
+getInfo :: Manager -> IO (PRange UTCTime)
 getInfo mgr = do
     raw <- fetchUrl mgr "https://kancolle.fandom.com/wiki/Recent_Updates?action=render"
     -- TODO: error message

@@ -34,8 +34,12 @@ searchAndExtract =
 parse :: T.Text -> Maybe UTCTime
 parse t = eitherToMaybe $ mkTimeParser "%Y/%-m/%-d %T %z" (T.unpack t)
 
-getInfo :: Manager -> IO (Maybe (PRange UTCTime))
+getInfo :: Manager -> IO (PRange UTCTime)
 getInfo mgr = do
     raw <- fetchUrl mgr "https://zh.kcwiki.org/wiki/Template:维护倒数?action=render"
     let (lRaw, _) = parseTime raw
+    {-
+      TODO as one rhs is always Nothing, we are effectively ignoring this source,
+      this can only be restored once Kcwiki support both maintenance start and end time.
+     -}
     pure (toPRange (lRaw >>= parse) Nothing)

@@ -17,6 +17,7 @@ import Network.HTTP.Client.TLS (tlsManagerSettings)
 import System.Directory
 import System.Environment
 import System.Exit
+import Control.Concurrent
 
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.TelegramThread (telegramThread)
@@ -40,6 +41,7 @@ startService wconf = do
   tcManager <- newManager tlsManagerSettings
   tcTelegram <- newChan
   tcTwitter <- createTwMVar
+  tcReminder <- newMVar (Nothing, Nothing)
   aLog <- async (startLogger tcLogger)
   let wenv = (wconf,TCommon {..})
       workers =

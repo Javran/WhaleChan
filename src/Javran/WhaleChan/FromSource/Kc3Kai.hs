@@ -30,7 +30,7 @@ parseTime raw = case mkTimeParser fmtStr raw of
   Left err -> fail err
   Right x -> pure x
 
-getInfo :: Manager -> IO (Maybe (PRange UTCTime))
+getInfo :: Manager -> IO (PRange UTCTime)
 getInfo mgr = do
     content <- fetchUrl mgr "https://raw.githubusercontent.com/KC3Kai/KC3Kai/master/update"
     case eitherDecode content of
