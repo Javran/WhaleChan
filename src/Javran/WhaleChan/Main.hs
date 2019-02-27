@@ -42,14 +42,18 @@ startService wconf = do
   tcTwitter <- createTwMVar
   aLog <- async (startLogger tcLogger)
   let wenv = (wconf,TCommon {..})
-  aTimer <- async (reminderThread wenv)
-  aTg <- async (telegramThread wenv)
-  aTw <- async (tweetSyncThread wenv)
-  aEi <- async (extInfoThread wenv)
-  wait aEi
-  wait aTw
-  wait aTg
-  wait aTimer
+      workers =
+          [ reminderThread
+          , telegramThread
+          , tweetSyncThread
+          , extInfoThread
+          ]
+  {-
+    note that all threads are supposed to run forever
+    unless too many error happens, so it actually doesn't matter
+    which one we are waiting on.
+   -}
+  mapM (async . ($ wenv)) workers >>= mapM_ wait
   wait aLog
 
 -- config file name is implicit, see Javran.WhaleChan.Base
