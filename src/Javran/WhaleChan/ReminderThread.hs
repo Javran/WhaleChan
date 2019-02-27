@@ -219,7 +219,7 @@ reminderThread wenv = do
       let tThres = addUTCTime 20 curTime
       markEnd <- markStart
       mInfo <- liftIO $ do
-        v <- readMVar tcReminder
+        v <- takeMVar tcReminder
         putMVar tcReminder v
         pure v
       Log.i "Reminder" ("MaintenanceInfo: " <> show mInfo)
