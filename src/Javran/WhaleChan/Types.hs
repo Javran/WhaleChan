@@ -124,6 +124,8 @@ data TCommon
   { tcTelegram :: Chan TgRxMsg -- channel used by telegram
   , tcTwitter :: TwMVar -- channel used by MVar
   , tcManager :: Manager -- share manager
+    -- INVARIANT: this should be full most of the time
+    -- any readMVar should be followed by a putMVar to restore the full-ness
   , tcReminder :: MVar MaintenanceInfo -- mvar for reminder thread
   , tcLogger :: Chan WLog
   }

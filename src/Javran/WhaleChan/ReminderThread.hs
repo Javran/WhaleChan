@@ -11,8 +11,7 @@ module Javran.WhaleChan.ReminderThread
  ) where
 
 import Control.Arrow
-import Control.Concurrent (threadDelay)
-import Control.Concurrent.Chan
+import Control.Concurrent
 import Control.Monad
 import Control.Monad.RWS
 import Control.Monad.Writer
@@ -41,6 +40,7 @@ import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.ReminderSupply
 import Javran.WhaleChan.Util
+import qualified Javran.WhaleChan.Log as Log
 
 {-
   ReminderThread design:
@@ -192,7 +192,7 @@ reminderThread :: WEnv -> IO ()
 reminderThread wenv = do
     let cv :: forall a. WCM (M.Map TypeRep [EventReminder]) a -> ReminderM a
         cv = coerce -- to avoid the noise introduced by newtype
-        (_, TCommon{tcTelegram}) = wenv
+        (_, TCommon{tcTelegram, tcReminder}) = wenv
     -- ref: https://stackoverflow.com/q/43835656/315302
     -- load tz info before starting the loop
     _tzPt <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
@@ -204,11 +204,16 @@ reminderThread wenv = do
       -- the idea is to start working immediately after wake up
       -- so we get the most accurate timestamp to work with
       curTime <- liftIO (waitUntilStartOfNextMinute >> getCurrentTime)
-      -- any event in future within 20 seconds is also include
+      -- any event in future within 20 seconds is also included
       -- this assume that we can always process all reminders within 20 seconds
       -- which should be way more than enough.
       let tThres = addUTCTime 20 curTime
       markEnd <- markStart
+      mInfo <- liftIO $ do
+        v <- readMVar tcReminder
+        putMVar tcReminder v
+        pure v
+      Log.e "Reminder" ("MaintenanceInfo: " <> show mInfo)
       let collectResults :: Endo [(EReminderSupply, UTCTime)] -> [(EReminderSupply, [UTCTime])]
           collectResults xsPre = convert <$> ys
             where

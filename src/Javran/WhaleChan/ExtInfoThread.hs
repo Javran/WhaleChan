@@ -71,7 +71,7 @@ pprState = do
 
 extInfoThread :: WEnv -> IO ()
 extInfoThread wenv = do
-    let (_,TCommon{tcManager=mgr}) = wenv
+    let (_,TCommon{tcManager=mgr,tcReminder=tRmdr}) = wenv
         logErr = Log.e "ExtInfo"
         consumeErr srcName eResult procResult = case eResult of
             Left e -> logErr $ "Error on source: '" <> srcName <> "', " <> displayException e
@@ -79,6 +79,7 @@ extInfoThread wenv = do
         extInfoStep markStart = do
             pprState
             markEnd <- markStart
+            ExtInfo mtOld _ <- get
             -- scan through sources except kcsconst
             forM_ sources $ \(srcName, getInfo) -> do
                 result <- liftIO $ guardHttpException (getInfo mgr)
@@ -104,6 +105,12 @@ extInfoThread wenv = do
                   Nothing -> pure ()
             -- TODO: we may let markEnd to return state itself when a difference is detected.
             markEnd :: EIM ()
+            ExtInfo mtNew _ <- get
+            -- TODO: now it always computes
+            when (mtNew /= mtOld || True) $ liftIO $ do
+                t <- getCurrentTime
+                _ <- swapMVar tRmdr (summarize t mtNew)
+                pure ()
             {-
               TODO: when difference is detected, we want to send to reminderThread some info
               TODO: should we ignore time in the past?
@@ -117,3 +124,21 @@ extInfoThread wenv = do
              -}
             liftIO $ threadDelay $ oneSec * 10
     autoWCM @ExtInfo "ExtInfo" "ext-info.yaml" wenv extInfoStep
+
+summarize :: UTCTime -> M.Map String (UTCTime, UTCTime) -> MaintenanceInfo
+summarize curTime d =
+  if null ps
+    then (Nothing, Nothing)
+    else let tPStart = (\(src,(l,_)) -> (src,l)) <$> ps
+             tPEnd = (\(src,(_,r)) -> (src,r)) <$> ps
+         in (getMinWithSrc tPStart, getMinWithSrc tPEnd)
+  where
+    getMinWithSrc :: [(String,UTCTime)] -> Maybe (UTCTime, [String])
+    getMinWithSrc xs = M.lookupMin timeGrps
+      where
+        timeGrps = M.fromListWith (++) . fmap (\(src,v) -> (v,[src])) $ xs
+    ps =
+      -- curtime + 10 seconds <= vEnd
+      filter (\(_, (_, vEnd)) -> 10 `addUTCTime` curTime <= vEnd)
+      . M.toAscList
+      $ d
