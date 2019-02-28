@@ -142,14 +142,6 @@ reminders = f <$> reminderSupplies
 strToReminderTypeRep :: String -> Parser TypeRep
 strToReminderTypeRep raw = maybe mzero pure (lookup raw reminders)
 
-{-
-  keeping old time message in case needed
-  sayString $ "  Remaining time: " <> timeStr
-  sayString $ "  Japan:   " <> show (localDay lt) <> " " <> show (localTimeOfDay lt)
-  sayString $ "  Pacific: " <> show (localDay lt') <> " " <> show (localTimeOfDay lt')
-  let tgMsg = "Reminder: " <> T.pack (show tyRep) <> " Remaining time: " <> T.pack timeStr
- -}
-
 -- TODO: use lens-datetime
 
 {-
