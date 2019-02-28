@@ -183,8 +183,6 @@ type ReminderState' = (ReminderMap, MaintenanceEventReminder)
 type ReminderM = WCM ReminderState
 type ReminderM' = WCM ReminderState'
 
--- TODO: we should really remove old reminders when it's loaded from state file
-
 reminderThread :: WEnv -> IO ()
 reminderThread wenv = do
     let cv :: forall a. ReminderM' a -> ReminderM a
@@ -204,6 +202,12 @@ reminderThread wenv = do
       -- this assume that we can always process all reminders within 20 seconds
       -- which should be way more than enough.
       let tThres = addUTCTime 20 curTime
+          {-
+            we consider a ER oudated if eventOccurTime < current time - 10 mins,
+            in that case the old ERs should be dropped
+           -}
+          isOutdatedEventReminder (EventReminder eTime _) =
+              eTime < addUTCTime (fromIntegral @Int $ -60 * 10) curTime
       markEnd <- markStart
       mInfo <- liftIO $ do
         v <- takeMVar tcReminder
@@ -224,7 +228,8 @@ reminderThread wenv = do
                 -- always compute new supply (lazily)
                 newSupply = renewSupply tp tzs curTime
                 cmp = comparing eventOccurTime
-            mValue <- gets (M.lookup tyRep . fst)
+            mValuePre <- gets (M.lookup tyRep . fst)
+            let mValue = dropWhile isOutdatedEventReminder <$> mValuePre
             -- restock step
             case mValue of
               Nothing ->
