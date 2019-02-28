@@ -119,7 +119,7 @@ extInfoThread wenv = do
                 an new reminder while new agreement is updated silently
                 (it'll nonetheless show up in future when reminder needs to trigger)
              -}
-            liftIO $ threadDelay $ oneSec * 10
+            liftIO $ threadDelay $ oneSec * 60
     autoWCM @ExtInfo "ExtInfo" "ext-info.yaml" wenv extInfoStep
 
 summarize :: UTCTime -> M.Map String (UTCTime, UTCTime) -> MaintenanceInfo
