@@ -203,6 +203,8 @@ reminderThread wenv = do
       -- which should be way more than enough.
       let tThres = addUTCTime 20 curTime
           {-
+            TODO: not working.
+            TODO: should be fixed, need verif
             we consider a ER oudated if eventOccurTime < current time - 10 mins,
             in that case the old ERs should be dropped
            -}
@@ -228,9 +230,15 @@ reminderThread wenv = do
                 -- always compute new supply (lazily)
                 newSupply = renewSupply tp tzs curTime
                 cmp = comparing eventOccurTime
-            mValuePre <- gets (M.lookup tyRep . fst)
-            let mValue = dropWhile isOutdatedEventReminder <$> mValuePre
+                rmOutdated xs =
+                  case dropWhile isOutdatedEventReminder xs of
+                    [] -> Nothing
+                    ys -> Just ys
+            -- cleanup step
+            modify (first $ M.update rmOutdated tyRep)
+
             -- restock step
+            mValue <- gets (M.lookup tyRep . fst)
             case mValue of
               Nothing ->
                 modify (first $ M.insert tyRep [newSupply])
