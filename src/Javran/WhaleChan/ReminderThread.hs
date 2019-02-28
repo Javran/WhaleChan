@@ -103,11 +103,6 @@ import qualified Javran.WhaleChan.Log as Log
 
  -}
 
-oneSec :: Int
-oneSec = 1000000
-
-oneMin :: Int
-oneMin = oneSec * 60
 
 {-
   wait and wake up at (roughly) begining of the next minute

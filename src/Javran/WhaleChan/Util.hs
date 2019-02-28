@@ -2,7 +2,9 @@
     OverloadedStrings
   #-}
 module Javran.WhaleChan.Util
-  ( describeDuration
+  ( oneSec
+  , oneMin
+  , describeDuration
   , isYamlFileNotFoundException
   , eitherToMaybe
   , guardHttpException
@@ -17,6 +19,12 @@ import Control.Exception
   place for some commonly used functions.
   functions here should not require Javran.WhaleChan.* to work
  -}
+
+oneSec :: Int
+oneSec = 1000000
+
+oneMin :: Int
+oneMin = oneSec * 60
 
 describeDuration :: Int -> String
 describeDuration seconds

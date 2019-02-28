@@ -43,9 +43,6 @@ instance FromJSON ExtInfo
 instance ToJSON ExtInfo
 instance Default ExtInfo
 
-oneSec :: Int
-oneSec = 1000000
-
 {-
   external sources except KcsConst.
 

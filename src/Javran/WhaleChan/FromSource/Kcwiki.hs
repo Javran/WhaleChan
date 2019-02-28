@@ -59,6 +59,6 @@ parse t = eitherToMaybe $ mkTimeParser "%Y/%-m/%-d %T %z" (T.unpack t)
 
 getInfo :: Manager -> IO (PRange UTCTime)
 getInfo mgr = do
-    raw <- fetchUrl mgr "https://zh.kcwiki.org/wiki/Template:维护倒数?action=raw"
+    raw <- fetchUrl mgr "https://zh.kcwiki.org/wiki/Template:维护倒数?action=render"
     let ((lRaw, rRaw), _) = parseTime raw
     pure (toPRange (lRaw >>= parse) (rRaw >>= parse))

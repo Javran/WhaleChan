@@ -31,6 +31,7 @@ import qualified Data.Map.Strict as M
 import qualified Data.Sequence as Seq
 
 import Javran.WhaleChan.Types
+import Javran.WhaleChan.Util
 import Javran.WhaleChan.Base
 
 import qualified Javran.WhaleChan.Log as Log
@@ -94,9 +95,6 @@ getTwInfo WConf{..} = TWInfo twTok Nothing
                  , ("oauth_token_secret", BSC.pack twOAuthSecret)
                  ]
     twTok = TWToken oauth credential
-
-oneSec :: Int
-oneSec = 1000000
 
 createTwMVar :: IO TwMVar
 createTwMVar = newMVar Seq.empty
