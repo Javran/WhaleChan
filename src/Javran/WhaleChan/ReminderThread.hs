@@ -225,8 +225,8 @@ renderMessage curTime xs =
           {-
             most general case
             > [Reminder]
-            > * {some event}: {relative time}
-            > * {some other event}:
+            > - {some event}: {relative time}
+            > - {some other event}:
             >     + {relative time}
             >     + {relative time}
            -}
