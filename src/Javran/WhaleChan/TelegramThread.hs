@@ -58,9 +58,14 @@ telegramThread wenv@(wconf, tcomm) =
         if tokenIsEmpty
           then logInfo $ "EmptyToken. Received request: " <> show msg
           else case msg of
-            TgRMTimer t pm ->
+            TgRMTimer t pm -> do
                 let req = (sendMessageRequest chatId t) {message_parse_mode=pm}
-                in void $ sendMessage tok req tcManager
+                r <- sendMessage tok req tcManager
+                case r of
+                  Right _ -> pure ()
+                  Left e -> do
+                    logErr (displayException e)
+                    logErr $ "request is: " <> show req
             TgRMTweetCreate stId t ->
                 sendMessageSimple t Nothing >>= \case
                   Right Response {result = Message {message_id}} ->
