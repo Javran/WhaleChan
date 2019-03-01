@@ -183,6 +183,15 @@ type ReminderState' = (ReminderMap, MaintenanceEventReminder)
 type ReminderM = WCM ReminderState
 type ReminderM' = WCM ReminderState'
 
+-- Message representation for a reminder message.
+type MessageRep =
+  [] ( String -- Event description (e.g. "Daily Quest Reset")
+     , [ ( UTCTime -- Event occur time
+         , [String] -- sources, only used by maintenance time reminders
+         )
+       ]
+     )
+
 reminderThread :: WEnv -> IO ()
 reminderThread wenv = do
     let cv :: forall a. ReminderM' a -> ReminderM a
