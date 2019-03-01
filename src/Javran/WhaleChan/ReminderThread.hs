@@ -240,11 +240,11 @@ renderMessage curTime xs =
           TB.fromString $ describeDuration (round (eTime `diffUTCTime` curTime) :: Int)
         srcPart = "(source: " <> TB.fromString (intercalate ", " srcs) <> ")"
 
-    tag = "[Reminder]" :: TB.Builder
+    tag = "〖Reminder〗" :: TB.Builder
     pprBlock (eDesc, [eTimeSrc]) =
-        "* " <> TB.fromString eDesc <> ": " <> renderTimeSrc eTimeSrc <> "\n"
+        "- " <> TB.fromString eDesc <> ": " <> renderTimeSrc eTimeSrc <> "\n"
     pprBlock (eDesc, eTimeSrcs) =
-        "* " <> TB.fromString eDesc <> ":\n"
+        "- " <> TB.fromString eDesc <> ":\n"
         <> foldMap (\p -> "    + " <> renderTimeSrc p <> "\n") eTimeSrcs
 
 reminderThread :: WEnv -> IO ()
