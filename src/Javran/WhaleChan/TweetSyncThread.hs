@@ -174,7 +174,7 @@ tweetSyncThread wenv = do
                 info $ "created tweets: " <>
                   intercalate "," (show . statusId <$> tCreated)
                 forM_ tCreated $ \st -> liftIO $  do
-                  let content = "[tw] " <> statusText st
+                  let content = "[Tweet] " <> statusText st
                   -- TODO: set TSTimedOut
                   when (statusCreatedAt st > startTime) $
                     writeChan tcTelegram (TgRMTweetCreate (statusId st) content)

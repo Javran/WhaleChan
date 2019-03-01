@@ -36,24 +36,32 @@ renewSupplyByFunc getNextTime tzs ut =
 
 instance ReminderSupply 'PracticeReset where
     renewSupply _ = renewSupplyByFunc nextPracticeReset
+    eventDescription _ = "Practice Reset"
 
 instance ReminderSupply 'DailyQuestReset where
     renewSupply _ = renewSupplyByFunc nextDailyQuestReset
+    eventDescription _ = "Daily Quest Reset"
 
 instance ReminderSupply 'WeeklyQuestReset where
     renewSupply _ = renewSupplyByFunc nextWeeklyQuestReset
+    eventDescription _ = "Weekly Quest Reset"
 
 instance ReminderSupply 'MonthlyQuestReset where
     renewSupply _ = renewSupplyByFunc nextMonthlyQuestReset
+    eventDescription _ = "Monthly Quest Reset"
 
 instance ReminderSupply 'QuarterlyQuestReset where
     renewSupply _ = renewSupplyByFunc nextQuarterlyQuestReset
+    eventDescription _ = "Quarterly Quest Reset"
 
 instance ReminderSupply 'ExtraOperationReset where
     renewSupply _ = renewSupplyByFunc nextExtraOperationReset
+    eventDescription _ = "Extra Operation Reset"
 
 instance ReminderSupply 'SenkaAccounting where
     renewSupply _ = renewSupplyByFunc nextSenkaAccounting
+    eventDescription _ = "Senka Accounting"
 
 instance ReminderSupply 'QuestPointDeadline where
     renewSupply _ = renewSupplyByFunc nextQuestPointDeadline
+    eventDescription _ = "Quest Point Deadline"

@@ -5,6 +5,7 @@
   , DataKinds
   , OverloadedStrings
   , DeriveGeneric
+  , TupleSections
   #-}
 module Javran.WhaleChan.ReminderThread
  ( reminderThread
@@ -193,6 +194,11 @@ type MessageRep =
        ]
      )
 
+convertResult :: [(EReminderSupply, [UTCTime])] -> MessageRep
+convertResult = fmap (conv *** fmap (,[]))
+  where
+    conv (ERS p) = eventDescription p
+
 renderMessage :: UTCTime -> MessageRep -> Maybe T.Text
 renderMessage curTime xs =
     toStrict . TB.toLazyText <$>
@@ -321,16 +327,7 @@ reminderThread wenv = do
             modify (first $ M.update (const newVal) tyRep)
         ))
       markEnd
-      unless (null displayList) $ do
-        let txt = toStrict (TB.toLazyText md)
-            md = foldMap pprERS displayList
-            pprERS (ERS tp, eTimes) =
-                "- Reminder: **" <> TB.fromString (show tyRep) <> "**\n" <>
-                  foldMap pprTime eTimes
-              where
-                tyRep = typeRep tp
-                pprTime eTime =
-                    "    + " <> TB.fromString timeStr <> "\n"
-                  where
-                    timeStr = describeDuration (round (eTime `diffUTCTime` curTime) :: Int)
-        void $ liftIO $ writeChan tcTelegram (TgRMTimer txt (Just Markdown))
+      case renderMessage curTime $ convertResult displayList of
+        Nothing -> pure ()
+        Just txt ->
+          void $ liftIO $ writeChan tcTelegram (TgRMTimer txt (Just Markdown))
