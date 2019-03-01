@@ -7,6 +7,7 @@
   , PolyKinds
   , DeriveGeneric
   , TypeFamilies
+  , DefaultSignatures
   #-}
 module Javran.WhaleChan.Types where
 
@@ -87,6 +88,10 @@ instance ToJSON EventReminder
  -}
 class ReminderSupply (r :: k) where
     renewSupply :: forall p. p r -> TimeZoneSeries -> UTCTime -> EventReminder
+    eventDescription :: forall p. p r -> String
+
+    default eventDescription :: (Typeable r) => p r -> String
+    eventDescription p = show (typeRep p)
 
 data EReminderSupply =
   forall rs. (ReminderSupply rs, Typeable rs) => ERS (Proxy rs)
