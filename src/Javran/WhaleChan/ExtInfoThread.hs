@@ -85,7 +85,7 @@ extInfoThread wenv = do
             Left e -> logErr $ "Error on source: '" <> srcName <> "', " <> displayException e
             Right v -> procResult v
         extInfoStep markStart = do
-            pprState
+            -- pprState
             markEnd <- markStart
             ExtInfo mtOld _ <- get
             -- scan through sources except kcsconst
