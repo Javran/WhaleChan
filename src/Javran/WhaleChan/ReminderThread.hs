@@ -65,7 +65,7 @@ import qualified Javran.WhaleChan.Log as Log
 
     + wakes up at (roughly) the beginning of every minute
     + maintains the Map
-      - (TODO) if current time exceeds 10 mins more than an event's happening time, it should be dropped.
+      - if current time exceeds 10 mins more than an event's happening time, it should be dropped.
         (this will prevent old persisted states say few days ago or something from showing up)
       - calls all ReminderSupply to see if the Map needs to be updated
         (this is done by comparing events' happening time of new supply to existing ones,
@@ -117,8 +117,6 @@ waitUntilStartOfNextMinute = do
     let ms = round (fromIntegral oneSec * realToFrac @_ @Double (utctDayTime t)) `rem` oneMin
     -- wait to start of next minute
     threadDelay $ oneMin - ms
-    -- TODO: we only wait for 5s now for it's easier to debug
-    -- threadDelay (oneSec * 5)
 
 reminderSupplies :: [EReminderSupply]
 reminderSupplies =
@@ -267,8 +265,6 @@ reminderThread wenv = do
       -- which should be way more than enough.
       let tThres = addUTCTime 20 curTime
           {-
-            TODO: not working.
-            TODO: should be fixed, need verif
             we consider a ER oudated if eventOccurTime < current time - 10 mins,
             in that case the old ERs should be dropped
            -}

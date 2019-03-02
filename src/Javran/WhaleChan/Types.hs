@@ -164,9 +164,6 @@ type TweetSyncM = WCM TweetTracks
   representation for a potentially partial range
   this type is for maintaining a consistent range for maintenance times,
   as parsers are only responsible for the syntactic wellformness
-
-  TODO: to make things easier to implement,
-  we'll turn this in a pair-or-nothing structure.
  -}
 type PRange a = Maybe (a,a)
 

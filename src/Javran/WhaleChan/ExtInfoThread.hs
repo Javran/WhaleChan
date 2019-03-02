@@ -100,7 +100,6 @@ extInfoThread wenv = do
                     -- update server info
                     modify $ \ei -> ei {serverInfo = si}
                   Nothing -> pure ()
-            -- TODO: we may let markEnd to return state itself when a difference is detected.
             markEnd :: EIM ()
             ExtInfo mtNew _ <- get
             -- TODO: now it always computes
