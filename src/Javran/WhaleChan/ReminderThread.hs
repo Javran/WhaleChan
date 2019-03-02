@@ -6,6 +6,7 @@
   , OverloadedStrings
   , DeriveGeneric
   , TupleSections
+  , FlexibleContexts
   #-}
 module Javran.WhaleChan.ReminderThread
  ( reminderThread
@@ -275,7 +276,10 @@ reminderThread wenv = do
         v <- takeMVar tcReminder
         putMVar tcReminder v
         pure v
+      mer <- gets snd
       Log.i "Reminder" ("MaintenanceInfo: " <> show mInfo)
+      let (newMer, mMsgRep) = runWriter (updateMER mer mInfo)
+      modify (second (const newMer))
       let collectResults :: Endo [(EReminderSupply, UTCTime)] -> [(EReminderSupply, [UTCTime])]
           collectResults xsPre = convert <$> ys
             where
@@ -323,7 +327,14 @@ reminderThread wenv = do
             modify (first $ M.update (const newVal) tyRep)
         ))
       markEnd
-      case renderMessage curTime $ convertResult displayList of
+      case renderMessage curTime $ mMsgRep <> convertResult displayList of
         Nothing -> pure ()
         Just txt ->
           void $ liftIO $ writeChan tcTelegram (TgRMTimer txt (Just Markdown))
+
+-- TODO: impl update
+updateMER :: MonadWriter MessageRep m
+          => MaintenanceEventReminder
+          -> MaintenanceInfo
+          -> m MaintenanceEventReminder
+updateMER x _ = pure x
