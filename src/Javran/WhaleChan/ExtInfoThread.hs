@@ -28,6 +28,7 @@ import qualified Javran.WhaleChan.FromSource.KcsConst as KcsConst
 import qualified Javran.WhaleChan.FromSource.Kc3Kai as Kc3Kai
 import qualified Javran.WhaleChan.FromSource.Wikia as Wikia
 import qualified Javran.WhaleChan.FromSource.Kcwiki as Kcwiki
+import qualified Javran.WhaleChan.FromSource.TimeFormat as TFmt
 
 {-
   thread for getting info from external sources
@@ -43,6 +44,13 @@ instance FromJSON ExtInfo
 instance ToJSON ExtInfo
 instance Default ExtInfo
 
+fakeSource :: (String, Manager -> IO (PRange UTCTime))
+fakeSource = ("FakeSourceForTesting", getInfo)
+  where
+    getInfo _ = pure . pure $ (fakeStart, fakeEnd)
+    fakeStart = TFmt.mkUtcInJst 2019 03 20 12 34 56
+    fakeEnd = TFmt.mkUtcInJst 2019 03 25 10 20 30
+
 {-
   external sources except KcsConst.
 
@@ -54,6 +62,9 @@ sources =
     [ ("Kc3Kai", Kc3Kai.getInfo)
     , ("Wikia", Wikia.getInfo)
     , ("Kcwiki", Kcwiki.getInfo)
+    -- TODO: this source is for testing only,
+    -- remember to remove it when done
+    , fakeSource
     ]
 
 type EIM = WCM ExtInfo
