@@ -18,6 +18,8 @@ import Data.Default
 import Control.Concurrent
 import Control.Exception
 import Control.Monad.RWS
+import Control.Arrow
+import Data.List
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
@@ -141,7 +143,7 @@ summarize curTime d =
          in (getMinWithSrc tPStart, getMinWithSrc tPEnd)
   where
     getMinWithSrc :: [(String,UTCTime)] -> Maybe (UTCTime, [String])
-    getMinWithSrc xs = M.lookupMin timeGrps
+    getMinWithSrc xs = second sort <$> M.lookupMin timeGrps
       where
         timeGrps = M.fromListWith (++) . fmap (\(src,v) -> (v,[src])) $ xs
     ps =
