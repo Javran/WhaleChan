@@ -278,9 +278,9 @@ reminderThread wenv = do
         putMVar tcReminder v
         pure v
       mer <- gets snd
-      Log.i "Reminder" ("MaintenanceInfo: " <> show mInfo)
       let (newMer, mMsgRep) = runWriter (updateMER curTime mer mInfo)
       modify (second (const newMer))
+      Log.i "Reminder" ("MER: " <> show newMer)
       let collectResults :: Endo [(EReminderSupply, UTCTime)] -> [(EReminderSupply, [UTCTime])]
           collectResults xsPre = convert <$> ys
             where
@@ -335,6 +335,7 @@ reminderThread wenv = do
 
 -- TODO: maybe we should start using dlist
 -- TODO: impl update
+-- TODO: post-compose to actually fire up reminder (for now it only does update)
 updateMER :: forall m. MonadWriter MessageRep m
           => UTCTime
           -> MaintenanceEventReminder
@@ -364,11 +365,11 @@ updateMER curTime curERPair mInfo = do
           else case curER of
             Nothing ->
               -- we are not holding any ER for now, time to create one.
-              Just <$> createNewER
+              Just <$> createNewER newT newSrcs
             Just (er@(EventReminder eT _), srcs) ->
               if | eT /= newT ->
                   -- update on time, we should update as well
-                  Just <$> createNewER
+                  Just <$> createNewER newT newSrcs
                    -- time matches from now on
                  | newSrcs == srcs ->
                    -- source matches, nothing todo
@@ -378,6 +379,27 @@ updateMER curTime curERPair mInfo = do
                  | otherwise ->
                    -- we need a silent update to include new sources
                    pure $ Just (er, newSrcs)
+        | otherwise = error "unreachable" -- we are just examining info
       where
-        createNewER :: m (EventReminder, [String])
-        createNewER = undefined -- TODO
+        createNewER :: UTCTime -> [String] -> m (EventReminder, [String])
+        createNewER eventTime srcs = do
+            let preCurTime =
+                  -- an extra time in addition to existing ones to make
+                  -- sure a time update shows up once we know it.
+                  addUTCTime (-20) curTime
+                dayInSecs = 86400
+                {-
+                  we want:
+                  - 6 hours, 2 hour, 1 hour, 30 min, 10 min, 5 min, happening
+                  - maintenance time at every day (step: 1 day)
+                 -}
+                predefDueTimes =
+                  reverse
+                    (takeWhile (>curTime)
+                      (iterate (addUTCTime (fInt $ -1 * dayInSecs)) eventTime))
+                  <> (mkTime <$> [6*60, 2*60, 60, 30, 10, 5, 0])
+                dueTimes = preCurTime `insertSet` predefDueTimes
+            pure (EventReminder eventTime dueTimes, srcs)
+          where
+            fInt = fromIntegral @Int
+            mkTime mins = addUTCTime (fInt $ -60 * mins) eventTime
