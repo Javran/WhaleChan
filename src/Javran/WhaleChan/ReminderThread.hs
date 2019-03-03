@@ -412,12 +412,11 @@ stepMER :: forall m. MonadWriter MessageRep m
         -> m (Maybe (EventReminder, [String]))
 stepMER curTime desc mER = case mER of
     Nothing -> pure Nothing
-    Just (EventReminder eT erds, srcs) ->
-      let (_, erds') = span (< tThres) erds
-      in if null erds'
-           then pure mER
-           else do
-             tell [(desc, [(eT, srcs)])]
-             pure $ Just (EventReminder eT erds', srcs)
+    Just (EventReminder eT erds, srcs) -> do
+      let (remindsDue, erds') = span (< tThres) erds
+      unless (null remindsDue) $ tell [(desc, [(eT, srcs)])]
+      pure $ if null erds'
+               then Nothing
+               else Just (EventReminder eT erds', srcs)
   where
     tThres = addUTCTime 20 curTime
