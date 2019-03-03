@@ -334,8 +334,6 @@ reminderThread wenv = do
           void $ liftIO $ writeChan tcTelegram (TgRMTimer txt (Just Markdown))
 
 -- TODO: maybe we should start using dlist
--- TODO: impl update
--- TODO: post-compose to actually fire up reminder (for now it only does update)
 updateMER :: forall m. MonadWriter MessageRep m
           => UTCTime
           -> MaintenanceEventReminder
@@ -344,7 +342,9 @@ updateMER :: forall m. MonadWriter MessageRep m
 updateMER curTime curERPair mInfo = do
     let (lCurER, rCurER) = curERPair
         (lInfo, rInfo) = mInfo
-    (,) <$> doUpdate lCurER lInfo <*> doUpdate rCurER rInfo
+    -- TODO: only print maintenance end when the time is after start
+    (,) <$> (doUpdate lCurER lInfo >>= stepMER curTime "Maintenance Start")
+        <*> (doUpdate rCurER rInfo >>= stepMER curTime "Maintenance End")
   where
     doUpdate :: Maybe (EventReminder, [String])
              -> Maybe (UTCTime, [String])
@@ -403,3 +403,21 @@ updateMER curTime curERPair mInfo = do
           where
             fInt = fromIntegral @Int
             mkTime mins = addUTCTime (fInt $ -60 * mins) eventTime
+
+-- the stage where maintenance ER is discharged to full MessageRep
+stepMER :: forall m. MonadWriter MessageRep m
+        => UTCTime
+        -> String
+        -> Maybe (EventReminder, [String])
+        -> m (Maybe (EventReminder, [String]))
+stepMER curTime desc mER = case mER of
+    Nothing -> pure Nothing
+    Just (EventReminder eT erds, srcs) ->
+      let (_, erds') = span (< tThres) erds
+      in if null erds'
+           then pure mER
+           else do
+             tell [(desc, [(eT, srcs)])]
+             pure $ Just (EventReminder eT erds', srcs)
+  where
+    tThres = addUTCTime 20 curTime
