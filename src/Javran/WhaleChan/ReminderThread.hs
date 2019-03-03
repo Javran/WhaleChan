@@ -364,4 +364,20 @@ updateMER curTime curERPair mInfo = do
           else case curER of
             Nothing ->
               -- we are not holding any ER for now, time to create one.
-              undefined -- TODO
+              Just <$> createNewER
+            Just (er@(EventReminder eT _), srcs) ->
+              if | eT /= newT ->
+                  -- update on time, we should update as well
+                  Just <$> createNewER
+                   -- time matches from now on
+                 | newSrcs == srcs ->
+                   -- source matches, nothing todo
+                   -- note that by enforcing sources to be sorted,
+                   -- the comparison down to just `==`
+                   pure curER
+                 | otherwise ->
+                   -- we need a silent update to include new sources
+                   pure $ Just (er, newSrcs)
+      where
+        createNewER :: m (EventReminder, [String])
+        createNewER = undefined -- TODO
