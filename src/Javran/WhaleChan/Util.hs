@@ -31,12 +31,14 @@ describeDuration seconds
   | seconds == 1 = "1 second"
   | seconds < 60 = show seconds <> " seconds"
   | otherwise =
-    let (hh,ss') = seconds `divMod` 3600
-        (mm,ss) = ss' `divMod` 60
+    let (dd, hh') = seconds `divMod` 86400
+        (hh, ss') = hh' `divMod` 3600
+        (mm, ss) = ss' `divMod` 60
+        ddStr = [ if dd == 1 then "1 day" else show dd <> " days" | dd > 0 ]
         hhStr = [ if hh == 1 then "1 hour" else show hh <> " hours" | hh > 0 ]
         mmStr = [ if mm == 1 then "1 minute" else show mm <> " minutes" | mm > 0 ]
         ssStr = [ if ss == 1 then "1 second" else show ss <> " seconds" | ss > 0 ]
-    in unwords $ concat [hhStr, mmStr, ssStr]
+    in unwords $ concat [ddStr, hhStr, mmStr, ssStr]
 
 -- stolen from:
 -- https://github.com/snoyberg/yaml/blob/35f0286d83acf6c27e00cf8edbfc43c841109760/yaml/test/Data/Yaml/IncludeSpec.hs#L131-L134
