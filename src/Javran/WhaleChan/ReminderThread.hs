@@ -7,6 +7,7 @@
   , DeriveGeneric
   , TupleSections
   , FlexibleContexts
+  , MultiWayIf
   #-}
 module Javran.WhaleChan.ReminderThread
  ( reminderThread
@@ -174,8 +175,8 @@ instance FromJSON ReminderDict where
       convert (r, er) = (,) <$> strToReminderTypeRep r <*> pure er
 
 type MaintenanceEventReminder =
-  ( Maybe (EventReminder, [String])
-  , Maybe (EventReminder, [String])
+  ( Maybe (EventReminder, [String]) -- INVARIANT: we'll keep sources sorted by `sort`
+  , Maybe (EventReminder, [String]) -- same INVARIANT
   )
 
 -- the ' version is actual resentation without newtype wrappers
@@ -278,7 +279,7 @@ reminderThread wenv = do
         pure v
       mer <- gets snd
       Log.i "Reminder" ("MaintenanceInfo: " <> show mInfo)
-      let (newMer, mMsgRep) = runWriter (updateMER mer mInfo)
+      let (newMer, mMsgRep) = runWriter (updateMER curTime mer mInfo)
       modify (second (const newMer))
       let collectResults :: Endo [(EReminderSupply, UTCTime)] -> [(EReminderSupply, [UTCTime])]
           collectResults xsPre = convert <$> ys
@@ -332,9 +333,35 @@ reminderThread wenv = do
         Just txt ->
           void $ liftIO $ writeChan tcTelegram (TgRMTimer txt (Just Markdown))
 
+-- TODO: maybe we should start using dlist
 -- TODO: impl update
-updateMER :: MonadWriter MessageRep m
-          => MaintenanceEventReminder
+updateMER :: forall m. MonadWriter MessageRep m
+          => UTCTime
+          -> MaintenanceEventReminder
           -> MaintenanceInfo
           -> m MaintenanceEventReminder
-updateMER x _ = pure x
+updateMER curTime curERPair mInfo = do
+    let (lCurER, rCurER) = curERPair
+        (lInfo, rInfo) = mInfo
+    (,) <$> doUpdate lCurER lInfo <*> doUpdate rCurER rInfo
+  where
+    doUpdate :: Maybe (EventReminder, [String])
+             -> Maybe (UTCTime, [String])
+             -> m (Maybe (EventReminder, [String]))
+    doUpdate curER info
+      | isNothing info =
+        {-
+          keep whatever it is if the source cannot confirm that
+          since we don't allow ER with empty due list, this should mean
+          curER will also be Nothing in most of the cases
+         -}
+        pure curER
+      | Just (newT, newSrcs) <- info
+      = if newT < curTime
+          then
+            -- we are getting an outdated source, ignoring.
+            pure curER
+          else case curER of
+            Nothing ->
+              -- we are not holding any ER for now, time to create one.
+              undefined -- TODO
