@@ -24,6 +24,7 @@ import Javran.WhaleChan.TelegramThread (telegramThread)
 import Javran.WhaleChan.ReminderThread (reminderThread)
 import Javran.WhaleChan.TweetSyncThread (tweetSyncThread, createTwMVar)
 import Javran.WhaleChan.ExtInfoThread (extInfoThread)
+import Javran.WhaleChan.ProfileDiffThread (profileDiffThread)
 import Javran.WhaleChan.Types
 
 {-
@@ -49,6 +50,7 @@ startService wconf = do
           , telegramThread
           , tweetSyncThread
           , extInfoThread
+          , profileDiffThread
           ]
   {-
     note that all threads are supposed to run forever
