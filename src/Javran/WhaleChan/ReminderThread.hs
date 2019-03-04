@@ -95,16 +95,15 @@ import qualified Javran.WhaleChan.Log as Log
     but this is by no meaning a limit, the definition of ReminderSupply
     is flexible to allow time much more longer - for example
 
-  - (draft) for reminding about maintenance events
+  - for reminding about maintenance events
 
-    + a dedicated thread will try to grab maintenance from multiple sources
-      (core logic are already implemented through Javran.WhaleChan.FromSource.*)
-      and send parsed maintenance updates to this thread
-      (in future we can make this dedicated thread stateful so it only sends update message
-      when a difference is detected)
+    + ExtInfoThread will try to grab maintenance from multiple sources
+      and place the info mutiple sources has agreed upon (i.e. earliest start / end time)
+      into ReminderThread's channel (a MVar for now)
     + note that it's important that we use PRange for this purpose, rather than
       dealing with maintenance start and end time separately
-
+    + ReminderThread keeps its own pairs of EventReminder for both start and end time,
+      during each loop, it looks at the latest MVar and update itself accordingly
  -}
 
 
