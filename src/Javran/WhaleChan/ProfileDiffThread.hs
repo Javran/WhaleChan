@@ -3,6 +3,7 @@
   , TypeApplications
   , NamedFieldPuns
   , RecordWildCards
+  , OverloadedStrings
   #-}
 module Javran.WhaleChan.ProfileDiffThread where
 
@@ -17,6 +18,7 @@ import Control.Lens
 import Web.Twitter.Conduit hiding (includeEntities)
 import Web.Twitter.Conduit.Parameters
 import Web.Twitter.Types
+import qualified Data.Text as T
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
@@ -58,17 +60,24 @@ instance ToJSON ProfileInfo
 
 type M = WCM ProfileInfo
 
+-- ref: https://developer.twitter.com/en/docs/accounts-and-users/user-profile-images-and-banners
+normalSuffix :: T.Text
+normalSuffix = "_normal.png"
+
+getOriginalProfileUrl :: URIString -> Maybe URIString
+getOriginalProfileUrl normUrl = do
+    guard $ normalSuffix `T.isSuffixOf` normUrl
+    let base = T.dropEnd (T.length normalSuffix) normUrl
+    pure (base <> ".png")
+
 extractInfo :: User -> (Maybe URIString, ProfileStat)
 extractInfo User{..} =
-    ( userProfileImageURLHttps
+    ( userProfileImageURLHttps >>= getOriginalProfileUrl
     , ProfileStat
         userStatusesCount
         userFriendsCount
         userFollowersCount
     )
-
--- TODO: we need the original pic
--- https://developer.twitter.com/en/docs/accounts-and-users/user-profile-images-and-banners
 
 profileDiffThread :: WEnv -> IO ()
 profileDiffThread wenv = do
