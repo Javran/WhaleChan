@@ -52,6 +52,7 @@ library:
     - Javran.WhaleChan.ReminderSupply
     - Javran.WhaleChan.ReminderThread
     - Javran.WhaleChan.TelegramThread
+    - Javran.WhaleChan.Twitter
     - Javran.WhaleChan.TweetSyncThread
     - Javran.WhaleChan.ProfileDiffThread
     - Javran.WhaleChan.FromSource.Util
