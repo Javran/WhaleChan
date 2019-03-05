@@ -14,17 +14,20 @@ import Data.Aeson
 import Data.Default
 import Control.Concurrent
 import Control.Monad.RWS
+import Control.Exception
 import Control.Lens
-import Web.Twitter.Conduit hiding (includeEntities)
+import Web.Twitter.Conduit (usersShow)
 import Web.Twitter.Conduit.Parameters
-import Web.Twitter.Types
 import qualified Data.Text as T
+import Network.HTTP.Client
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.Util
 import Javran.WhaleChan.Twitter
 import qualified Javran.WhaleChan.Log as Log
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BSL
 
 {-
   (draft)
@@ -79,16 +82,38 @@ extractInfo User{..} =
         userFollowersCount
     )
 
+fetchImg :: URIString -> WCM s (Either HttpException BS.ByteString)
+fetchImg uri = do
+  (_, TCommon{tcManager=mgr}) <- ask
+  z <- liftIO $ guardHttpException $ do
+    req <- parseRequest (T.unpack uri)
+    resp <- httpLbs req mgr
+    pure (responseBody resp)
+  pure (BSL.toStrict <$> z)
+
 profileDiffThread :: WEnv -> IO ()
 profileDiffThread wenv = do
-    let (WConf{twWatchingUserId},_) = wenv
+    let (WConf{twWatchingUserId},TCommon{tcTelegram}) = wenv
         req = usersShow (UserIdParam (fromIntegral twWatchingUserId))
               & includeEntities ?~ False
-    autoWCM @ProfileInfo "ProfileDiff" "profile-diff.yaml" wenv $ \markStart -> do
+        tag = "ProfileDiff"
+    autoWCM @ProfileInfo tag "profile-diff.yaml" wenv $ \markStart -> do
         markEnd <- markStart
         callTwApi "ProfileDiff" req $ \userInfo -> do
-            let (newUrl, _) = extractInfo userInfo
-            ProfileInfo lImgUrl _ <- get
-            Log.i "ProfileDiff" (show newUrl)
+            let (mNewUrl, _) = extractInfo userInfo
+            case mNewUrl of
+              Nothing ->
+                Log.w tag "url parsing error or account has no img url"
+              Just newUrl -> do
+                ProfileInfo curUrl _ <- get
+                when (curUrl /= mNewUrl) $ do
+                  Log.i tag "new img detected"
+                  mImgData <- fetchImg newUrl
+                  case mImgData of
+                    Left e -> Log.e tag (displayException e)
+                    Right imgData -> do
+                      liftIO $ writeChan tcTelegram (TgRMProfileImg imgData)
+                      -- only update state when url fetch is successful.
+                      modify (\s -> s {lastProfileImage = mNewUrl})
         markEnd
         liftIO $ threadDelay $ 5 * oneSec

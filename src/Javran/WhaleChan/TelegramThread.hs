@@ -56,7 +56,13 @@ telegramThread wenv@(wconf, tcomm) =
     telegramStep = do
         msg <- readChan tcTelegram
         if tokenIsEmpty
-          then logInfo $ "EmptyToken. Received request: " <> show msg
+          then let msgStr = show msg
+                   l = length msgStr
+                   msgCut =
+                     if l > 1000
+                       then "(content too long, length=" <> show l <> ")"
+                       else msgStr
+               in logInfo $ "EmptyToken. Received request: " <> msgCut
           else case msg of
             TgRMTimer t pm -> do
                 let req = (sendMessageRequest chatId t) {message_parse_mode=pm}
@@ -76,3 +82,5 @@ telegramThread wenv@(wconf, tcomm) =
                   Right Response {result = Message {message_id}} ->
                     putTwMsg tcTwitter (TwRMTgSent message_id stId)
                   Left err -> logErr $ displayException err
+            TgRMProfileImg imgData ->
+                 pure ()
