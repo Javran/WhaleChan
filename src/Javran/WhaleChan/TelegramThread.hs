@@ -14,7 +14,8 @@ import Control.Exception.Base
 import Control.Monad
 import Control.Monad.RWS
 import Web.Telegram.API.Bot
-
+import Network.Mime
+import qualified Data.Map.Strict as M
 import qualified Data.Text as T
 
 import Javran.WhaleChan.TweetSyncThread
@@ -82,5 +83,21 @@ telegramThread wenv@(wconf, tcomm) =
                   Right Response {result = Message {message_id}} ->
                     putTwMsg tcTwitter (TwRMTgSent message_id stId)
                   Left err -> logErr $ displayException err
-            TgRMProfileImg imgData ->
-                 pure ()
+            TgRMProfileImg imgData -> do
+                 let fUpload =
+                       FileUpload
+                         (M.lookup "png" defaultMimeMap)
+                         (FileUploadBS imgData)
+                 -- upload photo to channel
+                 liftIO $ print (M.lookup "png" defaultMimeMap)
+                 do
+                   let req = uploadPhotoRequest chatId fUpload
+                   uploadPhoto tok req tcManager >>= \case
+                     Right _ -> pure ()
+                     Left err -> logErr $ displayException err
+                 -- update channel photo
+                 do
+                   let req = SetChatPhotoRequest chatId fUpload
+                   runClient (setChatPhotoM req) tok tcManager >>= \case
+                     Right _ -> pure ()
+                     Left err -> logErr $ displayException err

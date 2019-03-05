@@ -40,6 +40,7 @@ dependencies:
   - monad-logger
   - fast-logger
   - terminfo
+  - mime-types
 
 library:
   source-dirs: src

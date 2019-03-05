@@ -84,6 +84,7 @@ callTwApi tag req handleResp = do
               Log.w tag "rate limit availability < 20%"
             when (rRem < 400) $
               Log.w tag "remaining # of calls < 400"
+            liftIO $ print (rRem, rLim)
           _ -> do
             Log.w tag "rate limit header not available"
             Log.w tag $ "the request was" <> show req
