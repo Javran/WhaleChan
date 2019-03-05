@@ -2,6 +2,7 @@
     DeriveGeneric
   , TypeApplications
   , NamedFieldPuns
+  , RecordWildCards
   #-}
 module Javran.WhaleChan.ProfileDiffThread where
 
@@ -37,9 +38,9 @@ import qualified Javran.WhaleChan.Log as Log
 
 data ProfileStat
   = ProfileStat
-  { statusCount :: Int
-  , followingCount :: Int
-  , followerCount :: Int
+  { statusesCount :: Int
+  , friendsCount :: Int
+  , followersCount :: Int
   } deriving (Show, Generic, Eq)
 
 instance FromJSON ProfileStat
@@ -57,6 +58,18 @@ instance ToJSON ProfileInfo
 
 type M = WCM ProfileInfo
 
+extractInfo :: User -> (Maybe URIString, ProfileStat)
+extractInfo User{..} =
+    ( userProfileImageURLHttps
+    , ProfileStat
+        userStatusesCount
+        userFriendsCount
+        userFollowersCount
+    )
+
+-- TODO: we need the original pic
+-- https://developer.twitter.com/en/docs/accounts-and-users/user-profile-images-and-banners
+
 profileDiffThread :: WEnv -> IO ()
 profileDiffThread wenv = do
     let (WConf{twWatchingUserId},_) = wenv
@@ -65,6 +78,8 @@ profileDiffThread wenv = do
     autoWCM @ProfileInfo "ProfileDiff" "profile-diff.yaml" wenv $ \markStart -> do
         markEnd <- markStart
         callTwApi "ProfileDiff" req $ \userInfo -> do
-            Log.i "ProfileDiff" (show userInfo)
+            let (newUrl, _) = extractInfo userInfo
+            ProfileInfo lImgUrl _ <- get
+            Log.i "ProfileDiff" (show newUrl)
         markEnd
         liftIO $ threadDelay $ 5 * oneSec
