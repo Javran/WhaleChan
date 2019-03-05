@@ -14,7 +14,7 @@ import Data.Aeson
 import Data.Default
 import Control.Concurrent
 import Control.Monad.RWS
-import Control.Exception
+-- import Control.Exception
 import Control.Lens
 import Web.Twitter.Conduit (usersShow)
 import Web.Twitter.Conduit.Parameters
@@ -108,12 +108,15 @@ profileDiffThread wenv = do
                 ProfileInfo curUrl _ <- get
                 when (curUrl /= mNewUrl) $ do
                   Log.i tag "new img detected"
-                  mImgData <- fetchImg newUrl
+                  liftIO $ writeChan tcTelegram (TgRMProfileImg newUrl)
+                  modify (\s -> s {lastProfileImage = mNewUrl})
+                  {- mImgData <- fetchImg newUrl
                   case mImgData of
                     Left e -> Log.e tag (displayException e)
                     Right imgData -> do
                       liftIO $ writeChan tcTelegram (TgRMProfileImg imgData)
                       -- only update state when url fetch is successful.
                       modify (\s -> s {lastProfileImage = mNewUrl})
+                   -}
         markEnd
-        liftIO $ threadDelay $ 5 * oneSec
+        liftIO $ threadDelay $ 2 * oneSec

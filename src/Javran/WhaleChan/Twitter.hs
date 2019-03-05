@@ -37,6 +37,8 @@ import qualified Javran.WhaleChan.Log as Log
   - standard rate limit for our purpose is 900 calls in a 15 minute window,
     so at any moment in time, expect # of remaining calls to be >= 420 (420/900=46.67%)
 
+  - TODO turns out rate limit are applied on a per-api basis, we can have a better interval.
+
   - we'll send a warning when:
 
     + either remaining call goes below 400
@@ -84,7 +86,6 @@ callTwApi tag req handleResp = do
               Log.w tag "rate limit availability < 20%"
             when (rRem < 400) $
               Log.w tag "remaining # of calls < 400"
-            liftIO $ print (rRem, rLim)
           _ -> do
             Log.w tag "rate limit header not available"
             Log.w tag $ "the request was" <> show req

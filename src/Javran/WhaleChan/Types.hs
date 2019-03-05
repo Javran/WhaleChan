@@ -101,7 +101,7 @@ data TgRxMsg
   = TgRMTimer T.Text (Maybe Tg.ParseMode) -- sent from ReminderThread
   | TgRMTweetCreate Integer T.Text -- sent from TweetSyncThread
   | TgRMTweetDestroy Integer Int -- sent from TweetSyncThread
-  | TgRMProfileImg BS.ByteString -- sent from ProfileDiff
+  | TgRMProfileImg T.Text -- sent from ProfileDiff
   deriving (Show)
 
 data TwRxMsg

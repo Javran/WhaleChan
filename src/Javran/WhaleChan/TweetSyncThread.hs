@@ -148,7 +148,7 @@ tweetSyncThread wenv = do
                         liftIO $ writeChan tcTelegram (TgRMTweetDestroy (statusId st) msgId)
                       _ -> pure ()
             markEnd
-            liftIO $ threadDelay $ 3 * oneSec
+            liftIO $ threadDelay $ 2 * oneSec
     autoWCM "TweetSync" "tweet-sync.yaml" wenv tweetSyncStep
 {-
   it might be tempting to use the streaming api, but setting it up is a mess, so, no.
