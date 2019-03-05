@@ -3,7 +3,6 @@
   , OverloadedStrings
   , RecordWildCards
   , ScopedTypeVariables
-  , TypeApplications
   , LambdaCase
   , FlexibleContexts
   #-}
@@ -19,20 +18,19 @@ import Control.Lens
 import Control.Monad
 import Control.Monad.RWS
 import Control.Monad.Logger
-import Control.Exception
 import Data.List
 import Web.Twitter.Conduit hiding (count)
 import Web.Twitter.Conduit.Parameters
 import Web.Twitter.Types
 import Data.Time.Clock
 
-import qualified Data.ByteString.Char8 as BSC
 import qualified Data.Map.Strict as M
 import qualified Data.Sequence as Seq
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Util
 import Javran.WhaleChan.Base
+import Javran.WhaleChan.Twitter
 
 import qualified Javran.WhaleChan.Log as Log
 
@@ -83,19 +81,6 @@ import qualified Javran.WhaleChan.Log as Log
     and anything we get lower than that, we'll ignore.
  -}
 
-getTwInfo :: WConf -> TWInfo
-getTwInfo WConf{..} = TWInfo twTok Nothing
-  where
-    oauth = twitterOAuth
-              { oauthConsumerKey = twConsumerKey
-              , oauthConsumerSecret = twConsumerSecret
-              }
-    credential = Credential
-                 [ ("oauth_token", BSC.pack twOAuthToken)
-                 , ("oauth_token_secret", BSC.pack twOAuthSecret)
-                 ]
-    twTok = TWToken oauth credential
-
 createTwMVar :: IO TwMVar
 createTwMVar = newMVar Seq.empty
 
@@ -116,8 +101,7 @@ tweetSyncThread wenv = do
       know how to align update list with current state in order to
       detect deletion.
      -}
-    let (wconf@WConf{twIgnoreOlderThan, twWatchingUserId}, TCommon{..}) = wenv
-        twInfo = getTwInfo wconf
+    let (WConf{twIgnoreOlderThan, twWatchingUserId}, TCommon{..}) = wenv
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
                 & count ?~ 200
                 & tweetMode ?~ "extended"
@@ -128,14 +112,7 @@ tweetSyncThread wenv = do
             mQueue <- liftIO $ swapMVar tcTwitter Seq.empty
             loggerIO <- askLoggerIO
             let info = Log.i' loggerIO "TweetSync"
-            respM <- liftIO $ guardHttpException (callWithResponse twInfo tcManager req)
-            -- case respM begin
-            case respM of
-              Left e ->
-                -- a network exception could be temporary, so
-                -- we'll let it proceed instead of throwing exceptions
-                Log.e "TweetSync" (displayException e)
-              Right Response{..} -> do
+            callTwApi "TweetSync" req $ \statusList -> do
                 let performUpdate :: TwRxMsg -> TweetTracks -> TweetTracks
                     performUpdate (TwRMTgSent tgMsgId twStId) =
                       M.adjust
@@ -146,22 +123,9 @@ tweetSyncThread wenv = do
                         twStId
                 -- handle received messages
                 modify (appDEndo (foldMap (mkDEndo . performUpdate) mQueue))
-                let statusList = responseBody
                 -- TODO: should have better API to handle gets then modify (const _)
                 ((tCreated, tDeleted), nextState) <- gets (`updateTweetStates` statusList)
                 modify (const nextState)
-                let [rlLimit,rlRemaining,_rlReset] =
-                      ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders) <$>
-                        [ "x-rate-limit-limit"
-                        , "x-rate-limit-remaining"
-                        , "x-rate-limit-reset"
-                        ]
-                case (rlRemaining, rlLimit) of
-                  (Just rRem, Just rLim)
-                    | rRem * 5 < rLim ->
-                      -- rRem / rLim < 20%=1/5 => 5 * rem < lim
-                      Log.w "TweetSync" "rate limit availability < 20%"
-                  _ -> pure ()
                 when (length tCreated + length tDeleted > 0) $
                   Log.i "TweetSync" $
                     "created: " <> show (length tCreated)
@@ -183,9 +147,8 @@ tweetSyncThread wenv = do
                       (st, Just msgId) ->
                         liftIO $ writeChan tcTelegram (TgRMTweetDestroy (statusId st) msgId)
                       _ -> pure ()
-            -- case respM end
             markEnd
-            liftIO $ threadDelay $ 5 * oneSec
+            liftIO $ threadDelay $ 3 * oneSec
     autoWCM "TweetSync" "tweet-sync.yaml" wenv tweetSyncStep
 {-
   it might be tempting to use the streaming api, but setting it up is a mess, so, no.

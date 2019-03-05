@@ -20,17 +20,43 @@ import Javran.WhaleChan.Util
 
 import qualified Javran.WhaleChan.Log as Log
 
+{-
+  this module contains utils relatd to twitter-api
+ -}
+
+{-
+  Regarding rate limit:
+
+  - we plan to call twitter api:
+
+    + every 5 seconds for profile info
+    + every 3 seconds for tweet update
+
+  - this means every minute should have at most 32 calls
+
+  - standard rate limit for our purpose is 900 calls in a 15 minute window,
+    so at any moment in time, expect # of remaining calls to be >= 420 (420/900=46.67%)
+
+  - we'll send a warning when:
+
+    + either remaining call goes below 400
+    + or remaining / limit (= 900 for now) goes below 20%
+
+ -}
+
 getTwInfo :: WConf -> TWInfo
 getTwInfo WConf{..} = TWInfo twTok Nothing
   where
-    oauth = twitterOAuth
-              { oauthConsumerKey = twConsumerKey
-              , oauthConsumerSecret = twConsumerSecret
-              }
-    credential = Credential
-                 [ ("oauth_token", BSC.pack twOAuthToken)
-                 , ("oauth_token_secret", BSC.pack twOAuthSecret)
-                 ]
+    oauth =
+      twitterOAuth
+      { oauthConsumerKey = twConsumerKey
+      , oauthConsumerSecret = twConsumerSecret
+      }
+    credential =
+      Credential
+      [ ("oauth_token", BSC.pack twOAuthToken)
+      , ("oauth_token_secret", BSC.pack twOAuthSecret)
+      ]
     twTok = TWToken oauth credential
 
 callTwApi :: FromJSON respTy
@@ -52,9 +78,13 @@ callTwApi tag req handleResp = do
                         , "x-rate-limit-reset"
                         ]
         case (rlRemaining, rlLimit) of
-          (Just rRem, Just rLim)
-            | rRem * 5 < rLim ->
-                -- rRem / rLim < 20%=1/5 => 5 * rem < lim
-                Log.w tag "rate limit availability < 20%"
-          _ -> pure ()
+          (Just rRem, Just rLim) -> do
+            -- rRem / rLim < 20%=1/5 => 5 * rem < lim
+            when (rRem * 5 < rLim) $
+              Log.w tag "rate limit availability < 20%"
+            when (rRem < 400) $
+              Log.w tag "remaining # of calls < 400"
+          _ -> do
+            Log.w tag "rate limit header not available"
+            Log.w tag $ "the request was" <> show req
         handleResp responseBody
