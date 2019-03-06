@@ -26,6 +26,7 @@ timeLocale :: TimeLocale
 timeLocale = defaultTimeLocale
     { knownTimeZones = jst : knownTimeZones defaultTimeLocale }
 
+-- making UTCTime using year, month, day, hour, minute, second as in JST
 mkUtcInJst :: Integer -> Int -> Int -> Int -> Int -> Int -> UTCTime
 mkUtcInJst year month day hh mm ss =
     zonedTimeToUTC $
