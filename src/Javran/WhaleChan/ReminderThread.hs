@@ -279,7 +279,8 @@ reminderThread wenv = do
       mer <- gets snd
       let (newMer, mMsgRep) = runWriter (updateMER curTime mer mInfo)
       modify (second (const newMer))
-      Log.i "Reminder" ("MER: " <> show newMer)
+      when (mer /= newMer) $
+        Log.i "Reminder" ("MER updated: " <> show newMer)
       let collectResults :: Endo [(EReminderSupply, UTCTime)] -> [(EReminderSupply, [UTCTime])]
           collectResults xsPre = convert <$> ys
             where
@@ -404,6 +405,7 @@ updateMER curTime curERPair mInfo = do
             mkTime mins = addUTCTime (fInt $ -60 * mins) eventTime
 
 -- the stage where maintenance ER is discharged to full MessageRep
+-- TODO: drop outdated ERs like we do for regular ERs
 stepMER :: forall m. MonadWriter MessageRep m
         => UTCTime
         -> String
