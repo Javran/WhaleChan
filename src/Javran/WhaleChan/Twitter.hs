@@ -67,14 +67,15 @@ callTwApi tag req handleResp = do
     (wconf, TCommon{tcManager}) <- ask
     let twInfo = getTwInfo wconf
     respM <- liftIO $
-      (Right <$> callWithResponse twInfo tcManager req)
+      (Right <$> callWithResponse twInfo tcManager req) `catches`
         {-
           network issue and twitter api issue can be temporary,
           so we capture these two kinds of erros instead of
           allowing them to throw
          -}
-        `catch` (\(e :: HttpException) -> (pure . Left . toException) e)
-        `catch` (\(e :: TwitterError) -> (pure . Left . toException) e)
+        [ Handler $ \(e :: HttpException) -> (pure . Left . toException) e
+        , Handler $ \(e :: TwitterError) -> (pure . Left . toException) e
+        ]
     case respM of
       Left e ->
         -- a network exception could be temporary, so
