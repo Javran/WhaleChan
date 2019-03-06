@@ -83,11 +83,11 @@ callTwApi tag req handleResp = do
         Log.e tag (displayException e)
       Right Response{responseHeaders, responseBody} -> do
         let [rlLimit,rlRemaining,_rlReset] =
-                      ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders) <$>
-                        [ "x-rate-limit-limit"
-                        , "x-rate-limit-remaining"
-                        , "x-rate-limit-reset"
-                        ]
+              ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders) <$>
+                [ "x-rate-limit-limit"
+                , "x-rate-limit-remaining"
+                , "x-rate-limit-reset"
+                ]
         case (rlRemaining, rlLimit) of
           (Just rRem, Just rLim) -> do
             -- rRem / rLim < 20%=1/5 => 5 * rem < lim
