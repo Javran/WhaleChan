@@ -15,8 +15,8 @@ import Web.Twitter.Conduit hiding (count)
 
 import qualified Data.ByteString.Char8 as BSC
 
+import Network.HTTP.Client
 import Javran.WhaleChan.Types
-import Javran.WhaleChan.Util
 
 import qualified Javran.WhaleChan.Log as Log
 
@@ -66,7 +66,15 @@ callTwApi :: FromJSON respTy
 callTwApi tag req handleResp = do
     (wconf, TCommon{tcManager}) <- ask
     let twInfo = getTwInfo wconf
-    respM <- liftIO $ guardHttpException (callWithResponse twInfo tcManager req)
+    respM <- liftIO $
+      (Right <$> callWithResponse twInfo tcManager req)
+        {-
+          network issue and twitter api issue can be temporary,
+          so we capture these two kinds of erros instead of
+          allowing them to throw
+         -}
+        `catch` (\(e :: HttpException) -> (pure . Left . toException) e)
+        `catch` (\(e :: TwitterError) -> (pure . Left . toException) e)
     case respM of
       Left e ->
         -- a network exception could be temporary, so
