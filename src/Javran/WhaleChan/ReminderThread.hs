@@ -251,11 +251,12 @@ reminderThread wenv = do
     let cv :: forall a. ReminderM' a -> ReminderM a
         cv = coerce -- to avoid the noise introduced by newtype
         (_, TCommon{tcTelegram, tcReminder}) = wenv
+        tag = "Reminder"
     -- ref: https://stackoverflow.com/q/43835656/315302
     -- load tz info before starting the loop
     _tzPt <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
     tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
-    autoWCM @ReminderState "Reminder" "reminder.yaml" wenv $ \markStart' -> cv $ do
+    autoWCM @ReminderState tag "reminder.yaml" wenv $ \markStart' -> cv $ do
       let markStart = coerce markStart' :: ReminderM' (ReminderM' ())
       -- note that unlike other threads, this one begins by thread sleep
       -- the idea is to start working immediately after wake up
@@ -279,8 +280,11 @@ reminderThread wenv = do
       mer <- gets snd
       let (newMer, mMsgRep) = runWriter (updateMER curTime mer mInfo)
       modify (second (const newMer))
-      when (mer /= newMer) $
-        Log.i "Reminder" ("MER updated: " <> show newMer)
+      when (mer /= newMer) $ do
+        Log.i tag "MER updated:"
+        Log.i tag $ "old: " <> show mer
+        Log.i tag $ "new: " <> show newMer
+        Log.i tag $ "minfo: " <> show mInfo
       let collectResults :: Endo [(EReminderSupply, UTCTime)] -> [(EReminderSupply, [UTCTime])]
           collectResults xsPre = convert <$> ys
             where
