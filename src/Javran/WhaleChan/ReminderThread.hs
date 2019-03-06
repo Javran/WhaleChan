@@ -143,6 +143,13 @@ reminders = f <$> reminderSupplies
 strToReminderTypeRep :: String -> Parser TypeRep
 strToReminderTypeRep raw = maybe mzero pure (lookup raw reminders)
 
+checkEventReminder :: EventReminder -> Maybe String
+checkEventReminder (EventReminder x xs)
+  | null xs = Just "event reminder has empty due list"
+  | last xs /= x = Just "event reminder last event not matching occur time"
+  | and $ zipWith (<) xs (tail xs) = Nothing
+  | otherwise = Just "event reminder not is strict ascending order."
+
 -- TODO: use lens-datetime
 
 {-
@@ -285,6 +292,15 @@ reminderThread wenv = do
         Log.i tag $ "old: " <> show mer
         Log.i tag $ "new: " <> show newMer
         Log.i tag $ "minfo: " <> show mInfo
+        let (lMer, rMer) = newMer
+            check Nothing = pure ()
+            check (Just (er,_)) = case checkEventReminder er of
+              Nothing -> Log.i tag "er checking ok."
+              Just errMsg -> do
+                  Log.w tag $ "er checking failed: " <> errMsg
+                  Log.w tag $ "the er is: " <> show er
+        check lMer
+        check rMer
       let collectResults :: Endo [(EReminderSupply, UTCTime)] -> [(EReminderSupply, [UTCTime])]
           collectResults xsPre = convert <$> ys
             where
@@ -400,7 +416,8 @@ updateMER curTime curERPair mInfo = do
                 predefDueTimes =
                   reverse
                     (takeWhile (>curTime)
-                      (iterate (addUTCTime (fInt $ -1 * dayInSecs)) eventTime))
+                      -- TODO: we'd better have some tests.
+                      (tail $ iterate (addUTCTime (fInt $ -1 * dayInSecs)) eventTime))
                   <> (mkTime <$> [6*60, 2*60, 60, 30, 10, 5, 0])
                 dueTimes = preCurTime `insertSet` predefDueTimes
             pure (EventReminder eventTime dueTimes, srcs)
