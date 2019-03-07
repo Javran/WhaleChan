@@ -121,13 +121,5 @@ profileDiffThread wenv = do
                   Log.i tag "new img detected"
                   liftIO $ writeChan tcTelegram (TgRMProfileImg newUrl)
                   modify (\s -> s {lastProfileImage = mNewUrl})
-                  {- mImgData <- fetchImg newUrl
-                  case mImgData of
-                    Left e -> Log.e tag (displayException e)
-                    Right imgData -> do
-                      liftIO $ writeChan tcTelegram (TgRMProfileImg imgData)
-                      -- only update state when url fetch is successful.
-                      modify (\s -> s {lastProfileImage = mNewUrl})
-                   -}
         markEnd
         liftIO $ threadDelay $ 2 * oneSec
