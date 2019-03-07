@@ -4,6 +4,7 @@
   , DataKinds
   , LambdaCase
   , OverloadedStrings
+  , NoMonomorphismRestriction
   #-}
 module Javran.WhaleChan.TelegramThread
   ( telegramThread
@@ -28,6 +29,36 @@ import qualified Javran.WhaleChan.Log as Log
   and send message to channel as needed.
   the thread structure is simple thus does not require to use WCM at all.
  -}
+
+describeMessage :: TgRxMsg -> T.Text
+describeMessage = \case
+    TgRMTimer content pMode ->
+      "MsgTimer"
+      <> "{ parseMode=" <> ps pMode
+      <> ", content=" <> shortContent content
+      <> "}"
+    TgRMTweetCreate stId content ->
+      "MsgTweetCreate"
+      <> "{ statusId=" <> ps stId
+      <> ", content=" <> shortContent content
+      <> "}"
+    TgRMTweetDestroy stId tgId ->
+      "MsgTweetDestroy"
+      <> "{ statusId=" <> ps stId
+      <> ", tgId=" <> ps tgId
+      <> "}"
+    TgRMProfileImg content ->
+      "MsgProfileImg"
+      <> "{ content=" <> shortContent content
+      <> "}"
+  where
+    ps = T.pack . show
+    shortContent s =
+        if l < 1000
+          then s
+          else "(content too long, total length=" <> T.pack (show l) <> ")"
+      where
+        l = T.length s
 
 telegramThread :: WEnv -> IO ()
 telegramThread wenv@(wconf, tcomm) =
@@ -56,14 +87,9 @@ telegramThread wenv@(wconf, tcomm) =
               }
     telegramStep = do
         msg <- readChan tcTelegram
+        logInfo $ T.unpack $ describeMessage msg
         if tokenIsEmpty
-          then let msgStr = show msg
-                   l = length msgStr
-                   msgCut =
-                     if l > 1000
-                       then "(content too long, length=" <> show l <> ")"
-                       else msgStr
-               in logInfo $ "EmptyToken. Received request: " <> msgCut
+          then logInfo "token is empty, actual call omitted."
           else case msg of
             TgRMTimer t pm -> do
                 let req = (sendMessageRequest chatId t) {message_parse_mode=pm}
