@@ -246,7 +246,7 @@ renderMessage curTime xs =
           TB.fromString $ describeDuration (round (eTime `diffUTCTime` curTime) :: Int)
         srcPart = "(source: " <> TB.fromString (intercalate ", " srcs) <> ")"
 
-    tag = "〖Reminder〗" :: TB.Builder
+    tag = "\\[Reminder]" :: TB.Builder
     pprBlock (eDesc, [eTimeSrc]) =
         "- " <> TB.fromString eDesc <> ": " <> renderTimeSrc eTimeSrc <> "\n"
     pprBlock (eDesc, eTimeSrcs) =

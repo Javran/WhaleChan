@@ -84,7 +84,7 @@ telegramThread wenv@(wconf, tcomm) =
                     putTwMsg tcTwitter (TwRMTgSent message_id stId)
                   Left err -> logErr $ displayException err
             TgRMProfileImg {-imgData-} imgUrl -> do
-                 let content = "\\[Profile\\]" <> "[Source](" <> imgUrl <> ")"
+                 let content = "\\[Profile] " <> "[Source](" <> imgUrl <> ")"
                      req = (sendMessageRequest chatId content)
                            {message_parse_mode = Just Markdown}
                  sendMessage tok req tcManager >>= \case
