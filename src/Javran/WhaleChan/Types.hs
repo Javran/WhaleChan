@@ -37,7 +37,6 @@ data WConf = WConf
   , twOAuthToken :: String
   , twOAuthSecret :: String
   , twWatchingUserId :: Int
-  , twThreadStateFile :: FilePath
   , twIgnoreOlderThan :: Int
   , tgBotToken :: Tg.Token
   , tgChannelId :: Int64
@@ -51,7 +50,6 @@ instance ToJSON WConf where
                , "twitter-oauth-token" .= twOAuthToken
                , "twitter-oauth-secret" .= twOAuthSecret
                , "twitter-watching-user-id" .= twWatchingUserId
-               , "twitter-thread-state-file" .= twThreadStateFile
                , "twitter-ignore-older-than" .= twIgnoreOlderThan
                , "telegram-bot-token" .= tok
                , "telegram-channel-id" .= tgChannelId
@@ -65,7 +63,6 @@ instance FromJSON WConf where
             <*> o .: "twitter-oauth-token"
             <*> o .: "twitter-oauth-secret"
             <*> o .: "twitter-watching-user-id"
-            <*> o .: "twitter-thread-state-file"
             <*> o .: "twitter-ignore-older-than"
             <*> (Tg.Token <$> o .: "telegram-bot-token")
             <*> o .: "telegram-channel-id"
