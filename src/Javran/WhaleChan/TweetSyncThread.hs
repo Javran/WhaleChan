@@ -141,7 +141,7 @@ tweetSyncThread wenv = do
                       every tweet in backward order to keep tg channel's history in sync
                      -}
                     forM_ (reverse tCreated) $ \st -> liftIO $  do
-                      let content = "\\[Tweet] " <> statusText st
+                      let content = "[Tweet] " <> statusText st
                       -- TODO: set TSTimedOut
                       if statusCreatedAt st > startTime
                         then do
