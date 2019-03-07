@@ -97,5 +97,5 @@ callTwApi tag req handleResp = do
               Log.w tag "remaining # of calls < 400"
           _ -> do
             Log.w tag "rate limit header not available"
-            Log.w tag $ "the request was" <> show req
+            Log.w tag $ "the request was: " <> show req
         handleResp responseBody

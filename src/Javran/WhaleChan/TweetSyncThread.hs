@@ -105,12 +105,14 @@ tweetSyncThread wenv = do
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
                 & count ?~ 200
                 & tweetMode ?~ "extended"
-        startTime = addUTCTime (fromIntegral twIgnoreOlderThan) t
-        tweetSyncStep :: TweetSyncM (TweetSyncM ()) -> TweetSyncM ()
+        startTime = addUTCTime (-fromIntegral twIgnoreOlderThan) t
+        loggerIO = wenvToLoggerIO wenv
+    Log.i' loggerIO "TweetSync" $
+      "Will ignore tweets created before " <> show startTime
+    let tweetSyncStep :: TweetSyncM (TweetSyncM ()) -> TweetSyncM ()
         tweetSyncStep markStart = do
             markEnd <- markStart
             mQueue <- liftIO $ swapMVar tcTwitter Seq.empty
-            loggerIO <- askLoggerIO
             let info = Log.i' loggerIO "TweetSync"
             callTwApi "TweetSync" req $ \statusList -> do
                 let performUpdate :: TwRxMsg -> TweetTracks -> TweetTracks
@@ -138,8 +140,14 @@ tweetSyncThread wenv = do
                     forM_ tCreated $ \st -> liftIO $  do
                       let content = "〖Tweet〗 " <> statusText st
                       -- TODO: set TSTimedOut
-                      when (statusCreatedAt st > startTime) $
-                        writeChan tcTelegram (TgRMTweetCreate (statusId st) content)
+                      if statusCreatedAt st > startTime
+                        then do
+                          Log.i' loggerIO "TweetSync" $
+                            "push status " <> show (statusId st) <> " to tg"
+                          writeChan tcTelegram (TgRMTweetCreate (statusId st) content)
+                        else
+                          Log.i' loggerIO "TweetSync" $
+                            "status " <> show (statusId st) <> " ignored (outdated)"
                   unless (null tDeleted) $ do
                     info $ "deleted tweets: " <>
                       intercalate "," (show . statusId . fst <$> tDeleted)
