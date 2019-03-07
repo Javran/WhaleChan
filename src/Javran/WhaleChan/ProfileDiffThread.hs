@@ -20,6 +20,8 @@ import Web.Twitter.Conduit (usersShow)
 import Web.Twitter.Conduit.Parameters
 import qualified Data.Text as T
 import Network.HTTP.Client
+import qualified Text.ParserCombinators.ReadP as P
+import Data.Char
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
@@ -63,15 +65,24 @@ instance ToJSON ProfileInfo
 
 type M = WCM ProfileInfo
 
--- ref: https://developer.twitter.com/en/docs/accounts-and-users/user-profile-images-and-banners
-normalSuffix :: T.Text
-normalSuffix = "_normal.png"
+{-
+  ref: https://developer.twitter.com/en/docs/accounts-and-users/user-profile-images-and-banners
+  also note that there are non-png formats,
+  so we'd better have a solution that works on most of the image formats
+ -}
+pOriginalProfileUrl :: P.ReadP String
+pOriginalProfileUrl = do
+    xs <- P.many1 P.get
+    _ <- P.string "_normal."
+    ext <- P.munch1 (\c -> isAscii c && isAlphaNum c)
+    P.eof
+    pure $ xs <> "." <> ext
 
 getOriginalProfileUrl :: URIString -> Maybe URIString
-getOriginalProfileUrl normUrl = do
-    guard $ normalSuffix `T.isSuffixOf` normUrl
-    let base = T.dropEnd (T.length normalSuffix) normUrl
-    pure (base <> ".png")
+getOriginalProfileUrl normUrl =
+    case P.readP_to_S pOriginalProfileUrl (T.unpack normUrl) of
+      [(r,"")] -> Just (T.pack r)
+      _ -> Nothing
 
 extractInfo :: User -> (Maybe URIString, ProfileStat)
 extractInfo User{..} =
