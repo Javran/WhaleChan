@@ -18,6 +18,7 @@ import System.Directory
 import System.Environment
 import System.Exit
 import Control.Concurrent
+import Data.Time.Clock
 
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.TelegramThread (telegramThread)
@@ -26,6 +27,7 @@ import Javran.WhaleChan.TweetSyncThread (tweetSyncThread, createTwMVar)
 import Javran.WhaleChan.ExtInfoThread (extInfoThread)
 import Javran.WhaleChan.ProfileDiffThread (profileDiffThread)
 import Javran.WhaleChan.Types
+import qualified Javran.WhaleChan.Log as Log
 
 {-
   TODO
@@ -52,6 +54,11 @@ startService wconf = do
           , extInfoThread
           , profileDiffThread
           ]
+  let info = Log.i' (wenvToLoggerIO wenv) "Main"
+  t <- getCurrentTime
+  cNum <- getNumCapabilities
+  info $ "WhaleChan started at " <> show t
+  info $ "capability=" <> show cNum
   {-
     note that all threads are supposed to run forever
     unless too many error happens, so it actually doesn't matter
