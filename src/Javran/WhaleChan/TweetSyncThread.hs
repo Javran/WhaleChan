@@ -17,7 +17,6 @@ import Control.Concurrent
 import Control.Lens
 import Control.Monad
 import Control.Monad.RWS
-import Control.Monad.Logger
 import Data.List
 import Web.Twitter.Conduit hiding (count)
 import Web.Twitter.Conduit.Parameters
@@ -137,7 +136,11 @@ tweetSyncThread wenv = do
                   unless (null tCreated) $ do
                     info $ "created tweets: " <>
                       intercalate "," (show . statusId <$> tCreated)
-                    forM_ tCreated $ \st -> liftIO $  do
+                    {-
+                      as tCreated is in descending order of time, we'll need to consider
+                      every tweet in backward order to keep tg channel's history in sync
+                     -}
+                    forM_ (reverse tCreated) $ \st -> liftIO $  do
                       let content = "\\[Tweet] " <> statusText st
                       -- TODO: set TSTimedOut
                       if statusCreatedAt st > startTime
