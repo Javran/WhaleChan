@@ -63,6 +63,7 @@ library:
     - Javran.WhaleChan.FromSource.Wikia
     - Javran.WhaleChan.FromSource.Kcwiki
     - Javran.WhaleChan.ExtInfoThread
+    - Javran.WhaleChan.HealthThread
     - Javran.WhaleChan.Main
 
 executable:

@@ -122,6 +122,8 @@ type MaintenanceInfo =
   , Maybe (UTCTime, [String]) -- maintenance end time with confirming sources
   )
 
+data Heartbeat = Heartbeat !String !UTCTime
+
 data TCommon
   = TCommon
   { tcTelegram :: Chan TgRxMsg -- channel used by telegram
@@ -131,6 +133,7 @@ data TCommon
     -- any readMVar should be followed by a putMVar to restore the full-ness
   , tcReminder :: MVar MaintenanceInfo -- mvar for reminder thread
   , tcLogger :: Chan WLog
+  , tcHealth :: MVar (Seq.Seq Heartbeat)
   }
 
 -- Runtime enviroment share among threads

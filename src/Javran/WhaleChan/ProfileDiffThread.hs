@@ -27,10 +27,11 @@ import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.Util
 import Javran.WhaleChan.Twitter
+import Javran.WhaleChan.HealthThread (heartbeat)
+
 import qualified Javran.WhaleChan.Log as Log
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
-
 {-
   (draft)
   This thread detects profile image change
@@ -110,6 +111,7 @@ profileDiffThread wenv = do
         tag = "ProfileDiff"
     autoWCM @ProfileInfo tag "profile-diff.yaml" wenv $ \markStart -> do
         markEnd <- markStart
+        heartbeat "ProfileDiff"
         callTwApi "ProfileDiff" req $ \userInfo -> do
             let (mNewUrl, _) = extractInfo userInfo
             case mNewUrl of

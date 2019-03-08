@@ -26,6 +26,7 @@ import Javran.WhaleChan.ReminderThread (reminderThread)
 import Javran.WhaleChan.TweetSyncThread (tweetSyncThread, createTwMVar)
 import Javran.WhaleChan.ExtInfoThread (extInfoThread)
 import Javran.WhaleChan.ProfileDiffThread (profileDiffThread)
+import Javran.WhaleChan.HealthThread
 import Javran.WhaleChan.Types
 import qualified Javran.WhaleChan.Log as Log
 
@@ -45,10 +46,12 @@ startService wconf = do
   tcTelegram <- newChan
   tcTwitter <- createTwMVar
   tcReminder <- newMVar (Nothing, Nothing)
+  tcHealth <- mkTcHealth
   aLog <- async (startLogger tcLogger)
   let wenv = (wconf,TCommon {..})
       workers =
-          [ reminderThread
+          [ healthThread
+          , reminderThread
           , telegramThread
           , tweetSyncThread
           , extInfoThread

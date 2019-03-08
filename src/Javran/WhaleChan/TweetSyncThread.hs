@@ -30,6 +30,7 @@ import Javran.WhaleChan.Types
 import Javran.WhaleChan.Util
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.Twitter
+import Javran.WhaleChan.HealthThread (heartbeat)
 
 import qualified Javran.WhaleChan.Log as Log
 
@@ -111,6 +112,7 @@ tweetSyncThread wenv = do
     let tweetSyncStep :: TweetSyncM (TweetSyncM ()) -> TweetSyncM ()
         tweetSyncStep markStart = do
             markEnd <- markStart
+            heartbeat "TweetSync"
             mQueue <- liftIO $ swapMVar tcTwitter Seq.empty
             let info = Log.i' loggerIO "TweetSync"
             callTwApi "TweetSync" req $ \statusList -> do
