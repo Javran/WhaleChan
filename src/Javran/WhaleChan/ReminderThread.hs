@@ -362,10 +362,15 @@ updateMER :: forall m. MonadWriter MessageRep m
 updateMER curTime curERPair mInfo = do
     let (lCurER, rCurER) = curERPair
         (lInfo, rInfo) = mInfo
-    -- TODO: only print maintenance end when the time is after start
     (lNewER,rNewERPre) <- (,) <$> doUpdate lCurER lInfo
-                           <*> doUpdate rCurER rInfo
-    let rNewER = rNewERPre -- TODO: end time removal
+                              <*> doUpdate rCurER rInfo
+    -- TODO: do we want to print the end time when maintanenace just started?
+    let rNewER = case rNewERPre of
+          Just (EventReminder er erds, xs) |
+            Just (EventReminder erStart _, _) <- lNewER
+            , erds' <- dropWhile (< erStart) erds
+            -> Just (EventReminder er erds', xs)
+          _ -> rNewERPre
     (,) <$> stepMER curTime "Maintenance Start" lNewER
         <*> stepMER curTime "Maintenance End" rNewER
   where
