@@ -363,8 +363,11 @@ updateMER curTime curERPair mInfo = do
     let (lCurER, rCurER) = curERPair
         (lInfo, rInfo) = mInfo
     -- TODO: only print maintenance end when the time is after start
-    (,) <$> (doUpdate lCurER lInfo >>= stepMER curTime "Maintenance Start")
-        <*> (doUpdate rCurER rInfo >>= stepMER curTime "Maintenance End")
+    (lNewER,rNewERPre) <- (,) <$> doUpdate lCurER lInfo
+                           <*> doUpdate rCurER rInfo
+    let rNewER = rNewERPre -- TODO: end time removal
+    (,) <$> stepMER curTime "Maintenance Start" lNewER
+        <*> stepMER curTime "Maintenance End" rNewER
   where
     doUpdate :: Maybe (EventReminder, [String])
              -> Maybe (UTCTime, [String])
