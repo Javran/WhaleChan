@@ -364,11 +364,23 @@ updateMER curTime curERPair mInfo = do
         (lInfo, rInfo) = mInfo
     (lNewER,rNewERPre) <- (,) <$> doUpdate lCurER lInfo
                               <*> doUpdate rCurER rInfo
-    -- TODO: do we want to print the end time when maintanenace just started?
     let rNewER = case rNewERPre of
           Just (EventReminder er erds, xs) |
             Just (EventReminder erStart _, _) <- lNewER
-            , erds' <- dropWhile (< erStart) erds
+            {-
+              here we want to do few things:
+              - drop all due reminders that come before maintenance start
+                it's just not interesting to know end time before it even gets started
+              - make sure that we are able to announce end time the moment when
+                the maintenance is started.
+              also note that we don't check whether the list is empty for ER
+              as: (1) the list is guaranteed to be non-empty
+                  (2) end time must come after start time, so we won't end up
+                      having an empty list
+             -}
+            , erds' <- (erStart `insertSet`)
+                     . dropWhile (< erStart)
+                     $ erds
             -> Just (EventReminder er erds', xs)
           _ -> rNewERPre
     (,) <$> stepMER curTime "Maintenance Start" lNewER
