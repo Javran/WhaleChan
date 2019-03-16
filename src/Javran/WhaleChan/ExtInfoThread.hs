@@ -50,8 +50,8 @@ fakeSource :: (String, Manager -> IO (PRange UTCTime))
 fakeSource = ("FakeSourceForTesting", getInfo)
   where
     getInfo _ = pure . pure $ (fakeStart, fakeEnd)
-    fakeStart = TFmt.mkUtcInJst 2019 03 08 11 00 00
-    fakeEnd = TFmt.mkUtcInJst 2019 03 08 20 00 00
+    fakeStart = TFmt.mkUtcInJst 2019 03 15 11 00 00
+    fakeEnd = TFmt.mkUtcInJst 2019 03 15 20 00 00
 
 {-
   external sources except KcsConst.
