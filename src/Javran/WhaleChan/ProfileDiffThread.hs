@@ -163,7 +163,7 @@ profileDiffThread wenv@(_, TCommon{tzTokyo}) = do
                                 timeLocale
                                 "%F %R (JST)"
                                 (utcToLocalTime' tzTokyo tLast)
-                      in ( timeContent
+                      in ( " since " <> timeContent
                          , mkTxt stCntPrev stCnt
                          , mkTxt foCntPrev foCnt
                          , mkTxt fodCntPrev fodCnt
