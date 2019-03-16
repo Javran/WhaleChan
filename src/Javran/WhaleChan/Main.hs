@@ -34,7 +34,6 @@ import qualified Javran.WhaleChan.Log as Log
   TODO
 
   [ ] kcs2/version.json could be used to detect server availability?
-  [ ] track daily twitter follower change
 
  -}
 startService :: WConf -> IO ()

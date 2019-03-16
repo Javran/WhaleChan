@@ -48,7 +48,7 @@ import qualified Javran.WhaleChan.Log as Log
     + talk to telegramThread when there's a need of sending messages
 
   - also for each 10 seconds, get account icon & user following count
-    (TODO: this part is not planned in implementation yet)
+    (TODO: this part is done by ProfileDiff, should update the doc)
 
   - the whole process will be:
 

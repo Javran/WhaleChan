@@ -7,31 +7,37 @@
   #-}
 module Javran.WhaleChan.ProfileDiffThread where
 
-import Web.Twitter.Types
-import Data.Time.Clock
-import GHC.Generics
-import Data.Aeson
-import Data.Default
 import Control.Concurrent
-import Control.Monad.RWS
--- import Control.Exception
 import Control.Lens
-import Web.Twitter.Conduit (usersShow)
-import Web.Twitter.Conduit.Parameters
+import Control.Monad.RWS
+import Data.Aeson
+import Data.Char
+import Data.Default
 import qualified Data.Text as T
+import Data.Time.Clock
+import Data.Time.Format
+import Data.Time.LocalTime
+import Data.Time.LocalTime.TimeZone.Series
+import GHC.Generics
 import Network.HTTP.Client
 import qualified Text.ParserCombinators.ReadP as P
-import Data.Char
+import Web.Twitter.Conduit (usersShow)
+import Web.Twitter.Conduit.Parameters
+import Web.Twitter.Types
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.Util
 import Javran.WhaleChan.Twitter
 import Javran.WhaleChan.HealthThread (heartbeat)
+import Javran.WhaleChan.FromSource.TimeFormat (timeLocale)
 
-import qualified Javran.WhaleChan.Log as Log
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Text.Lazy.Builder as TB
+import qualified Data.Text.Lazy as TL
+import qualified Javran.WhaleChan.Log as Log
+
 {-
   (draft)
   This thread detects profile image change
@@ -104,7 +110,7 @@ fetchImg uri = do
   pure (BSL.toStrict <$> z)
 
 profileDiffThread :: WEnv -> IO ()
-profileDiffThread wenv = do
+profileDiffThread wenv@(_, TCommon{tzTokyo}) = do
     let (WConf{twWatchingUserId},TCommon{tcTelegram}) = wenv
         req = usersShow (UserIdParam (fromIntegral twWatchingUserId))
               & includeEntities ?~ False
@@ -113,7 +119,7 @@ profileDiffThread wenv = do
         markEnd <- markStart
         heartbeat "ProfileDiff"
         callTwApi "ProfileDiff" req $ \userInfo -> do
-            let (mNewUrl, _) = extractInfo userInfo
+            let (mNewUrl, pStat) = extractInfo userInfo
             case mNewUrl of
               Nothing ->
                 Log.w tag "url parsing error or account has no img url"
@@ -123,5 +129,62 @@ profileDiffThread wenv = do
                   Log.i tag "new img detected"
                   liftIO $ writeChan tcTelegram (TgRMProfileImg newUrl)
                   modify (\s -> s {lastProfileImage = mNewUrl})
+            -- now see if we can update stat, it's still inside
+            -- the twitter api so we have access to userInfo
+            curTime <- liftIO getCurrentTime
+            let tokyoTime = utcToLocalTime' tzTokyo curTime
+            let LocalTime _ (TimeOfDay hour _ _) = tokyoTime
+            ProfileInfo _ mLastStat <- get
+            let _shouldSendStatDiff =
+                  -- hopefully this happens around noon
+                  hour == 0
+                  && maybe
+                       -- mLast empty
+                       True
+                       (\(tLast,_) ->
+                          -- shortest possible gap is 23 hours
+                          curTime `diffUTCTime` tLast >= fromIntegral oneSec * 3600 * 23)
+                       mLastStat
+                -- TODO: this condition is for test only
+                shouldSendStatDiff =
+                   maybe
+                     -- mLast empty
+                     True
+                     (\(tLast,_) ->
+                          -- shortest possible gap is 23 hours
+                          curTime `diffUTCTime` tLast >= fromIntegral oneSec * 60 * 5)
+                     mLastStat
+            -- TODO note that the condition is always true for testing
+            when shouldSendStatDiff $ do
+              let ProfileStat stCnt foCnt fodCnt = pStat
+              let (mSince, stDiff, foDiff, fodDiff) = case mLastStat of
+                    Nothing -> ("", "", "", "")
+                    Just (tLast, ProfileStat stCntPrev foCntPrev fodCntPrev) ->
+                      let mkTxt before after =
+                            case after `compare` before of
+                              GT -> " (+" <> TB.fromString (show $ after - before) <> ")"
+                              EQ -> " (0)"
+                              LT -> " (-" <> TB.fromString (show $ before - after) <> ")"
+                          timeContent =
+                            TB.fromString $
+                              formatTime
+                                timeLocale
+                                "%F %R (JST)"
+                                (utcToLocalTime' tzTokyo tLast)
+                      in ( timeContent
+                         , mkTxt stCntPrev stCnt
+                         , mkTxt foCntPrev foCnt
+                         , mkTxt fodCntPrev fodCnt
+                         )
+                  contentB :: TB.Builder
+                  contentB = mconcat
+                    [ "\\[Profile] Twitter stats" <> mSince <> ":\n"
+                    , "- Tweets: " <> TB.fromString (show stCnt) <> stDiff <> "\n"
+                    , "- Following: " <> TB.fromString (show foCnt) <> foDiff <> "\n"
+                    , "- Followers: " <> TB.fromString (show fodCnt) <> fodDiff <> "\n"
+                    ]
+              Log.i tag "sending new twitter stats"
+              liftIO $ writeChan tcTelegram (TgRMProfileStat (TL.toStrict . TB.toLazyText $ contentB))
+              modify (\s -> s {lastStat = Just (curTime, pStat)})
         markEnd
         liftIO $ threadDelay $ 2 * oneSec
