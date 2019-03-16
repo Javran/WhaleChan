@@ -134,6 +134,7 @@ data TCommon
   , tcReminder :: MVar MaintenanceInfo -- mvar for reminder thread
   , tcLogger :: Chan WLog
   , tcHealth :: MVar (Seq.Seq Heartbeat)
+  , tzTokyo :: TimeZoneSeries
   }
 
 -- Runtime enviroment share among threads

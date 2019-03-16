@@ -31,7 +31,6 @@ import Data.Ord
 import Data.Proxy
 import Data.Text.Lazy (toStrict)
 import Data.Time.Clock
-import Data.Time.LocalTime.TimeZone.Olson
 import Data.Typeable
 import GHC.Generics
 import Web.Telegram.API.Bot
@@ -257,12 +256,10 @@ reminderThread :: WEnv -> IO ()
 reminderThread wenv = do
     let cv :: forall a. ReminderM' a -> ReminderM a
         cv = coerce -- to avoid the noise introduced by newtype
-        (_, TCommon{tcTelegram, tcReminder}) = wenv
+        (_, TCommon{tcTelegram, tcReminder, tzTokyo}) = wenv
         tag = "Reminder"
     -- ref: https://stackoverflow.com/q/43835656/315302
     -- load tz info before starting the loop
-    _tzPt <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/US/Pacific"
-    tzs <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
     autoWCM @ReminderState tag "reminder.yaml" wenv $ \markStart' -> cv $ do
       let markStart = coerce markStart' :: ReminderM' (ReminderM' ())
       -- note that unlike other threads, this one begins by thread sleep
@@ -313,7 +310,7 @@ reminderThread wenv = do
         execWriterT (forM reminderSupplies (\e@(ERS tp) -> do
             let tyRep = typeRep tp
                 -- always compute new supply (lazily)
-                newSupply = renewSupply tp tzs curTime
+                newSupply = renewSupply tp tzTokyo curTime
                 cmp = comparing eventOccurTime
                 rmOutdated xs =
                   case dropWhile isOutdatedEventReminder xs of

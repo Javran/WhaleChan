@@ -10,15 +10,15 @@ module Javran.WhaleChan.Main
   ( main
   ) where
 
+import Control.Concurrent
 import Control.Concurrent.Async
-import Control.Concurrent.Chan
+import Data.Time.Clock
+import Data.Time.LocalTime.TimeZone.Olson
 import Network.HTTP.Client (newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import System.Directory
 import System.Environment
 import System.Exit
-import Control.Concurrent
-import Data.Time.Clock
 
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.TelegramThread (telegramThread)
@@ -33,8 +33,6 @@ import qualified Javran.WhaleChan.Log as Log
 {-
   TODO
 
-  [ ] dev twitter icon change detection
-  [ ] maintenance time reminder
   [ ] kcs2/version.json could be used to detect server availability?
   [ ] track daily twitter follower change
 
@@ -48,6 +46,7 @@ startService wconf = do
   tcReminder <- newMVar (Nothing, Nothing)
   tcHealth <- mkTcHealth
   aLog <- async (startLogger tcLogger)
+  tzTokyo <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
   let wenv = (wconf,TCommon {..})
       workers =
           [ healthThread
