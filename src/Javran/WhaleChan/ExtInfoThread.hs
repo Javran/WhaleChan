@@ -115,8 +115,7 @@ extInfoThread wenv = do
                   Nothing -> pure ()
             markEnd :: EIM ()
             ExtInfo mtNew _ <- get
-            -- TODO: now it always computes
-            when (mtNew /= mtOld || True) $ liftIO $ do
+            when (mtNew /= mtOld) $ liftIO $ do
                 t <- getCurrentTime
                 _ <- swapMVar tRmdr (summarize t mtNew)
                 pure ()
