@@ -99,6 +99,7 @@ data TgRxMsg
   | TgRMTweetCreate Integer T.Text -- sent from TweetSyncThread
   | TgRMTweetDestroy Integer Int -- sent from TweetSyncThread
   | TgRMProfileImg T.Text -- sent from ProfileDiff
+  | TgRMProfileStat T.Text -- sent from ProfileDiff
   deriving (Show)
 
 data TwRxMsg

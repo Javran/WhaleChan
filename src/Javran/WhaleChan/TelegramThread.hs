@@ -51,6 +51,10 @@ describeMessage = \case
       "MsgProfileImg"
       <> "{ content=" <> shortContent content
       <> "}"
+    TgRMProfileStat content ->
+      "MsgProfileStat"
+      <> "{ content=" <> shortContent content
+      <> "}"
   where
     ps = T.pack . show
     shortContent s =
@@ -118,3 +122,9 @@ telegramThread wenv@(wconf, tcomm) =
                    Left err -> logErr $ displayException err
                  -- for now loading always fails. use url instead
                  -- until we can figure out how to do this properly
+            TgRMProfileStat content -> do
+                 let req = (sendMessageRequest chatId content)
+                           {message_parse_mode = Just Markdown}
+                 sendMessage tok req tcManager >>= \case
+                   Right _ -> pure ()
+                   Left err -> logErr $ displayException err
