@@ -136,16 +136,26 @@ profileDiffThread wenv@(_, TCommon{tzTokyo}) = do
             let LocalTime _ (TimeOfDay hour _ _) = tokyoTime
             ProfileInfo _ mLastStat <- get
             let shouldSendStatDiff =
-                  -- hopefully this happens around JST midnight
-                  -- TODO: always true for testing
-                  (hour == 0 || True)
+                  {-
+                     we give it one hour window of opportunity
+                     during every midnight hour in JST,
+                     this means:
+                     - even if network doesn't work for a while,
+                       we'll still be posting it, just a bit delayed
+                     - if for whatever reason this opportunity is missed,
+                       we'll still post the next day, one day of difference is fine.
+                   -}
+                  hour == 0
                   && maybe
                        -- mLast empty
                        True
                        (\(tLast,_) ->
-                          -- shortest possible gap is 23 hours
-                          -- TODO: now it's 1 hour just for the purpose of testing
-                          curTime `diffUTCTime` tLast >= 3600)
+                          {-
+                            1 hour < gap <= 23 hours,
+                            anything in between is fine,
+                            as it only happens during a specific hour
+                           -}
+                          curTime `diffUTCTime` tLast >= 3600 * 2)
                        mLastStat
             when shouldSendStatDiff $ do
               let ProfileStat stCnt foCnt fodCnt = pStat
