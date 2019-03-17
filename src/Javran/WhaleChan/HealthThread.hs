@@ -1,7 +1,11 @@
 {-# LANGUAGE
     LambdaCase
   #-}
-module Javran.WhaleChan.HealthThread where
+module Javran.WhaleChan.HealthThread
+  ( healthThread
+  , mkTcHealth
+  , heartbeat
+  ) where
 
 import Control.Concurrent
 import Control.Monad
@@ -9,14 +13,13 @@ import Control.Monad.State
 import Control.Monad.RWS
 import Data.Time.Clock
 
+import qualified Data.Map.Strict as M
 import qualified Data.Sequence as Seq
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Util
 import Javran.WhaleChan.Base
-
 import qualified Javran.WhaleChan.Log as Log
-import qualified Data.Map.Strict as M
 
 mkTcHealth :: IO (MVar (Seq.Seq Heartbeat))
 mkTcHealth = newMVar Seq.empty
@@ -39,15 +42,18 @@ healthThread wenv@(_, TCommon{tcHealth=chan}) =
     loop :: StateT (M.Map String UTCTime) IO ()
     loop = do
         msgQueue <- liftIO $ swapMVar chan Seq.empty
-        forM_ msgQueue $ \(Heartbeat who t) ->
+        t <- liftIO getCurrentTime
+        forM_ msgQueue $ \(Heartbeat who tMsg) ->
           gets (M.lookup who) >>= \case
             Nothing -> do
               info $
                 "Heard from " <> who <> " for the first time (t="
-                <> show t <> ")"
-              modify (M.insert who t)
-            Just _ -> modify (M.insert who t)
-        t <- liftIO getCurrentTime
+                <> show tMsg <> ")"
+              modify (M.insert who tMsg)
+            Just _ -> do
+              when ((t `diffUTCTime` tMsg) >= 30) $
+                info $ who <> " is back online (t=" <> show tMsg <> ")"
+              modify (M.insert who tMsg)
         records <- gets M.toAscList
         forM_ records $ \(who, lastTime) ->
           when (t `diffUTCTime` lastTime > 30) $
