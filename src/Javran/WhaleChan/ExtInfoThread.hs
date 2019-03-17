@@ -4,22 +4,23 @@
   , FlexibleContexts
   , LambdaCase
   #-}
-module Javran.WhaleChan.ExtInfoThread where
+module Javran.WhaleChan.ExtInfoThread
+  ( extInfoThread
+  ) where
 
-import Data.Time.Clock
-
-import qualified Data.Map.Strict as M
-import qualified Data.IntMap.Strict as IM
-
-import Data.Aeson
-import GHC.Generics
-import Network.HTTP.Client
-import Data.Default
+import Control.Arrow
 import Control.Concurrent
 import Control.Exception
 import Control.Monad.RWS
-import Control.Arrow
+import Data.Aeson
+import Data.Default
 import Data.List
+import Data.Time.Clock
+import GHC.Generics
+import Network.HTTP.Client
+
+import qualified Data.Map.Strict as M
+import qualified Data.IntMap.Strict as IM
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
@@ -70,14 +71,6 @@ sources =
     ]
 
 type EIM = WCM ExtInfo
-
-pprState :: EIM ()
-pprState = do
-    let logInfo = Log.i "ExtInfo"
-    ExtInfo mt si <- get
-    forM_ ("KcsConst" : fmap fst sources) $ \srcName ->
-      logInfo $ srcName <> ":\t" <> show (M.lookup srcName mt)
-    logInfo $ "serverinfo: " <> show si
 
 extInfoThread :: WEnv -> IO ()
 extInfoThread wenv = do

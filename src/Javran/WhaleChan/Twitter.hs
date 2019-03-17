@@ -6,18 +6,19 @@
   , TypeApplications
   , FlexibleContexts
   #-}
-module Javran.WhaleChan.Twitter where
+module Javran.WhaleChan.Twitter
+  ( callTwApi
+  ) where
 
-import Control.Monad.RWS
 import Control.Exception
+import Control.Monad.RWS
 import Data.Aeson
+import Network.HTTP.Client
 import Web.Twitter.Conduit hiding (count)
 
 import qualified Data.ByteString.Char8 as BSC
 
-import Network.HTTP.Client
 import Javran.WhaleChan.Types
-
 import qualified Javran.WhaleChan.Log as Log
 
 {-

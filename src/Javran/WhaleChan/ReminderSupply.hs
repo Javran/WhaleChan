@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeApplications, DataKinds #-}
 module Javran.WhaleChan.ReminderSupply
-  where
+  ( ReminderSupplier(..)
+  ) where
 
 import Data.Time.Clock
 import Data.Time.LocalTime
