@@ -5,7 +5,10 @@
   , RecordWildCards
   , OverloadedStrings
   #-}
-module Javran.WhaleChan.ProfileDiffThread where
+module Javran.WhaleChan.ProfileDiffThread
+  ( profileDiffThread
+  , fetchImg
+  ) where
 
 import Control.Concurrent
 import Control.Lens
@@ -13,17 +16,23 @@ import Control.Monad.RWS
 import Data.Aeson
 import Data.Char
 import Data.Default
-import qualified Data.Text as T
 import Data.Time.Clock
 import Data.Time.Format
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Series
 import GHC.Generics
 import Network.HTTP.Client
-import qualified Text.ParserCombinators.ReadP as P
 import Web.Twitter.Conduit (usersShow)
 import Web.Twitter.Conduit.Parameters
 import Web.Twitter.Types
+
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Builder as TB
+import qualified Javran.WhaleChan.Log as Log
+import qualified Text.ParserCombinators.ReadP as P
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
@@ -32,11 +41,6 @@ import Javran.WhaleChan.Twitter
 import Javran.WhaleChan.HealthThread (heartbeat)
 import Javran.WhaleChan.FromSource.TimeFormat (timeLocale)
 
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.Text.Lazy.Builder as TB
-import qualified Data.Text.Lazy as TL
-import qualified Javran.WhaleChan.Log as Log
 
 {-
   (draft)
@@ -69,8 +73,6 @@ data ProfileInfo
 instance Default ProfileInfo
 instance FromJSON ProfileInfo
 instance ToJSON ProfileInfo
-
-type M = WCM ProfileInfo
 
 {-
   ref: https://developer.twitter.com/en/docs/accounts-and-users/user-profile-images-and-banners
