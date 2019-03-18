@@ -46,6 +46,11 @@ import Javran.WhaleChan.Util
 import qualified Javran.WhaleChan.Log as Log
 
 {-
+  TODO this module is admittedly messy
+  and some logic & impl can actually be merged or simplified.
+ -}
+
+{-
   ReminderThread design:
 
   - concepts:

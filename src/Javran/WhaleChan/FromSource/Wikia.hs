@@ -18,8 +18,8 @@ import qualified Data.Text as T
 import Javran.WhaleChan.FromSource.Util
 import Javran.WhaleChan.FromSource.TimeFormat
 
-parseMaintenanceTime :: BSL.ByteString -> ((Maybe T.Text, Maybe T.Text), [String])
-parseMaintenanceTime =
+parseTime :: BSL.ByteString -> ((Maybe T.Text, Maybe T.Text), [String])
+parseTime =
     second (`appEndo` [])
     . collectResult
     . ($// searchAndExtractCountdownStrs)
@@ -56,5 +56,5 @@ getInfo :: Manager -> IO (PRange UTCTime)
 getInfo mgr = do
     raw <- fetchUrl mgr "https://kancolle.fandom.com/wiki/Recent_Updates?action=render"
     -- TODO: error message
-    let ((lRaw, rRaw), _) = parseMaintenanceTime raw
+    let ((lRaw, rRaw), _) = parseTime raw
     pure (toPRange (lRaw >>= parse) (rRaw >>= parse))

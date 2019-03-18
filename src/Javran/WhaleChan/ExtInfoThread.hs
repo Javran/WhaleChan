@@ -80,7 +80,6 @@ extInfoThread wenv = do
             Left e -> logErr $ "Error on source: '" <> srcName <> "', " <> displayException e
             Right v -> procResult v
         extInfoStep markStart = do
-            -- pprState
             markEnd <- markStart
             ExtInfo mtOld _ <- get
             -- scan through sources except kcsconst
@@ -108,6 +107,9 @@ extInfoThread wenv = do
                   Nothing -> pure ()
             markEnd :: EIM ()
             ExtInfo mtNew _ <- get
+            {-
+              when the info changes, send message to other threads interested in it.
+             -}
             when (mtNew /= mtOld) $ liftIO $ do
                 t <- getCurrentTime
                 _ <- swapMVar tRmdr (summarize t mtNew)
@@ -115,6 +117,11 @@ extInfoThread wenv = do
             liftIO $ threadDelay $ oneSec * 60
     autoWCM @ExtInfo "ExtInfo" "ext-info.yaml" wenv extInfoStep
 
+{-
+  given the current time, and a bunch of start & end time together
+  with name of the source attached,
+  compute the MaintenanceInfo that we agree on.
+ -}
 summarize :: UTCTime -> M.Map String (UTCTime, UTCTime) -> MaintenanceInfo
 summarize curTime d =
   if null ps
@@ -127,6 +134,10 @@ summarize curTime d =
     getMinWithSrc xs = second sort <$> M.lookupMin timeGrps
       where
         timeGrps = M.fromListWith (++) . fmap (\(src,v) -> (v,[src])) $ xs
+    {-
+      remove old maintenance info by removing those whose end time
+      is in the past
+     -}
     ps =
       -- curtime + 10 seconds <= vEnd
       filter (\(_, (_, vEnd)) -> 10 `addUTCTime` curTime <= vEnd)
