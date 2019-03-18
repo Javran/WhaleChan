@@ -19,6 +19,7 @@ import Web.Twitter.Conduit hiding (count)
 import qualified Data.ByteString.Char8 as BSC
 
 import Javran.WhaleChan.Types
+import Javran.WhaleChan.Util
 import qualified Javran.WhaleChan.Log as Log
 
 {-
@@ -76,6 +77,10 @@ callTwApi tag req handleResp = do
          -}
         [ Handler $ \(e :: HttpException) -> (pure . Left . toException) e
         , Handler $ \(e :: TwitterError) -> (pure . Left . toException) e
+        , Handler $ \(e :: IOException) ->
+            if isConnectionResetException e
+              then (pure . Left . toException) e
+              else throw e
         ]
     case respM of
       Left e ->

@@ -8,12 +8,14 @@ module Javran.WhaleChan.Util
   , isYamlFileNotFoundException
   , eitherToMaybe
   , guardHttpException
+  , isConnectionResetException
   ) where
 
+import Control.Exception
 import Data.List (isPrefixOf)
 import qualified Data.Yaml as Yaml
+import GHC.IO.Exception
 import Network.HTTP.Client
-import Control.Exception
 
 {-
   place for some commonly used functions.
@@ -55,3 +57,11 @@ eitherToMaybe (Right v) = Just v
 guardHttpException :: IO a -> IO (Either HttpException a)
 guardHttpException action =
   (Right <$> action) `catch` (pure . Left)
+
+isConnectionResetException :: IOException -> Bool
+isConnectionResetException ioe
+  | IOError
+    { ioe_type = ResourceVanished
+    , ioe_description = "Connection reset by peer"
+    } <- ioe = True
+  | otherwise = False
