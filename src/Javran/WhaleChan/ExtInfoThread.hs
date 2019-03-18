@@ -6,6 +6,7 @@
   #-}
 module Javran.WhaleChan.ExtInfoThread
   ( extInfoThread
+  , fakeSource
   ) where
 
 import Control.Arrow
@@ -35,6 +36,8 @@ import qualified Javran.WhaleChan.FromSource.TimeFormat as TFmt
 
 {-
   thread for getting info from external sources
+
+  the info being held is described by type ExtInfo
  -}
 
 data ExtInfo
@@ -65,9 +68,6 @@ sources =
     [ ("Kc3Kai", Kc3Kai.getInfo)
     , ("Wikia", Wikia.getInfo)
     , ("Kcwiki", Kcwiki.getInfo)
-    -- TODO: this source is for testing only,
-    -- remember to remove it when done
-    , fakeSource
     ]
 
 type EIM = WCM ExtInfo
@@ -112,17 +112,6 @@ extInfoThread wenv = do
                 t <- getCurrentTime
                 _ <- swapMVar tRmdr (summarize t mtNew)
                 pure ()
-            {-
-              TODO: when difference is detected, we want to send to reminderThread some info
-              TODO: should we ignore time in the past?
-
-              (draft) for reminder thread:
-              - it should maintain EventReminder that contains some extra info
-                about which sources are agreeing on that time.
-              - event occur time change (only the closest future time) triggers
-                an new reminder while new agreement is updated silently
-                (it'll nonetheless show up in future when reminder needs to trigger)
-             -}
             liftIO $ threadDelay $ oneSec * 60
     autoWCM @ExtInfo "ExtInfo" "ext-info.yaml" wenv extInfoStep
 
