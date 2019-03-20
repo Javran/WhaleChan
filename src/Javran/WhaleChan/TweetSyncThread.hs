@@ -35,28 +35,16 @@ import Javran.WhaleChan.HealthThread (heartbeat)
 import qualified Javran.WhaleChan.Log as Log
 
 {-
-  design draft:
 
-  - note that rate limit applies on a per-user per-application basis
-    which means we have 900 calls for a 15 min window in total
+  - note that rate limit applies on a per-user, per-application, per-api basis
+    which means we have 900 calls for a 15 min window in total for just the
+    purpose of syncing tweets, which is plenty.
 
-  - for each 10 seconds, retrieve without since_id and with count=200
+  - for each 3 seconds, retrieve without since_id and with count=200
 
-    + we'll be using 6 per min * 15 = 90 calls, way below the limit for a decent response time.
     + the intention of not using since_id is to retrieve tweet ids
       of the past so that deletion can be detected
     + talk to telegramThread when there's a need of sending messages
-
-  - also for each 10 seconds, get account icon & user following count
-    (TODO: this part is done by ProfileDiff, should update the doc)
-
-  - the whole process will be:
-
-    + get tweets and notify about changes (if any)
-    + sleep for 5 seconds
-    + get account icon & other info, notify about changes (if any)
-    + sleep for 5 seconds
-    + <loop>
 
   data structure:
 
