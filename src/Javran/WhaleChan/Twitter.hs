@@ -31,15 +31,13 @@ import qualified Javran.WhaleChan.Log as Log
 
   - we plan to call twitter api:
 
-    + every 5 seconds for profile info
+    + every 2 seconds for profile info
     + every 3 seconds for tweet update
 
-  - this means every minute should have at most 32 calls
+  - this means every minute should have at most 30 calls (for each API)
 
   - standard rate limit for our purpose is 900 calls in a 15 minute window,
-    so at any moment in time, expect # of remaining calls to be >= 420 (420/900=46.67%)
-
-  - TODO turns out rate limit are applied on a per-api basis, we can have a better interval.
+    so at any moment in time, expect # of remaining calls to be >= 450 (450/900=50%)
 
   - we'll send a warning when:
 
