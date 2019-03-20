@@ -101,7 +101,14 @@ callTwApi tag req handleResp = do
               Log.w tag "rate limit availability < 20%"
             when (rRem < 400) $
               Log.w tag "remaining # of calls < 400"
-          _ -> do
-            Log.w tag "rate limit header not available"
-            Log.w tag $ "the request was: " <> show req
+          _ ->
+            {-
+              from https://developer.twitter.com/en/docs/basics/rate-limiting:
+                "... there may be times when the rate limit values that
+                 are returned are inconsistent, or cases where no headers
+                 are returned at all."
+              so we consider the case where rate limit header is missing normal,
+              and just log it as info.
+             -}
+            Log.i tag "rate limit header not available"
         handleResp responseBody

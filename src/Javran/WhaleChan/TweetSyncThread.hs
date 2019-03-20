@@ -53,30 +53,19 @@ import qualified Javran.WhaleChan.Log as Log
   - all detected tweet or deleted tweet will be sent to telegram thread exactly once,
     we'll notify about failure in log (and will never retry for simplicity)
 
-  - the sequence will have a lower bound and upper bound of length limit,
-    when upon hitting the upper bound, old items are removed from front until
-    reaching lower bound. or in other words, we don't want to keep track of too many messages
-    and neither do we want to do cleanup too often.
-
-  - initial limit might be just lower bound = 5, upper bound = 10 to see if it works correctly.
-  - tentative limit: lower bound = 512, upper bound = 1024 after correctness can be confirmed.
-
-  starting monitoring:
-
-  - we'll need to start monitoring, but we don't want to
-    flood the channel instantly with all messages we got from twitter,
-    in order to do that, we'll set a minimum number of tweet id,
-    and anything we get lower than that, we'll ignore.
  -}
 
 createTwMVar :: IO TwMVar
 createTwMVar = newMVar Seq.empty
 
--- https://ghc.haskell.org/trac/ghc/ticket/14810 always takeX then putX ?
+{-
+  it seems that as long as we always do "takeX-then-putX",
+  we should be deadlock-free.
+
+  ref: https://ghc.haskell.org/trac/ghc/ticket/14810 always takeX then putX
+ -}
 putTwMsg :: TwMVar -> TwRxMsg -> IO ()
 putTwMsg mv m =
-  -- only atomic when there's no other producer
-  -- in this case only tg thread talks to tw thread
   modifyMVar_ mv (pure . (Seq.|> m))
 
 tweetSyncThread :: WEnv -> IO ()
@@ -84,15 +73,24 @@ tweetSyncThread wenv = do
     t <- getCurrentTime
     {-
       it is intentional that
-      "twIgnoreOlderThan"  is ignored for the creation / deletion detection,
+      "twIgnoreOlderThan" is ignored for the creation / deletion detection,
       as we really need some "old" data so that the comparing process
       know how to align update list with current state in order to
       detect deletion.
      -}
     let (WConf{twIgnoreOlderThan, twWatchingUserId}, TCommon{..}) = wenv
+        {-
+          TODO: note that in the following request,
+          we intentionally includes entities, which would be useful
+          if in future we want to format tweets with markdown.
+          (in order to make embeded links / images work better)
+         -}
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
                 & count ?~ 200
                 & tweetMode ?~ "extended"
+        -- we ignore all messages older than a specific duration right
+        -- after the thread is started, by doing so, we make sure not to flood
+        -- the channel with old tweets (even if they are not yet sync-ed)
         startTime = addUTCTime (-fromIntegral twIgnoreOlderThan) t
         loggerIO = wenvToLoggerIO wenv
     Log.i' loggerIO "TweetSync" $
