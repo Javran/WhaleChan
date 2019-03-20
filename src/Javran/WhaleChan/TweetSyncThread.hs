@@ -93,15 +93,23 @@ tweetSyncThread wenv = do
         -- the channel with old tweets (even if they are not yet sync-ed)
         startTime = addUTCTime (-fromIntegral twIgnoreOlderThan) t
         loggerIO = wenvToLoggerIO wenv
-    Log.i' loggerIO "TweetSync" $
+        tag = "TweetSync"
+    Log.i' loggerIO tag $
       "Will ignore tweets created before " <> show startTime
     let tweetSyncStep :: TweetSyncM (TweetSyncM ()) -> TweetSyncM ()
         tweetSyncStep markStart = do
             markEnd <- markStart
-            heartbeat "TweetSync"
+            heartbeat tag
             mQueue <- liftIO $ swapMVar tcTwitter Seq.empty
-            let info = Log.i' loggerIO "TweetSync"
-            callTwApi "TweetSync" req $ \statusList -> do
+            let info = Log.i' loggerIO tag
+            callTwApi tag req $ \statusList -> do
+                {-
+                  handle received messages.
+
+                  for now only TelegramThread sends message to this thread
+                  in order to establish pairs between tweet status id and
+                  telegram message id.
+                 -}
                 let performUpdate :: TwRxMsg -> TweetTracks -> TweetTracks
                     performUpdate (TwRMTgSent tgMsgId twStId) =
                       M.adjust
@@ -110,15 +118,12 @@ tweetSyncThread wenv = do
                             TSRemoving v -> TSRemoved v tgMsgId
                             x -> x)
                         twStId
-                -- handle received messages
                 modify (appDEndo (foldMap (mkDEndo . performUpdate) mQueue))
-                -- TODO: should have better API to handle gets then modify (const _)
-                ((tCreated, tDeleted), nextState) <- gets (`updateTweetStates` statusList)
-                modify (const nextState)
-                when (length tCreated + length tDeleted > 0) $
-                  Log.i "TweetSync" $
-                    "created: " <> show (length tCreated)
-                    <> ", deleted: " <> show (length tDeleted)
+                {-
+                  after incoming message is handled, we now look at result
+                  of api call `statusList`, and recognize created and deleted tweets.
+                 -}
+                (tCreated, tDeleted) <- state (`updateTweetStates` statusList)
 
                 liftIO $ do
                   unless (null tCreated) $ do
@@ -133,11 +138,11 @@ tweetSyncThread wenv = do
                       -- TODO: set TSTimedOut
                       if statusCreatedAt st > startTime
                         then do
-                          Log.i' loggerIO "TweetSync" $
+                          Log.i' loggerIO tag $
                             "push status " <> show (statusId st) <> " to tg"
                           writeChan tcTelegram (TgRMTweetCreate (statusId st) content)
                         else
-                          Log.i' loggerIO "TweetSync" $
+                          Log.i' loggerIO tag $
                             "status " <> show (statusId st) <> " ignored (outdated)"
                   unless (null tDeleted) $ do
                     info $ "deleted tweets: " <>
@@ -148,7 +153,7 @@ tweetSyncThread wenv = do
                       _ -> pure ()
             markEnd
             liftIO $ threadDelay $ 3 * oneSec
-    autoWCM "TweetSync" "tweet-sync.yaml" wenv tweetSyncStep
+    autoWCM tag "tweet-sync.yaml" wenv tweetSyncStep
 {-
   it might be tempting to use the streaming api, but setting it up is a mess, so, no.
 
@@ -168,9 +173,10 @@ tweetSyncThread wenv = do
 
  -}
 
-updateTweetStates :: TweetTracks
-                  -> [Status]
-                  -> (([Status] {- added -}, [(Status, Maybe Int)] {- removed -}), TweetTracks)
+updateTweetStates
+  :: TweetTracks
+  -> [Status]
+  -> (([Status] {- added -}, [(Status, Maybe Int)] {- removed -}), TweetTracks)
 updateTweetStates tt upd
   | null upd =
       -- status list empty, should not happen anyway
