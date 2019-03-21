@@ -267,6 +267,8 @@ reminderThread wenv = do
     -- load tz info before starting the loop
     autoWCM @ReminderState tag "reminder.yaml" wenv $ \markStart' -> cv $ do
       let markStart = coerce markStart' :: ReminderM' (ReminderM' ())
+          info = Log.i tag
+          warn = Log.w tag
       -- note that unlike other threads, this one begins by thread sleep
       -- the idea is to start working immediately after wake up
       -- so we get the most accurate timestamp to work with
@@ -290,17 +292,18 @@ reminderThread wenv = do
       let (newMer, mMsgRep) = runWriter (updateMER curTime mer mInfo)
       modify (second (const newMer))
       when (mer /= newMer) $ do
-        Log.i tag "MER updated:"
-        Log.i tag $ "old: " <> show mer
-        Log.i tag $ "new: " <> show newMer
-        Log.i tag $ "minfo: " <> show mInfo
+        info "MER updated:"
+        info $ "old: " <> show mer
+        info $ "new: " <> show newMer
+        info $ "minfo: " <> show mInfo
         let (lMer, rMer) = newMer
             check Nothing = pure ()
             check (Just (er,_)) = case checkEventReminder er of
               Nothing -> Log.i tag "er checking ok."
               Just errMsg -> do
-                  Log.w tag $ "er checking failed: " <> errMsg
-                  Log.w tag $ "the er is: " <> show er
+                  warn $ "er checking failed: " <> errMsg
+                  warn $ "the er is: " <> show er
+        -- TODO: don't check it at run time, check it as test
         check lMer
         check rMer
       let collectResults :: Endo [(EReminderSupply, UTCTime)] -> [(EReminderSupply, [UTCTime])]
