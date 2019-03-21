@@ -44,10 +44,12 @@ renewSupplyByFunc :: (LocalTime -> LocalTime) -> TimeZoneSeries -> UTCTime -> Ev
 renewSupplyByFunc getNextTime tzs ut =
     createEventReminderWithDueList eventTime [24*60, 30, 10, 5]
   where
-    toLocal = utcToLocalTime' tzs
-    fromLocal = localTimeToUTC' tzs
     eventTime :: UTCTime
-    eventTime = fromLocal . getNextTime . toLocal $ ut
+    eventTime =
+      localTimeToUTC' tzs
+      . getNextTime
+      . utcToLocalTime' tzs
+      $ ut
 
 instance ReminderSupply 'PracticeReset where
     renewSupply _ = renewSupplyByFunc nextPracticeReset

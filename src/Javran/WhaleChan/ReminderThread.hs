@@ -446,6 +446,7 @@ updateMER curTime curERPair mInfo = do
                       (tail $ iterate (addUTCTime (fInt $ -1 * dayInSecs)) eventTime))
                   <> (mkTime <$> [6*60, 2*60, 60, 30, 10, 5, 0])
                 dueTimes = preCurTime `insertSet` predefDueTimes
+            -- TODO: use createEventReminderWithDueList
             pure (EventReminder eventTime dueTimes, srcs)
           where
             fInt = fromIntegral @Int
