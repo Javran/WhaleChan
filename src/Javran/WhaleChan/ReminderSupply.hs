@@ -25,6 +25,11 @@ data ReminderSupplier
   | QuestPointDeadline
     deriving (Enum, Eq, Ord, Bounded)
 
+-- | create a EventReminder with supplied eventTime and a list
+--   of due times (in minutes) by which the reminder should be sent out
+--   prior to the event time.
+--   note that in the resulting list, eventTime is always in the list of
+--   dueTimes so you don't have to pass that as argument explicitly.
 createEventReminderWithDueList :: UTCTime -> [Int] -> EventReminder
 createEventReminderWithDueList eventTime dueListPre =
     EventReminder
@@ -37,7 +42,7 @@ createEventReminderWithDueList eventTime dueListPre =
 
 renewSupplyByFunc :: (LocalTime -> LocalTime) -> TimeZoneSeries -> UTCTime -> EventReminder
 renewSupplyByFunc getNextTime tzs ut =
-    createEventReminderWithDueList eventTime [24 * 60, 30, 10, 5]
+    createEventReminderWithDueList eventTime [24*60, 30, 10, 5]
   where
     toLocal = utcToLocalTime' tzs
     fromLocal = localTimeToUTC' tzs
