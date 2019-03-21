@@ -167,6 +167,7 @@ checkEventReminder (EventReminder x xs)
   of beforehand reminds are very unlikely.)
  -}
 type ReminderMap = M.Map TypeRep [EventReminder]
+
 newtype ReminderDict
   = RD {getRD :: ReminderMap }
   deriving (Eq, Generic)
@@ -203,11 +204,6 @@ type MessageRep =
          )
        ]
      )
-
-convertResult :: [(EReminderSupply, [UTCTime])] -> MessageRep
-convertResult = fmap (conv *** fmap (,[]))
-  where
-    conv (ERS p) = eventDescription p
 
 renderMessage :: UTCTime -> MessageRep -> Maybe T.Text
 renderMessage curTime xs =
@@ -256,6 +252,11 @@ renderMessage curTime xs =
     pprBlock (eDesc, eTimeSrcs) =
         "- " <> TB.fromString eDesc <> ":\n"
         <> foldMap (\p -> "    + " <> renderTimeSrc p <> "\n") eTimeSrcs
+
+convertResult :: [(EReminderSupply, [UTCTime])] -> MessageRep
+convertResult = fmap (conv *** fmap (,[]))
+  where
+    conv (ERS p) = eventDescription p
 
 reminderThread :: WEnv -> IO ()
 reminderThread wenv = do
