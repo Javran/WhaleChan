@@ -1,16 +1,57 @@
-{-# LANGUAGE TypeApplications, DataKinds #-}
+{-# LANGUAGE
+    TypeApplications
+  , DataKinds
+  , OverloadedStrings
+  , ExplicitForAll
+  , ExistentialQuantification
+  , KindSignatures
+  , PolyKinds
+  , DeriveGeneric
+  , TypeFamilies
+  , DefaultSignatures
+  #-}
 module Javran.WhaleChan.ReminderSupply
   ( ReminderSupplier(..)
   , createEventReminderWithDueList
+  , ReminderSupply
+  , renewSupply
+  , eventDescription
+  , EventReminder(..)
   ) where
 
 import qualified Data.IntSet as IS
 import Data.Time.Clock
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Series
+import Data.Aeson
+import GHC.Generics
+import Data.Typeable
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.ReoccuringEvents
+
+{-
+  EventReminder contains info about the time the event will occur
+  and a sorted list of times that a reminder is due.
+ -}
+data EventReminder = EventReminder
+  { eventOccurTime :: UTCTime
+  , eventReminderDues :: [UTCTime]
+  } deriving (Show, Eq, Generic)
+
+instance FromJSON EventReminder
+instance ToJSON EventReminder
+
+{-
+  a ReminderSupply, when given current time,
+  supplies a sorted list of times for the timer thread
+ -}
+class ReminderSupply (r :: k) where
+    renewSupply :: forall p. p r -> TimeZoneSeries -> UTCTime -> EventReminder
+    eventDescription :: forall p. p r -> String
+
+    default eventDescription :: (Typeable r) => p r -> String
+    eventDescription p = show (typeRep p)
 
 -- TODO: should we switch to use symbols rather than promoted data type?
 data ReminderSupplier

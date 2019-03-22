@@ -8,6 +8,15 @@
   , TupleSections
   , FlexibleContexts
   , MultiWayIf
+  , ExistentialQuantification
+  , OverloadedStrings
+  , ExplicitForAll
+  , ExistentialQuantification
+  , KindSignatures
+  , PolyKinds
+  , DeriveGeneric
+  , TypeFamilies
+  , DefaultSignatures
   #-}
 module Javran.WhaleChan.ReminderThread
  ( reminderThread
@@ -34,6 +43,7 @@ import Data.Time.Clock
 import Data.Typeable
 import GHC.Generics
 import Web.Telegram.API.Bot
+import Data.Proxy
 
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
@@ -48,6 +58,9 @@ import qualified Javran.WhaleChan.Log as Log
 {-
   TODO this module is admittedly messy
   and some logic & impl can actually be merged or simplified.
+
+  TODO some types like EventReminder don't have to be always available
+  and should have a separate module local to ReminderThread
  -}
 
 {-
@@ -109,6 +122,9 @@ import qualified Javran.WhaleChan.Log as Log
     + ReminderThread keeps its own pairs of EventReminder for both start and end time,
       during each loop, it looks at the latest MVar and update itself accordingly
  -}
+
+data EReminderSupply =
+  forall rs. (ReminderSupply rs, Typeable rs) => ERS (Proxy rs)
 
 
 {-

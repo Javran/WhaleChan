@@ -14,10 +14,6 @@ module Javran.WhaleChan.Types
   , TCommon(..)
   , WEnv
   , WCM
-  , renewSupply
-  , eventDescription
-  , EReminderSupply(..)
-  , EventReminder(..)
   , TgRxMsg(..)
   , TwRxMsg(..)
   , PRange
@@ -27,7 +23,6 @@ module Javran.WhaleChan.Types
   , mkDEndo
   , Heartbeat(..)
   , WLog(..)
-  , ReminderSupply
   , MaintenanceInfo
   , TweetTracks
   , TweetSyncM
@@ -90,32 +85,6 @@ instance FromJSON WConf where
             <*> o .: "twitter-ignore-older-than"
             <*> (Tg.Token <$> o .: "telegram-bot-token")
             <*> o .: "telegram-channel-id"
-
-{-
-  EventReminder contains info about the time the event will occur
-  and a sorted list of times that a reminder is due.
- -}
-data EventReminder = EventReminder
-  { eventOccurTime :: UTCTime
-  , eventReminderDues :: [UTCTime]
-  } deriving (Show, Eq, Generic)
-
-instance FromJSON EventReminder
-instance ToJSON EventReminder
-
-{-
-  a ReminderSupply, when given current time,
-  supplies a sorted list of times for the timer thread
- -}
-class ReminderSupply (r :: k) where
-    renewSupply :: forall p. p r -> TimeZoneSeries -> UTCTime -> EventReminder
-    eventDescription :: forall p. p r -> String
-
-    default eventDescription :: (Typeable r) => p r -> String
-    eventDescription p = show (typeRep p)
-
-data EReminderSupply =
-  forall rs. (ReminderSupply rs, Typeable rs) => ERS (Proxy rs)
 
 -- messages received by TelegramThread
 data TgRxMsg
