@@ -81,7 +81,6 @@ extInfoThread wenv = do
             Right v -> procResult v
         extInfoStep markStart = do
             markEnd <- markStart
-            ExtInfo mtOld _ <- get
             -- scan through sources except kcsconst
             forM_ sources $ \(srcName, getInfo) -> do
                 result <- liftIO $ guardHttpException (getInfo mgr)
@@ -108,13 +107,15 @@ extInfoThread wenv = do
             markEnd :: EIM ()
             ExtInfo mtNew _ <- get
             {-
-              when the info changes, send message to other threads interested in it.
+              always send message to interested threads.
+              the idea is to allow recipient's persistent state to be wiped out
+              (e.g. reminder state being removed) without having to wipe out
+              ExtInfo's own persistent state.
              -}
-            when (mtNew /= mtOld) $ liftIO $ do
+            liftIO $ do
                 t <- getCurrentTime
                 _ <- swapMVar tRmdr (summarize t mtNew)
-                pure ()
-            liftIO $ threadDelay $ oneSec * 60
+                threadDelay $ oneSec * 60
     autoWCM @ExtInfo "ExtInfo" "ext-info.yaml" wenv extInfoStep
 
 {-
