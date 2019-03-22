@@ -4,12 +4,20 @@ import Data.Time.Calendar
 import Data.Time.LocalTime
 import Test.Hspec
 
-import Javran.WhaleChan.Types
 import Javran.WhaleChan.ReminderSupply
 
 spec :: Spec
 spec = do
-  let mk year month day hh mm =
+  let {-
+         create time in UTC.
+         for the test we only care that:
+         - due list are arranged in a sorted manner
+         - no duplication in due list
+         - eventTime is indeed present even when not given as input
+         all of which can be captured by giving one example and
+         expect output to be an exact match.
+       -}
+      mk year month day hh mm =
         localTimeToUTC utc $
           LocalTime (fromGregorian year month day) (TimeOfDay hh mm 0)
   describe "createEventReminderWithDueList" $

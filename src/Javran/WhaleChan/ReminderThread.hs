@@ -50,6 +50,13 @@ import qualified Javran.WhaleChan.Log as Log
 
   TODO some types like EventReminder don't have to be always available
   and should have a separate module local to ReminderThread
+
+  TODO reminder thread is complicated enough that
+  it deserves to have a set of sub-modules
+
+  TODO won't hurt to have smart constructor for EventReminders
+  as we have run into several bugs in the past all related to
+  invariant violations.
  -}
 
 {-
