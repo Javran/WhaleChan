@@ -4,8 +4,7 @@ module Javran.WhaleChan.ReminderSupply
   , createEventReminderWithDueList
   ) where
 
-import Data.List
-import qualified Data.List.Ordered as LO
+import qualified Data.IntSet as IS
 import Data.Time.Clock
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Series
@@ -37,7 +36,7 @@ createEventReminderWithDueList eventTime dueListPre =
       (mkTime <$> dueList)
   where
     -- descending list of time without duplicated elements
-    dueList = LO.nub $ sortBy (flip compare) (0 : dueListPre)
+    dueList = IS.toDescList $  IS.fromList (0 : dueListPre)
     mkTime mins = addUTCTime (fromIntegral @Int $ -60 * mins) eventTime
 
 renewSupplyByFunc :: (LocalTime -> LocalTime) -> TimeZoneSeries -> UTCTime -> EventReminder
