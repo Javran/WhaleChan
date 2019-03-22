@@ -1,13 +1,9 @@
 {-# LANGUAGE
     TypeApplications
   , DataKinds
-  , OverloadedStrings
-  , ExplicitForAll
   , ExistentialQuantification
-  , KindSignatures
   , PolyKinds
   , DeriveGeneric
-  , TypeFamilies
   , DefaultSignatures
   #-}
 module Javran.WhaleChan.ReminderSupply
@@ -17,6 +13,7 @@ module Javran.WhaleChan.ReminderSupply
   , renewSupply
   , eventDescription
   , EventReminder(..)
+  , EReminderSupply(..)
   ) where
 
 import qualified Data.IntSet as IS
@@ -27,8 +24,10 @@ import Data.Aeson
 import GHC.Generics
 import Data.Typeable
 
-import Javran.WhaleChan.Types
 import Javran.WhaleChan.ReoccuringEvents
+
+data EReminderSupply =
+  forall rs. (ReminderSupply rs, Typeable rs) => ERS (Proxy rs)
 
 {-
   EventReminder contains info about the time the event will occur

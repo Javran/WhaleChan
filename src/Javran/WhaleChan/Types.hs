@@ -1,13 +1,7 @@
 {-# LANGUAGE
     RecordWildCards
   , OverloadedStrings
-  , ExplicitForAll
-  , ExistentialQuantification
-  , KindSignatures
-  , PolyKinds
   , DeriveGeneric
-  , TypeFamilies
-  , DefaultSignatures
   #-}
 module Javran.WhaleChan.Types
   ( WConf(..)
@@ -37,7 +31,6 @@ import Data.Aeson
 import Data.Int (Int64)
 import Data.Time.Clock
 import Data.Time.LocalTime.TimeZone.Series
-import Data.Typeable
 import GHC.Generics
 import Web.Twitter.Conduit (Manager)
 import Web.Twitter.Types
