@@ -1,4 +1,4 @@
-module Javran.WhaleChan.ReoccuringEventsSpec where
+module Javran.WhaleChan.ReminderThread.ReoccuringEventsSpec where
 
 import Control.Monad
 import Data.Time.Calendar
@@ -6,7 +6,7 @@ import Data.Time.LocalTime
 
 import Test.Hspec
 
-import Javran.WhaleChan.ReoccuringEvents
+import Javran.WhaleChan.ReminderThread.ReoccuringEvents
 
 spec :: Spec
 spec = do

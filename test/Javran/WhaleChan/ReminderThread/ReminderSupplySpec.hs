@@ -1,10 +1,10 @@
-module Javran.WhaleChan.ReminderSupplySpec where
+module Javran.WhaleChan.ReminderThread.ReminderSupplySpec where
 
 import Data.Time.Calendar
 import Data.Time.LocalTime
 import Test.Hspec
 
-import Javran.WhaleChan.ReminderSupply
+import Javran.WhaleChan.ReminderThread.Types
 
 spec :: Spec
 spec = do

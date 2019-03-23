@@ -25,7 +25,7 @@ import Data.Aeson
 import GHC.Generics
 import Data.Typeable
 
-import Javran.WhaleChan.ReoccuringEvents
+import Javran.WhaleChan.ReminderThread.ReoccuringEvents
 
 data EReminderSupply =
   forall rs. (ReminderSupply rs, Typeable rs) => ERS (Proxy rs)

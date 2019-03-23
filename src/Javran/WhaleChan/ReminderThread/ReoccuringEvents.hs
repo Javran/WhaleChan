@@ -2,7 +2,7 @@
     TypeApplications
   , NamedFieldPuns
   #-}
-module Javran.WhaleChan.ReoccuringEvents
+module Javran.WhaleChan.ReminderThread.ReoccuringEvents
   ( nextPracticeReset
   , nextDailyQuestReset
   , nextWeeklyQuestReset

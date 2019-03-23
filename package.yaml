@@ -49,8 +49,8 @@ library:
     - Javran.WhaleChan.Base
     - Javran.WhaleChan.Util
     - Javran.WhaleChan.Log
-    - Javran.WhaleChan.ReoccuringEvents
-    - Javran.WhaleChan.ReminderSupply
+    - Javran.WhaleChan.ReminderThread.ReminderSupply
+    - Javran.WhaleChan.ReminderThread.ReoccuringEvents
     - Javran.WhaleChan.ReminderThread.Types
     - Javran.WhaleChan.ReminderThread
     - Javran.WhaleChan.TelegramThread
