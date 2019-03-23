@@ -40,7 +40,7 @@ import qualified Data.Text.Lazy.Builder as TB
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
-import Javran.WhaleChan.ReminderSupply
+import Javran.WhaleChan.ReminderThread.Types
 import Javran.WhaleChan.Util
 import qualified Javran.WhaleChan.Log as Log
 
