@@ -16,12 +16,13 @@ module Javran.WhaleChan.Base
   , protectedAction
   ) where
 
+import Control.Concurrent
+import Control.Exception
 import Control.Monad
 import Control.Monad.Logger
-import Control.Exception
 import Control.Monad.RWS
 import Data.Default
-import Control.Concurrent
+import Data.Yaml.Internal
 
 import Javran.WhaleChan.Types
 import qualified Javran.WhaleChan.Log as Log
@@ -89,13 +90,26 @@ autoWCM ::
 autoWCM mName stateFp wenv step =
     protectedAction loggerIO mName 16 $
         Yaml.decodeFileEither @s stateFp >>= \case
+            Left e | isYamlFileNotFoundException e -> do
+                Log.i' loggerIO mName "state file not found, using default state."
+                run def
+            Left (OtherParseException e1)
+                {-
+                  turns out yaml parsing captures all exceptions and
+                  wrap them in the exception, so we need to look inside
+                  to see whether it's because the thread was killed.
+                  if it is indeed the case, the correct action is not to proceed
+                  but to re-throw the exception so that we can re-start again.
+                 -}
+              | Just e2@ThreadKilled <- asyncExceptionFromException e1 -> do
+                logErr "The thread was being killed, try re-throwing"
+                liftIO $ throw e2
             Left e -> do
-                unless (isYamlFileNotFoundException e) $ do
                   logErr $
                     "Exception caught while loading state file for " ++ mName
                     ++ ": " ++ displayException e
                   logErr $ "Will use default state for " ++ mName
-                run def
+                  run def
             Right st -> run st
   where
     loggerIO = wenvToLoggerIO wenv
