@@ -182,12 +182,14 @@ protectedAction :: Log.LoggerIO -> String -> Int -> IO () -> IO ()
 protectedAction loggerIO aName maxRetry action = run 0
   where
     logErr = Log.e' loggerIO aName
-    errHandler e =
-      logErr $ "Exception caught for Action " ++ aName ++ ": " ++ displayException e
     run retryCount
       | retryCount > maxRetry =
           logErr $ "Action " ++ aName ++ " exceeded max retry attempt, aborting."
       | otherwise = do
           unless (retryCount == 0) $
             logErr $ "At #" ++ show retryCount ++ " reattempt for Action " ++ aName
-          catch @SomeException action errHandler >> run (retryCount+1)
+          catch @SomeException action errHandler
+      where
+        errHandler e = do
+          logErr $ "Exception caught for Action " ++ aName ++ ": " ++ displayException e
+          run (retryCount+1)
