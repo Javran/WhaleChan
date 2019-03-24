@@ -117,9 +117,10 @@ profileDiffThread wenv@(_, TCommon{tzTokyo}) = do
         req = usersShow (UserIdParam (fromIntegral twWatchingUserId))
               & includeEntities ?~ False
         tag = "ProfileDiff"
+        hb = heartbeat "ProfileDiff" 3600 -- kill this thread if it doesn't come back in 1 hr
     autoWCM @ProfileInfo tag "profile-diff.yaml" wenv $ \markStart -> do
         markEnd <- markStart
-        heartbeat "ProfileDiff"
+        hb
         callTwApi "ProfileDiff" req $ \userInfo -> do
             let (mNewUrl, pStat) = extractInfo userInfo
             case mNewUrl of

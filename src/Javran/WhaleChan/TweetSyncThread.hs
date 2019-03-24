@@ -94,12 +94,13 @@ tweetSyncThread wenv = do
         startTime = addUTCTime (-fromIntegral twIgnoreOlderThan) t
         loggerIO = wenvToLoggerIO wenv
         tag = "TweetSync"
+        hb = heartbeat tag 3600 -- kill this thread if it doesn't come back in 1 hr
     Log.i' loggerIO tag $
       "Will ignore tweets created before " <> show startTime
     let tweetSyncStep :: TweetSyncM (TweetSyncM ()) -> TweetSyncM ()
         tweetSyncStep markStart = do
             markEnd <- markStart
-            heartbeat tag
+            hb
             mQueue <- liftIO $ swapMVar tcTwitter Seq.empty
             let info = Log.i' loggerIO tag
             callTwApi tag req $ \statusList -> do
