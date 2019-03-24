@@ -29,7 +29,15 @@ heartbeat who = do
     (_, TCommon{tcHealth=ch}) <- ask
     liftIO $ do
       t <- getCurrentTime
-      modifyMVar_ ch (pure . (Seq.|> Heartbeat who t))
+      tid <- myThreadId
+      modifyMVar_ ch (pure . (Seq.|> Heartbeat who t tid))
+
+{-
+  TODO:
+
+  - when a thread fails to send heartbeat for a while, try
+    killing that thread so it has a chance to come back online.
+ -}
 
 healthThread :: WEnv -> IO ()
 healthThread wenv@(_, TCommon{tcHealth=chan}) =
@@ -43,7 +51,7 @@ healthThread wenv@(_, TCommon{tcHealth=chan}) =
     loop = do
         msgQueue <- liftIO $ swapMVar chan Seq.empty
         t <- liftIO getCurrentTime
-        forM_ msgQueue $ \(Heartbeat who tMsg) ->
+        forM_ msgQueue $ \(Heartbeat who tMsg _tid) ->
           gets (M.lookup who) >>= \case
             Nothing -> do
               info $

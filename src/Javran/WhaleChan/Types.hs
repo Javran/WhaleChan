@@ -109,7 +109,7 @@ type MaintenanceInfo =
   , Maybe (UTCTime, [String]) -- maintenance end time with confirming sources
   )
 
-data Heartbeat = Heartbeat !String !UTCTime
+data Heartbeat = Heartbeat !String !UTCTime !ThreadId
 
 data TCommon
   = TCommon
