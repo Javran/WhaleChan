@@ -40,6 +40,7 @@ import qualified Data.Text.Lazy.Builder as TB
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
+import Javran.WhaleChan.ReminderThread.EventReminderNew
 import Javran.WhaleChan.ReminderThread.Types
 import Javran.WhaleChan.Util
 import qualified Javran.WhaleChan.Log as Log
@@ -133,6 +134,10 @@ waitUntilStartOfNextMinute = do
     threadDelay $ oneMin - ms
 
 -- TODO: use lens-datetime
+
+
+-- TODO: remove type synonym after done
+type EventReminder = EventReminderNew
 
 {-
   note that [EventReminder] is sorted in time order,
@@ -247,7 +252,6 @@ reminderThread wenv = do
     autoWCM @ReminderState tag "reminder.yaml" wenv $ \markStart' -> cv $ do
       let markStart = coerce markStart' :: ReminderM' (ReminderM' ())
           info = Log.i tag
-          warn = Log.w tag
       -- note that unlike other threads, this one begins by thread sleep
       -- the idea is to start working immediately after wake up
       -- so we get the most accurate timestamp to work with
@@ -260,8 +264,8 @@ reminderThread wenv = do
             we consider a ER oudated if eventOccurTime < current time - 10 mins,
             in that case the old ERs should be dropped
            -}
-          isOutdatedEventReminder (EventReminder eTime _) =
-              eTime < addUTCTime (fromIntegral @Int $ -60 * 10) curTime
+          isOutdatedEventReminder er =
+              eventOccurTime er < addUTCTime (fromIntegral @Int $ -60 * 10) curTime
       markEnd <- markStart
       mInfo <- liftIO $ do
         v <- takeMVar tcReminder
@@ -275,16 +279,6 @@ reminderThread wenv = do
         info $ "old: " <> show mer
         info $ "new: " <> show newMer
         info $ "minfo: " <> show mInfo
-        let (lMer, rMer) = newMer
-            check Nothing = pure ()
-            check (Just (er,_)) = case checkEventReminder er of
-              Nothing -> Log.i tag "er checking ok."
-              Just errMsg -> do
-                  warn $ "er checking failed: " <> errMsg
-                  warn $ "the er is: " <> show er
-        -- TODO: don't check it at run time, check it as test
-        check lMer
-        check rMer
       let collectResults :: Endo [(EReminderSupply, UTCTime)] -> [(EReminderSupply, [UTCTime])]
           collectResults xsPre = convert <$> ys
             where
@@ -297,7 +291,7 @@ reminderThread wenv = do
         execWriterT (forM reminderSupplies (\e@(ERS tp) -> do
             let tyRep = typeRep tp
                 -- always compute new supply (lazily)
-                newSupply = renewSupply tp tzTokyo curTime
+                mNewSupply = renewSupply tp tzTokyo curTime
                 cmp = comparing eventOccurTime
                 rmOutdated xs =
                   case dropWhile isOutdatedEventReminder xs of
@@ -310,20 +304,25 @@ reminderThread wenv = do
             mValue <- gets (M.lookup tyRep . fst)
             case mValue of
               Nothing ->
-                modify (first $ M.insert tyRep [newSupply])
+                case mNewSupply of
+                  Just newSupply ->
+                    modify (first $ M.insert tyRep [newSupply])
+                  Nothing -> pure ()
               Just ers ->
-                -- skip restocking if timestamp mismatches
-                unless (hasBy cmp ers newSupply) $
-                  modify (first $ M.adjust (insertSetBy cmp newSupply) tyRep)
+                case mNewSupply of
+                  Just newSupply ->
+                    -- skip restocking if timestamp mismatches
+                    unless (hasBy cmp ers newSupply) $
+                      modify (first $ M.adjust (insertSetBy cmp newSupply) tyRep)
+                  Nothing -> pure ()
             eventReminders <- fromMaybe [] <$> gets (M.lookup tyRep . fst)
             newEventReminders <-
-              catMaybes <$> forM eventReminders (\(EventReminder eot erds) -> do
+              catMaybes <$> forM eventReminders (\er -> do
                 -- if remindsDue contains anything, we should send current reminder
-                let (remindsDue, erds') = span (< tThres) erds
+                let eot = eventOccurTime er
+                    (remindsDue, mNewER) = getDuesByTime tThres er
                 unless (null remindsDue) $ tell . Endo $ ([(e, eot)] ++)
-                pure $ if null erds'
-                    then Nothing
-                    else Just (EventReminder eot erds')
+                pure mNewER
               )
             let newVal =
                   if null newEventReminders
@@ -346,11 +345,15 @@ updateMER :: forall m. MonadWriter MessageRep m
 updateMER curTime curERPair mInfo = do
     let (lCurER, rCurER) = curERPair
         (lInfo, rInfo) = mInfo
-    (lNewER,rNewERPre) <- (,) <$> doUpdate lCurER lInfo
-                              <*> doUpdate rCurER rInfo
+    (lNewER,rNewERPre) <-
+      (,) <$> doUpdate lCurER lInfo
+          <*> doUpdate rCurER rInfo
     let rNewER = case rNewERPre of
-          Just (EventReminder er erds, xs) |
-            Just (EventReminder erStart _, _) <- lNewER
+          Just (ez, xs)
+            | er <- eventOccurTime ez
+            , erds <- eventReminderDues ez
+            , Just (ln,_) <- lNewER
+            , erStart <- eventOccurTime ln
             {-
               here we want to do few things:
               - drop all due reminders that come before maintenance start
@@ -365,7 +368,7 @@ updateMER curTime curERPair mInfo = do
             , erds' <- (erStart `insertSet`)
                      . dropWhile (< erStart)
                      $ erds
-            -> Just (EventReminder er erds', xs)
+            -> (,xs) <$> makeEventReminderNew er erds'
           _ -> rNewERPre
     (,) <$> stepMER curTime "Maintenance Start" lNewER
         <*> stepMER curTime "Maintenance End" rNewER
@@ -390,7 +393,7 @@ updateMER curTime curERPair mInfo = do
             Nothing ->
               -- we are not holding any ER for now, time to create one.
               Just <$> createNewER newT newSrcs
-            Just (er@(EventReminder eT _), srcs) ->
+            Just (er, srcs) | eT <- eventOccurTime er ->
               if | eT /= newT ->
                   -- update on time, we should update as well
                   Just <$> createNewER newT newSrcs
@@ -424,8 +427,11 @@ updateMER curTime curERPair mInfo = do
                       (tail $ iterate (addUTCTime (fInt $ -1 * dayInSecs)) eventTime))
                   <> (mkTime <$> [6*60, 2*60, 60, 30, 10, 5, 0])
                 dueTimes = preCurTime `insertSet` predefDueTimes
+                -- we are safe as long as dueTimes is non-empty,
+                -- which is true in this case.
+                Just newER = makeEventReminderNew eventTime dueTimes
             -- TODO: use createEventReminderWithDueList
-            pure (EventReminder eventTime dueTimes, srcs)
+            pure (newER, srcs)
           where
             fInt = fromIntegral @Int
             mkTime mins = addUTCTime (fInt $ -60 * mins) eventTime
@@ -439,11 +445,11 @@ stepMER :: forall m. MonadWriter MessageRep m
         -> m (Maybe (EventReminder, [String]))
 stepMER curTime desc mER = case mER of
     Nothing -> pure Nothing
-    Just (EventReminder eT erds, srcs) -> do
-      let (remindsDue, erds') = span (< tThres) erds
+    Just (er, srcs)
+      | eT <- eventOccurTime er
+      -> do
+      let (remindsDue, mNewER) = getDuesByTime tThres er
       unless (null remindsDue) $ tell [(desc, [(eT, srcs)])]
-      pure $ if null erds'
-               then Nothing
-               else Just (EventReminder eT erds', srcs)
+      pure $ (,srcs) <$> mNewER
   where
     tThres = addUTCTime 20 curTime

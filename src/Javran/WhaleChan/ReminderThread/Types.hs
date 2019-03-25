@@ -3,7 +3,6 @@
   , DataKinds
   , ExistentialQuantification
   , PolyKinds
-  , DeriveGeneric
   , DefaultSignatures
   #-}
 
@@ -13,40 +12,26 @@ module Javran.WhaleChan.ReminderThread.Types
   , ReminderSupply
   , renewSupply
   , eventDescription
-  , EventReminder(..)
+  , EventReminderNew(..)
   , EReminderSupply(..)
   , reminderSupplies
   , reminders
   , strToReminderTypeRep
-  , checkEventReminder
+  -- , checkEventReminder
   ) where
 
 import Control.Monad
-import Data.Aeson
 import Data.Aeson.Types (Parser)
-import qualified Data.IntSet as IS
 import Data.Time.Clock
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Series
 import Data.Typeable
-import GHC.Generics
 
 import Javran.WhaleChan.ReminderThread.ReoccuringEvents
+import Javran.WhaleChan.ReminderThread.EventReminderNew
 
 data EReminderSupply =
   forall rs. (ReminderSupply rs, Typeable rs) => ERS (Proxy rs)
-
-{-
-  EventReminder contains info about the time the event will occur
-  and a sorted list of times that a reminder is due.
- -}
-data EventReminder = EventReminder
-  { eventOccurTime :: UTCTime
-  , eventReminderDues :: [UTCTime]
-  } deriving (Show, Eq, Generic)
-
-instance FromJSON EventReminder
-instance ToJSON EventReminder
 
 -- TODO: should we switch to use symbols rather than promoted data type?
 data ReminderSupplier
@@ -65,7 +50,7 @@ data ReminderSupplier
   supplies a sorted list of times for the timer thread
  -}
 class ReminderSupply (r :: k) where
-    renewSupply :: forall p. p r -> TimeZoneSeries -> UTCTime -> EventReminder
+    renewSupply :: forall p. p r -> TimeZoneSeries -> UTCTime -> Maybe EventReminderNew
     eventDescription :: forall p. p r -> String
 
     default eventDescription :: (Typeable r) => p r -> String
@@ -77,17 +62,16 @@ class ReminderSupply (r :: k) where
 --   prior to the event time.
 --   note that in the resulting list, eventTime is always in the list of
 --   dueTimes so you don't have to pass that as argument explicitly.
-createEventReminderWithDueList :: UTCTime -> [Int] -> EventReminder
+createEventReminderWithDueList :: UTCTime -> [Int] -> Maybe EventReminderNew
 createEventReminderWithDueList eventTime dueListPre =
-    EventReminder
-      eventTime
-      (mkTime <$> dueList)
+    makeEventReminderNew eventTime  (mkTime <$> dueList)
   where
     -- descending list of time without duplicated elements
-    dueList = IS.toDescList $  IS.fromList (0 : dueListPre)
+    dueList = 0 : dueListPre
     mkTime mins = addUTCTime (fromIntegral @Int $ -60 * mins) eventTime
 
-renewSupplyByFunc :: (LocalTime -> LocalTime) -> TimeZoneSeries -> UTCTime -> EventReminder
+renewSupplyByFunc ::
+  (LocalTime -> LocalTime) -> TimeZoneSeries -> UTCTime -> Maybe EventReminderNew
 renewSupplyByFunc getNextTime tzs ut =
     createEventReminderWithDueList eventTime [24*60, 30, 10, 5]
   where
@@ -155,9 +139,11 @@ reminders = f <$> reminderSupplies
 strToReminderTypeRep :: String -> Parser TypeRep
 strToReminderTypeRep raw = maybe mzero pure (lookup raw reminders)
 
+{-
 checkEventReminder :: EventReminder -> Maybe String
 checkEventReminder (EventReminder x xs)
   | null xs = Just "event reminder has empty due list"
   | last xs /= x = Just "event reminder last event not matching occur time"
   | and $ zipWith (<) xs (tail xs) = Nothing
   | otherwise = Just "event reminder not is strict ascending order."
+ -}
