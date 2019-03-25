@@ -42,7 +42,7 @@ makeEventReminder et erds =
       then Nothing
       else Just $ EventReminder et sortedUniqErds
   where
-    sortedUniqErds = S.toDescList . S.fromList $ erds
+    sortedUniqErds = S.toAscList . S.fromList $ erds
 
 -- like span but on EventReminder, a cut time is used and values less or equal to that
 -- will be extracted from the list.

@@ -4,7 +4,6 @@ import Data.Time.Calendar
 import Data.Time.LocalTime
 import Test.Hspec
 
-import Javran.WhaleChan.ReminderThread.Types
 import Javran.WhaleChan.ReminderThread.EventReminder
 
 spec :: Spec
@@ -24,13 +23,13 @@ spec = do
   describe "createEventReminderWithDueList" $
     specify "sample" $ do
       let eventTime = mk 2019 3 21 10 20
-          er = createEventReminderWithDueList eventTime [60*8,60*40,10,60,60*20]
-      er `shouldBe`
-        makeEventReminder eventTime
-          [ mk 2019 3 19 18 20 -- 40 hours prior
-          , mk 2019 3 20 14 20 -- 20 hours prior
-          , mk 2019 3 21 2 20 -- 8 hours prior
-          , mk 2019 3 21 9 20 -- 1 hour prior
-          , mk 2019 3 21 10 10 -- 10 mins prior
-          , eventTime -- happening
-          ]
+          dues =
+            [ mk 2019 3 19 18 20 -- 40 hours prior
+            , mk 2019 3 20 14 20 -- 20 hours prior
+            , mk 2019 3 21 2 20 -- 8 hours prior
+            , mk 2019 3 21 9 20 -- 1 hour prior
+            , mk 2019 3 21 10 10 -- 10 mins prior
+            , eventTime -- happening
+            ]
+          er' = makeEventReminder eventTime dues
+      eventReminderDues <$> er' `shouldBe` Just dues
