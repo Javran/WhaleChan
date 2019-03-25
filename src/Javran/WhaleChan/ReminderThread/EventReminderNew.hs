@@ -3,6 +3,7 @@ module Javran.WhaleChan.ReminderThread.EventReminderNew
   , eventOccurTime
   , eventReminderDues
   , makeEventReminderNew
+  , getDuesByTime
   ) where
 
 import qualified Data.Set as S
@@ -31,3 +32,15 @@ makeEventReminderNew et erds =
       else Just $ EventReminderNew et erds
   where
     sortedUniqErds = S.toAscList . S.fromList $ erds
+
+-- like span but on EventReminder, a cut time is used and values less or equal to that
+-- will be extracted from the list.
+getDuesByTime :: UTCTime -> EventReminderNew -> ([UTCTime], Maybe EventReminderNew)
+getDuesByTime cutTime er@(EventReminderNew et erds) =
+    (erdsOld, remainingER)
+  where
+    (erdsOld, erdsNew) = span (<= cutTime) erds
+    remainingER =
+      if null erdsOld
+        then Just er
+        else makeEventReminderNew et erdsNew
