@@ -132,37 +132,6 @@ waitUntilStartOfNextMinute = do
     -- wait to start of next minute
     threadDelay $ oneMin - ms
 
-reminderSupplies :: [EReminderSupply]
-reminderSupplies =
-    [ ERS (Proxy :: Proxy 'PracticeReset)
-    , ERS (Proxy :: Proxy 'DailyQuestReset)
-    , ERS (Proxy :: Proxy 'WeeklyQuestReset)
-    , ERS (Proxy :: Proxy 'MonthlyQuestReset)
-    , ERS (Proxy :: Proxy 'QuarterlyQuestReset)
-    , ERS (Proxy :: Proxy 'ExtraOperationReset)
-    , ERS (Proxy :: Proxy 'SenkaAccounting)
-    , ERS (Proxy :: Proxy 'QuestPointDeadline)
-    ]
-
--- a hack to allow "encoding / decoding" of TypeRep through Show instance
--- for now it's a safe assumption that conversion through Show is consistent
-reminders :: [(String, TypeRep)]
-reminders = f <$> reminderSupplies
-  where
-    f (ERS ty) = (show tRep, tRep)
-      where
-        tRep = typeRep ty
-
-strToReminderTypeRep :: String -> Parser TypeRep
-strToReminderTypeRep raw = maybe mzero pure (lookup raw reminders)
-
-checkEventReminder :: EventReminder -> Maybe String
-checkEventReminder (EventReminder x xs)
-  | null xs = Just "event reminder has empty due list"
-  | last xs /= x = Just "event reminder last event not matching occur time"
-  | and $ zipWith (<) xs (tail xs) = Nothing
-  | otherwise = Just "event reminder not is strict ascending order."
-
 -- TODO: use lens-datetime
 
 {-

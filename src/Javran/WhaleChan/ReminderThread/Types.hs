@@ -15,15 +15,21 @@ module Javran.WhaleChan.ReminderThread.Types
   , eventDescription
   , EventReminder(..)
   , EReminderSupply(..)
+  , reminderSupplies
+  , reminders
+  , strToReminderTypeRep
+  , checkEventReminder
   ) where
 
+import Control.Monad
+import Data.Aeson
+import Data.Aeson.Types (Parser)
 import qualified Data.IntSet as IS
 import Data.Time.Clock
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Series
-import Data.Aeson
-import GHC.Generics
 import Data.Typeable
+import GHC.Generics
 
 import Javran.WhaleChan.ReminderThread.ReoccuringEvents
 
@@ -123,3 +129,35 @@ instance ReminderSupply 'SenkaAccounting where
 instance ReminderSupply 'QuestPointDeadline where
     renewSupply _ = renewSupplyByFunc nextQuestPointDeadline
     eventDescription _ = "Quest Point Deadline"
+
+
+reminderSupplies :: [EReminderSupply]
+reminderSupplies =
+    [ ERS (Proxy :: Proxy 'PracticeReset)
+    , ERS (Proxy :: Proxy 'DailyQuestReset)
+    , ERS (Proxy :: Proxy 'WeeklyQuestReset)
+    , ERS (Proxy :: Proxy 'MonthlyQuestReset)
+    , ERS (Proxy :: Proxy 'QuarterlyQuestReset)
+    , ERS (Proxy :: Proxy 'ExtraOperationReset)
+    , ERS (Proxy :: Proxy 'SenkaAccounting)
+    , ERS (Proxy :: Proxy 'QuestPointDeadline)
+    ]
+
+-- a hack to allow "encoding / decoding" of TypeRep through Show instance
+-- for now it's a safe assumption that conversion through Show is consistent
+reminders :: [(String, TypeRep)]
+reminders = f <$> reminderSupplies
+  where
+    f (ERS ty) = (show tRep, tRep)
+      where
+        tRep = typeRep ty
+
+strToReminderTypeRep :: String -> Parser TypeRep
+strToReminderTypeRep raw = maybe mzero pure (lookup raw reminders)
+
+checkEventReminder :: EventReminder -> Maybe String
+checkEventReminder (EventReminder x xs)
+  | null xs = Just "event reminder has empty due list"
+  | last xs /= x = Just "event reminder last event not matching occur time"
+  | and $ zipWith (<) xs (tail xs) = Nothing
+  | otherwise = Just "event reminder not is strict ascending order."
