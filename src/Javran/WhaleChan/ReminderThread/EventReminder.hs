@@ -1,9 +1,9 @@
 {-# LANGUAGE DeriveGeneric #-}
-module Javran.WhaleChan.ReminderThread.EventReminderNew
-  ( EventReminderNew
+module Javran.WhaleChan.ReminderThread.EventReminder
+  ( EventReminder
   , eventOccurTime
   , eventReminderDues
-  , makeEventReminderNew
+  , makeEventReminder
   , getDuesByTime
   ) where
 
@@ -22,8 +22,8 @@ import Data.Aeson
   and a sorted list of times that a reminder is due.
  -}
 
-data EventReminderNew
-  = EventReminderNew
+data EventReminder
+  = EventReminder
   { eventOccurTime :: UTCTime
     {-
       INVARIANT: the list should be sorted and every element unique
@@ -33,25 +33,25 @@ data EventReminderNew
   , eventReminderDues :: [UTCTime]
   } deriving (Show, Eq, Generic)
 
-instance FromJSON EventReminderNew
-instance ToJSON EventReminderNew
+instance FromJSON EventReminder
+instance ToJSON EventReminder
 
-makeEventReminderNew :: UTCTime -> [UTCTime] -> Maybe EventReminderNew
-makeEventReminderNew et erds =
+makeEventReminder :: UTCTime -> [UTCTime] -> Maybe EventReminder
+makeEventReminder et erds =
     if null sortedUniqErds
       then Nothing
-      else Just $ EventReminderNew et erds
+      else Just $ EventReminder et erds
   where
     sortedUniqErds = S.toAscList . S.fromList $ erds
 
 -- like span but on EventReminder, a cut time is used and values less or equal to that
 -- will be extracted from the list.
-getDuesByTime :: UTCTime -> EventReminderNew -> ([UTCTime], Maybe EventReminderNew)
-getDuesByTime cutTime er@(EventReminderNew et erds) =
+getDuesByTime :: UTCTime -> EventReminder -> ([UTCTime], Maybe EventReminder)
+getDuesByTime cutTime er@(EventReminder et erds) =
     (erdsOld, remainingER)
   where
     (erdsOld, erdsNew) = span (<= cutTime) erds
     remainingER =
       if null erdsOld
         then Just er
-        else makeEventReminderNew et erdsNew
+        else makeEventReminder et erdsNew

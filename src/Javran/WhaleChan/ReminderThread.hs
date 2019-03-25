@@ -40,7 +40,7 @@ import qualified Data.Text.Lazy.Builder as TB
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
-import Javran.WhaleChan.ReminderThread.EventReminderNew
+import Javran.WhaleChan.ReminderThread.EventReminder
 import Javran.WhaleChan.ReminderThread.Types
 import Javran.WhaleChan.Util
 import qualified Javran.WhaleChan.Log as Log
@@ -134,10 +134,6 @@ waitUntilStartOfNextMinute = do
     threadDelay $ oneMin - ms
 
 -- TODO: use lens-datetime
-
-
--- TODO: remove type synonym after done
-type EventReminder = EventReminderNew
 
 {-
   note that [EventReminder] is sorted in time order,
@@ -368,7 +364,7 @@ updateMER curTime curERPair mInfo = do
             , erds' <- (erStart `insertSet`)
                      . dropWhile (< erStart)
                      $ erds
-            -> (,xs) <$> makeEventReminderNew er erds'
+            -> (,xs) <$> makeEventReminder er erds'
           _ -> rNewERPre
     (,) <$> stepMER curTime "Maintenance Start" lNewER
         <*> stepMER curTime "Maintenance End" rNewER
@@ -429,7 +425,7 @@ updateMER curTime curERPair mInfo = do
                 dueTimes = preCurTime `insertSet` predefDueTimes
                 -- we are safe as long as dueTimes is non-empty,
                 -- which is true in this case.
-                Just newER = makeEventReminderNew eventTime dueTimes
+                Just newER = makeEventReminder eventTime dueTimes
             -- TODO: use createEventReminderWithDueList
             pure (newER, srcs)
           where

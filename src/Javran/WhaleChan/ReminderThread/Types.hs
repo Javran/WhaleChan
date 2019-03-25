@@ -12,7 +12,6 @@ module Javran.WhaleChan.ReminderThread.Types
   , ReminderSupply
   , renewSupply
   , eventDescription
-  , EventReminderNew(..)
   , EReminderSupply(..)
   , reminderSupplies
   , reminders
@@ -28,7 +27,7 @@ import Data.Time.LocalTime.TimeZone.Series
 import Data.Typeable
 
 import Javran.WhaleChan.ReminderThread.ReoccuringEvents
-import Javran.WhaleChan.ReminderThread.EventReminderNew
+import Javran.WhaleChan.ReminderThread.EventReminder
 
 data EReminderSupply =
   forall rs. (ReminderSupply rs, Typeable rs) => ERS (Proxy rs)
@@ -50,7 +49,7 @@ data ReminderSupplier
   supplies a sorted list of times for the timer thread
  -}
 class ReminderSupply (r :: k) where
-    renewSupply :: forall p. p r -> TimeZoneSeries -> UTCTime -> Maybe EventReminderNew
+    renewSupply :: forall p. p r -> TimeZoneSeries -> UTCTime -> Maybe EventReminder
     eventDescription :: forall p. p r -> String
 
     default eventDescription :: (Typeable r) => p r -> String
@@ -62,16 +61,16 @@ class ReminderSupply (r :: k) where
 --   prior to the event time.
 --   note that in the resulting list, eventTime is always in the list of
 --   dueTimes so you don't have to pass that as argument explicitly.
-createEventReminderWithDueList :: UTCTime -> [Int] -> Maybe EventReminderNew
+createEventReminderWithDueList :: UTCTime -> [Int] -> Maybe EventReminder
 createEventReminderWithDueList eventTime dueListPre =
-    makeEventReminderNew eventTime  (mkTime <$> dueList)
+    makeEventReminder eventTime  (mkTime <$> dueList)
   where
     -- descending list of time without duplicated elements
     dueList = 0 : dueListPre
     mkTime mins = addUTCTime (fromIntegral @Int $ -60 * mins) eventTime
 
 renewSupplyByFunc ::
-  (LocalTime -> LocalTime) -> TimeZoneSeries -> UTCTime -> Maybe EventReminderNew
+  (LocalTime -> LocalTime) -> TimeZoneSeries -> UTCTime -> Maybe EventReminder
 renewSupplyByFunc getNextTime tzs ut =
     createEventReminderWithDueList eventTime [24*60, 30, 10, 5]
   where
