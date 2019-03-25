@@ -5,6 +5,7 @@ import Data.Time.LocalTime
 import Test.Hspec
 
 import Javran.WhaleChan.ReminderThread.Types
+import Javran.WhaleChan.ReminderThread.EventReminder
 
 spec :: Spec
 spec = do
@@ -25,7 +26,7 @@ spec = do
       let eventTime = mk 2019 3 21 10 20
           er = createEventReminderWithDueList eventTime [60*8,60*40,10,60,60*20]
       er `shouldBe`
-        EventReminder eventTime
+        makeEventReminder eventTime
           [ mk 2019 3 19 18 20 -- 40 hours prior
           , mk 2019 3 20 14 20 -- 20 hours prior
           , mk 2019 3 21 2 20 -- 8 hours prior

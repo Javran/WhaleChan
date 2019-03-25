@@ -63,9 +63,8 @@ class ReminderSupply (r :: k) where
 --   dueTimes so you don't have to pass that as argument explicitly.
 createEventReminderWithDueList :: UTCTime -> [Int] -> Maybe EventReminder
 createEventReminderWithDueList eventTime dueListPre =
-    makeEventReminder eventTime  (mkTime <$> dueList)
+    makeEventReminder eventTime (mkTime <$> dueList)
   where
-    -- descending list of time without duplicated elements
     dueList = 0 : dueListPre
     mkTime mins = addUTCTime (fromIntegral @Int $ -60 * mins) eventTime
 

@@ -40,9 +40,9 @@ makeEventReminder :: UTCTime -> [UTCTime] -> Maybe EventReminder
 makeEventReminder et erds =
     if null sortedUniqErds
       then Nothing
-      else Just $ EventReminder et erds
+      else Just $ EventReminder et sortedUniqErds
   where
-    sortedUniqErds = S.toAscList . S.fromList $ erds
+    sortedUniqErds = S.toDescList . S.fromList $ erds
 
 -- like span but on EventReminder, a cut time is used and values less or equal to that
 -- will be extracted from the list.
