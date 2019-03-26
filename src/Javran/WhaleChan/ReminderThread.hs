@@ -39,21 +39,6 @@ import Javran.WhaleChan.Util
 import qualified Javran.WhaleChan.Log as Log
 
 {-
-  TODO this module is admittedly messy
-  and some logic & impl can actually be merged or simplified.
-
-  TODO some types like EventReminder don't have to be always available
-  and should have a separate module local to ReminderThread
-
-  TODO reminder thread is complicated enough that
-  it deserves to have a set of sub-modules
-
-  TODO won't hurt to have smart constructor for EventReminders
-  as we have run into several bugs in the past all related to
-  invariant violations.
- -}
-
-{-
   ReminderThread design:
 
   - concepts:
@@ -127,8 +112,7 @@ reminderThread wenv = do
         cv = coerce -- to avoid the noise introduced by newtype
         (_, TCommon{tcTelegram, tcReminder, tzTokyo}) = wenv
         tag = "Reminder"
-    -- ref: https://stackoverflow.com/q/43835656/315302
-    -- load tz info before starting the loop
+
     autoWCM @ReminderState tag "reminder.yaml" wenv $ \markStart' -> cv $ do
       let markStart = coerce markStart' :: ReminderM' (ReminderM' ())
           info = Log.i tag

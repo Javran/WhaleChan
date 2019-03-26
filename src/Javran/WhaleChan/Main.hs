@@ -45,6 +45,7 @@ startService wconf = do
   tcReminder <- newMVar (Nothing, Nothing)
   tcHealth <- mkTcHealth
   aLog <- async (startLogger tcLogger)
+  -- ref: https://stackoverflow.com/q/43835656/315302
   tzTokyo <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
   let wenv = (wconf,TCommon {..})
       workers =
