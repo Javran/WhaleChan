@@ -4,6 +4,7 @@
   , ExistentialQuantification
   , PolyKinds
   , DefaultSignatures
+  , DeriveGeneric
   #-}
 
 module Javran.WhaleChan.ReminderThread.Types
@@ -16,18 +17,28 @@ module Javran.WhaleChan.ReminderThread.Types
   , reminderSupplies
   , reminders
   , strToReminderTypeRep
-  -- , checkEventReminder
+  , MaintenanceEventReminder
+  , ReminderM, ReminderM'
+  , ReminderState, ReminderState'
+  , ReminderDict(..)
   ) where
 
+import Control.Arrow
 import Control.Monad
+import Data.Aeson
 import Data.Aeson.Types (Parser)
+import Data.Default
 import Data.Time.Clock
 import Data.Time.LocalTime
 import Data.Time.LocalTime.TimeZone.Series
 import Data.Typeable
+import GHC.Generics
+
+import qualified Data.Map as M
 
 import Javran.WhaleChan.ReminderThread.ReoccuringEvents
 import Javran.WhaleChan.ReminderThread.EventReminder
+import Javran.WhaleChan.Types
 
 data EReminderSupply =
   forall rs. (ReminderSupply rs, Typeable rs) => ERS (Proxy rs)
@@ -138,10 +149,41 @@ strToReminderTypeRep :: String -> Parser TypeRep
 strToReminderTypeRep raw = maybe mzero pure (lookup raw reminders)
 
 {-
-checkEventReminder :: EventReminder -> Maybe String
-checkEventReminder (EventReminder x xs)
-  | null xs = Just "event reminder has empty due list"
-  | last xs /= x = Just "event reminder last event not matching occur time"
-  | and $ zipWith (<) xs (tail xs) = Nothing
-  | otherwise = Just "event reminder not is strict ascending order."
+  note that [EventReminder] is sorted in time order,
+  and is supposed to have no more than 2 items - as reminders are restocked at that
+  exact moment, there should be one passing (0 seconds) and new one being added.
+  we are still under the assumption that no more than 2 reminders (with beforhand reminders)
+  will happen at the same time, which is quite safe considering the nature of this game
+  (i.e. frequent events shouldn't be reminded too often (< 24 hours) and less frequent
+  will have a relatively large interval between them, large enough that the overlapping
+  of beforehand reminds are very unlikely.)
  -}
+type ReminderMap = M.Map TypeRep [EventReminder]
+
+newtype ReminderDict
+  = RD { getRD :: ReminderMap }
+  deriving (Eq, Generic)
+
+instance Default ReminderDict
+
+instance ToJSON ReminderDict where
+  toJSON (RD d) = toJSON @[(String,[EventReminder])] (first show <$> M.toList d)
+
+instance FromJSON ReminderDict where
+  parseJSON o =
+      RD . M.fromList <$>
+        (parseJSON @[(String, [EventReminder])] o >>= mapM convert)
+    where
+      convert :: (String, [EventReminder]) -> Parser (TypeRep, [EventReminder])
+      convert (r, er) = (,) <$> strToReminderTypeRep r <*> pure er
+
+type MaintenanceEventReminder =
+  ( Maybe (EventReminder, [String]) -- INVARIANT: we'll keep sources sorted by `sort`
+  , Maybe (EventReminder, [String]) -- same INVARIANT
+  )
+
+-- the ' version is actual resentation without newtype wrappers
+type ReminderState = (ReminderDict, MaintenanceEventReminder)
+type ReminderState' = (ReminderMap, MaintenanceEventReminder)
+type ReminderM = WCM ReminderState
+type ReminderM' = WCM ReminderState'

@@ -3,9 +3,7 @@
   , MultiWayIf
   , NamedFieldPuns
   , ScopedTypeVariables
-  , DataKinds
   , OverloadedStrings
-  , DeriveGeneric
   , TupleSections
   , FlexibleContexts
   #-}
@@ -19,28 +17,22 @@ import Control.Monad
 import Control.Monad.Logger
 import Control.Monad.RWS
 import Control.Monad.Writer
-import Data.Aeson
-import Data.Aeson.Types (Parser)
 import Data.Coerce
-import Data.Default
 import Data.Function
 import Data.List
 import Data.List.Ordered
 import Data.Maybe
 import Data.Ord
-import Data.Text.Lazy (toStrict)
 import Data.Time.Clock
 import Data.Typeable
-import GHC.Generics
 import Web.Telegram.API.Bot
 
 import qualified Data.Map.Strict as M
-import qualified Data.Text as T
-import qualified Data.Text.Lazy.Builder as TB
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
 import Javran.WhaleChan.ReminderThread.EventReminder
+import Javran.WhaleChan.ReminderThread.Message
 import Javran.WhaleChan.ReminderThread.Types
 import Javran.WhaleChan.Util
 import qualified Javran.WhaleChan.Log as Log
@@ -134,103 +126,6 @@ waitUntilStartOfNextMinute = do
     threadDelay $ oneMin - ms
 
 -- TODO: use lens-datetime
-
-{-
-  note that [EventReminder] is sorted in time order,
-  and is supposed to have no more than 2 items - as reminders are restocked at that
-  exact moment, there should be one passing (0 seconds) and new one being added.
-  we are still under the assumption that no more than 2 reminders (with beforhand reminders)
-  will happen at the same time, which is quite safe considering the nature of this game
-  (i.e. frequent events shouldn't be reminded too often (< 24 hours) and less frequent
-  will have a relatively large interval between them, large enough that the overlapping
-  of beforehand reminds are very unlikely.)
- -}
-type ReminderMap = M.Map TypeRep [EventReminder]
-
-newtype ReminderDict
-  = RD {getRD :: ReminderMap }
-  deriving (Eq, Generic)
-
-instance Default ReminderDict
-
-instance ToJSON ReminderDict where
-  toJSON (RD d) = toJSON @[(String,[EventReminder])] (first show <$> M.toList d)
-
-instance FromJSON ReminderDict where
-  parseJSON o =
-      RD . M.fromList <$>
-        (parseJSON @[(String, [EventReminder])] o >>= mapM convert)
-    where
-      convert :: (String, [EventReminder]) -> Parser (TypeRep, [EventReminder])
-      convert (r, er) = (,) <$> strToReminderTypeRep r <*> pure er
-
-type MaintenanceEventReminder =
-  ( Maybe (EventReminder, [String]) -- INVARIANT: we'll keep sources sorted by `sort`
-  , Maybe (EventReminder, [String]) -- same INVARIANT
-  )
-
--- the ' version is actual resentation without newtype wrappers
-type ReminderState = (ReminderDict, MaintenanceEventReminder)
-type ReminderState' = (ReminderMap, MaintenanceEventReminder)
-type ReminderM = WCM ReminderState
-type ReminderM' = WCM ReminderState'
-
--- Message representation for a reminder message.
-type MessageRep =
-  [] ( String -- Event description (e.g. "Daily Quest Reset")
-     , [ ( UTCTime -- Event occur time
-         , [String] -- sources, only used by maintenance time reminders
-         )
-       ]
-     )
-
-renderMessage :: UTCTime -> MessageRep -> Maybe T.Text
-renderMessage curTime xs =
-    toStrict . TB.toLazyText <$>
-      case filter (not . null . snd) xs of
-        [] -> Nothing
-        [(eDesc, [eTimeSrc])] ->
-          {-
-            when a single line is good enough for displaying
-            example:
-            > [Reminder] {some event}: {relative time}
-           -}
-          Just $ tag <> " " <> TB.fromString eDesc <> ": " <> renderTimeSrc eTimeSrc
-        [(eDesc, eTimeSrcs)] ->
-          {-
-            we still have one single event but multiple reminders
-            > [Reminder] {some event}:
-            > + {relative time}
-            > + {relative time}
-           -}
-          Just $
-            tag <> " " <> TB.fromString eDesc <> ":\n"
-            <> foldMap (\p -> "+ " <> renderTimeSrc p <> "\n") eTimeSrcs
-        ys ->
-          {-
-            most general case
-            > [Reminder]
-            > - {some event}: {relative time}
-            > - {some other event}:
-            >     + {relative time}
-            >     + {relative time}
-           -}
-          Just $
-            tag <> "\n" <> foldMap pprBlock ys
-  where
-    renderTimeSrc (eTime, srcs) =
-        timePart <> if null srcs then "" else " " <> srcPart
-      where
-        timePart =
-          TB.fromString $ describeDuration (round (eTime `diffUTCTime` curTime) :: Int)
-        srcPart = "(source: " <> TB.fromString (intercalate ", " srcs) <> ")"
-
-    tag = "\\[Reminder]" :: TB.Builder
-    pprBlock (eDesc, [eTimeSrc]) =
-        "- " <> TB.fromString eDesc <> ": " <> renderTimeSrc eTimeSrc <> "\n"
-    pprBlock (eDesc, eTimeSrcs) =
-        "- " <> TB.fromString eDesc <> ":\n"
-        <> foldMap (\p -> "    + " <> renderTimeSrc p <> "\n") eTimeSrcs
 
 convertResult :: [(EReminderSupply, [UTCTime])] -> MessageRep
 convertResult = fmap (conv *** fmap (,[]))
