@@ -23,10 +23,9 @@ type MessageRep =
            )
 
 renderMessage :: UTCTime -> MessageRep -> Maybe T.Text
-renderMessage curTime xsPre =
+renderMessage curTime xsD =
     toStrict . TB.toLazyText <$>
-      -- TODO: utilize DList
-      case filter (not . null . snd) xs of
+      case filter (not . null . snd) . DL.toList $ xsD of
         [] -> Nothing
         [(eDesc, [eTimeSrc])] ->
           {-
@@ -57,7 +56,6 @@ renderMessage curTime xsPre =
           Just $
             tag <> "\n" <> foldMap pprBlock ys
   where
-    xs = DL.toList xsPre
     renderTimeSrc (eTime, srcs) =
         timePart <> if null srcs then "" else " " <> srcPart
       where

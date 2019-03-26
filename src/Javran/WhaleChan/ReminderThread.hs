@@ -160,11 +160,10 @@ reminderThread wenv = do
         info $ "new: " <> show newMer
         info $ "minfo: " <> show mInfo
       let collectResults :: DL.DList (EReminderSupply, UTCTime) -> [(EReminderSupply, [UTCTime])]
-          collectResults xsPre = convert <$> ys
+          collectResults xs = convert <$> ys
             where
               ersToTyRep (ERS tp) = typeRep tp
-              xs = DL.toList xsPre
-              ys = groupBy ((==) `on` ersToTyRep . fst) xs
+              ys = groupBy ((==) `on` ersToTyRep . fst) $ DL.toList xs
               convert ts = (fst . head $ ts, snd <$> ts)
       -- scan through supplies and try restocking if an new event timestamp is found
       displayList <- collectResults <$>
@@ -182,19 +181,16 @@ reminderThread wenv = do
 
             -- restock step
             mValue <- gets (M.lookup tyRep . fst)
-            case mValue of
-              Nothing ->
-                case mNewSupply of
-                  Just newSupply ->
+            case mNewSupply of
+              Nothing -> pure ()
+              Just newSupply ->
+                case mValue of
+                  Nothing ->
                     modify (first $ M.insert tyRep [newSupply])
-                  Nothing -> pure ()
-              Just ers ->
-                case mNewSupply of
-                  Just newSupply ->
+                  Just ers ->
                     -- skip restocking if timestamp mismatches
                     unless (hasBy cmp ers newSupply) $
                       modify (first $ M.adjust (insertSetBy cmp newSupply) tyRep)
-                  Nothing -> pure ()
             eventReminders <- fromMaybe [] <$> gets (M.lookup tyRep . fst)
             newEventReminders <-
               catMaybes <$> forM eventReminders (\er -> do
