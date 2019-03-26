@@ -9,21 +9,23 @@ import Data.Text.Lazy (toStrict)
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as TB
+import qualified Data.DList as DL
 
 import Javran.WhaleChan.Util
 
 -- Message representation for a reminder message.
 type MessageRep =
-  [] ( String -- Event description (e.g. "Daily Quest Reset")
-     , [ ( UTCTime -- Event occur time
-         , [String] -- sources, only used by maintenance time reminders
-         )
-       ]
-     )
+  DL.DList ( String -- Event description (e.g. "Daily Quest Reset")
+           , [ ( UTCTime -- Event occur time
+               , [String] -- sources, only used by maintenance time reminders
+               )
+             ]
+           )
 
 renderMessage :: UTCTime -> MessageRep -> Maybe T.Text
-renderMessage curTime xs =
+renderMessage curTime xsPre =
     toStrict . TB.toLazyText <$>
+      -- TODO: utilize DList
       case filter (not . null . snd) xs of
         [] -> Nothing
         [(eDesc, [eTimeSrc])] ->
@@ -55,6 +57,7 @@ renderMessage curTime xs =
           Just $
             tag <> "\n" <> foldMap pprBlock ys
   where
+    xs = DL.toList xsPre
     renderTimeSrc (eTime, srcs) =
         timePart <> if null srcs then "" else " " <> srcPart
       where

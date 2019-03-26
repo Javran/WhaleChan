@@ -4,7 +4,7 @@
   , NamedFieldPuns
   #-}
 module Javran.WhaleChan.FromSource.Util
-  ( tell'
+  ( dTell
   , expectOne
   , fetchUrl
   , Manager
@@ -14,16 +14,16 @@ import Control.Monad
 import Control.Monad.Writer
 import Network.HTTP.Client
 
+import qualified Data.DList as DL
 import qualified Data.ByteString.Lazy as BSL
 
-tell' :: MonadWriter (Endo [a]) m => a -> m ()
-tell' x = tell $ Endo ([x] ++)
+import Javran.WhaleChan.Util
 
-expectOne :: (MonadWriter (Endo [String]) m, Show a) => String -> [a] -> m (Maybe a)
-expectOne tag [] = tell' ("no parse for " ++ tag) >> pure Nothing
+expectOne :: (MonadWriter (DL.DList String) m, Show a) => String -> [a] -> m (Maybe a)
+expectOne tag [] = dTell ("no parse for " ++ tag) >> pure Nothing
 expectOne tag (x:xs) = do
     unless (null xs) $
-      tell' $ "extra result for " ++ tag ++ ": " ++ show xs
+      dTell $ "extra result for " ++ tag ++ ": " ++ show xs
     pure (Just x)
 
 fetchUrl :: Manager -> String -> IO BSL.ByteString

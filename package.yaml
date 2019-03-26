@@ -41,6 +41,7 @@ dependencies:
   - fast-logger
   - terminfo
   - mime-types
+  - dlist
 
 library:
   source-dirs: src

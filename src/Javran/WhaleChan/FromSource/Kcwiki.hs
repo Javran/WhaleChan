@@ -14,6 +14,7 @@ import Text.XML.Cursor
 
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Text as T
+import qualified Data.DList as DL
 
 import Javran.WhaleChan.FromSource.Util
 import Javran.WhaleChan.FromSource.TimeFormat
@@ -23,13 +24,13 @@ import Data.List
 
 parseTime :: BSL.ByteString -> ((Maybe T.Text, Maybe T.Text), [String])
 parseTime =
-    second (`appEndo` [])
+    second DL.toList
     . collectResult
     . ($// searchAndExtractCountdownStrs)
     . fromDocument
     . parseLBS
 
-collectResult :: [(Bool, T.Text)] -> ((Maybe T.Text, Maybe T.Text), Endo [String])
+collectResult :: [(Bool, T.Text)] -> ((Maybe T.Text, Maybe T.Text), DL.DList String)
 collectResult xs
   | (ends{- True (in front) for end-}, starts) <- partition fst xs
   = runWriter $

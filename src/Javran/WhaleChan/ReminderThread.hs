@@ -28,6 +28,7 @@ import Data.Typeable
 import Web.Telegram.API.Bot
 
 import qualified Data.Map.Strict as M
+import qualified Data.DList as DL
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Base
@@ -113,22 +114,10 @@ import qualified Javran.WhaleChan.Log as Log
  -}
 
 
-{-
-  wait and wake up at (roughly) begining of the next minute
-  -- https://stackoverflow.com/a/8578237/315302
- -}
-waitUntilStartOfNextMinute :: IO ()
-waitUntilStartOfNextMinute = do
-    t <- getCurrentTime
-    -- compute millseconds since beginning of current minute
-    let ms = round (fromIntegral oneSec * realToFrac @_ @Double (utctDayTime t)) `rem` oneMin
-    -- wait to start of next minute
-    threadDelay $ oneMin - ms
-
 -- TODO: use lens-datetime
 
 convertResult :: [(EReminderSupply, [UTCTime])] -> MessageRep
-convertResult = fmap (conv *** fmap (,[]))
+convertResult = DL.fromList . fmap (conv *** fmap (,[]))
   where
     conv (ERS p) = eventDescription p
 
@@ -170,11 +159,11 @@ reminderThread wenv = do
         info $ "old: " <> show mer
         info $ "new: " <> show newMer
         info $ "minfo: " <> show mInfo
-      let collectResults :: Endo [(EReminderSupply, UTCTime)] -> [(EReminderSupply, [UTCTime])]
+      let collectResults :: DL.DList (EReminderSupply, UTCTime) -> [(EReminderSupply, [UTCTime])]
           collectResults xsPre = convert <$> ys
             where
               ersToTyRep (ERS tp) = typeRep tp
-              xs = appEndo xsPre []
+              xs = DL.toList xsPre
               ys = groupBy ((==) `on` ersToTyRep . fst) xs
               convert ts = (fst . head $ ts, snd <$> ts)
       -- scan through supplies and try restocking if an new event timestamp is found
@@ -212,7 +201,7 @@ reminderThread wenv = do
                 -- if remindsDue contains anything, we should send current reminder
                 let eot = eventOccurTime er
                     (remindsDue, mNewER) = getDuesByTime tThres er
-                unless (null remindsDue) $ tell . Endo $ ([(e, eot)] ++)
+                unless (null remindsDue) $ dTell (e, eot)
                 pure mNewER
               )
             let newVal =
@@ -227,7 +216,6 @@ reminderThread wenv = do
         Just txt ->
           void $ liftIO $ writeChan tcTelegram (TgRMTimer txt (Just Markdown))
 
--- TODO: maybe we should start using dlist
 updateMER :: forall m. MonadWriter MessageRep m
           => UTCTime
           -> MaintenanceEventReminder
@@ -340,7 +328,7 @@ stepMER curTime desc mER = case mER of
       | eT <- eventOccurTime er
       -> do
       let (remindsDue, mNewER) = getDuesByTime tThres er
-      unless (null remindsDue) $ tell [(desc, [(eT, srcs)])]
+      unless (null remindsDue) $ dTell (desc, [(eT, srcs)])
       pure $ (,srcs) <$> mNewER
   where
     tThres = addUTCTime 20 curTime

@@ -1,5 +1,7 @@
 {-# LANGUAGE
     OverloadedStrings
+  , TypeApplications
+  , FlexibleContexts
   #-}
 module Javran.WhaleChan.Util
   ( oneSec
@@ -9,13 +11,21 @@ module Javran.WhaleChan.Util
   , eitherToMaybe
   , guardHttpException
   , isConnectionResetException
+  , waitUntilStartOfNextMinute
+  , dTell
   ) where
 
 import Control.Exception
+import Control.Concurrent
+import Control.Monad.Writer
 import Data.List (isPrefixOf)
-import qualified Data.Yaml as Yaml
+import Data.Time.Clock
+
 import GHC.IO.Exception
 import Network.HTTP.Client
+
+import qualified Data.Yaml as Yaml
+import qualified Data.DList as DL
 
 {-
   place for some commonly used functions.
@@ -65,3 +75,18 @@ isConnectionResetException ioe
     , ioe_description = "Connection reset by peer"
     } <- ioe = True
   | otherwise = False
+
+{-
+  wait and wake up at (roughly) begining of the next minute
+  -- https://stackoverflow.com/a/8578237/315302
+ -}
+waitUntilStartOfNextMinute :: IO ()
+waitUntilStartOfNextMinute = do
+    t <- getCurrentTime
+    -- compute millseconds since beginning of current minute
+    let ms = round (fromIntegral oneSec * realToFrac @_ @Double (utctDayTime t)) `rem` oneMin
+    -- wait to start of next minute
+    threadDelay $ oneMin - ms
+
+dTell :: MonadWriter (DL.DList a) m => a -> m ()
+dTell = tell . DL.singleton
