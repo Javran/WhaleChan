@@ -3,12 +3,53 @@
   #-}
 module Javran.WhaleChan.ServerStatThread where
 
+import Data.Time.Clock
+
+import qualified Data.Map.Strict as M
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Text as T
 
 {-
   for getting server related infomation.
  -}
+
+{-
+  design draft:
+
+  - in order not to get too noisy, we only post about following events:
+
+    + a new version change is first detected at a specific server
+    + announce that versions in all servers are now in sync with latest
+    + a server ip is changed
+    + a server is down (by trying to get the version number)
+    + a server is back online
+
+  - keep a list of [(UTCTime, VersionInfo)] in descending order of time,
+    detected versions are first compared against this list then
+    registered if missing (with detection time)
+
+ -}
+data ServerState
+  = ServerState
+  { ssVersionTimestamp :: UTCTime
+  , ssLastContact :: UTCTime
+  }
+
+data Version
+  = Version
+  { verRaw :: String
+  , verGroups :: [Either String Integer]
+  }
+
+type VersionInfoCache =
+  [(UTCTime, M.Map T.Text Version)] -- in descending order of time
+
+data State
+  = State
+  { sServerIps :: IM.IntMap String -- value example: "203.104.209.71"
+  , sServerState :: IM.IntMap ServerState
+  , sVersionInfoCache :: VersionInfoCache
+  }
 
 -- known server names
 serverNamesTable :: IM.IntMap T.Text
