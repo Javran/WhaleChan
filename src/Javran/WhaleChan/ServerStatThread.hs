@@ -28,6 +28,24 @@ import qualified Data.Text as T
     detected versions are first compared against this list then
     registered if missing (with detection time)
 
+  - we'll try to make minimum of assumption:
+
+    + "gadget" address is always fixed
+    + the structure of the version file is always a JSON file
+      with component names to version names (both are strings)
+    + all servers will eventually agree on a single version data
+      (up to JSON level, regardless of key ordering)
+
+  - at a higher level, we don't actually care about whether a specific
+    component, when a new change is detected, we put it into a "known version data file"
+    list together with a timestamp
+  - as soon as a server returns a version data that is not in the "known" map,
+    we announce the change (so if other server starts to pick the same new version data file,
+    we can remain silence
+  - once all servers are caught up, we'll make another announcement
+  - optimize: remove item from known version data file once the item in question
+    is no longer being used by any server
+
  -}
 data ServerState
   = ServerState
@@ -35,11 +53,7 @@ data ServerState
   , ssLastContact :: UTCTime
   }
 
-data Version
-  = Version
-  { verRaw :: String
-  , verGroups :: [Either String Integer]
-  }
+type Version = String
 
 type VersionInfoCache =
   [(UTCTime, M.Map T.Text Version)] -- in descending order of time
