@@ -15,6 +15,7 @@ import Control.Monad.RWS
 import Data.Aeson
 import Network.HTTP.Client
 import Web.Twitter.Conduit hiding (count)
+import Data.Conduit.Attoparsec
 
 import qualified Data.ByteString.Char8 as BSC
 
@@ -75,6 +76,12 @@ callTwApi tag req handleResp = do
          -}
         [ Handler $ \(e :: HttpException) -> (pure . Left . toException) e
         , Handler $ \(e :: TwitterError) -> (pure . Left . toException) e
+          {-
+            occasionally a ParseError could show up and bring down the whole thread,
+            but in our case it's just like a minor API issue so we choose to
+            ignore and move on
+           -}
+        , Handler $ \(e :: ParseError) -> (pure . Left . toException) e
         , Handler $ \(e :: IOException) ->
             if isConnectionResetException e
               then (pure . Left . toException) e

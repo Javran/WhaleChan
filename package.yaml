@@ -42,6 +42,7 @@ dependencies:
   - terminfo
   - mime-types
   - dlist
+  - conduit-extra
 
 library:
   source-dirs: src
