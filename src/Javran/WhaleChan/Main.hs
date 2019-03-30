@@ -27,16 +27,10 @@ import Javran.WhaleChan.TweetSyncThread (tweetSyncThread, createTwMVar)
 import Javran.WhaleChan.ExtInfoThread (extInfoThread)
 import Javran.WhaleChan.ProfileDiffThread (profileDiffThread)
 import Javran.WhaleChan.ServerStatThread (serverStatThread)
-import Javran.WhaleChan.HealthThread
+import Javran.WhaleChan.HealthThread (healthThread, mkTcHealth)
 import Javran.WhaleChan.Types
 import qualified Javran.WhaleChan.Log as Log
 
-{-
-  TODO
-
-  [ ] kcs2/version.json could be used to detect server availability?
-
- -}
 startService :: WConf -> IO ()
 startService wconf = do
   tcLogger <- newChan

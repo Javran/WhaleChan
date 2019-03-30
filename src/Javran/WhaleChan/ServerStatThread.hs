@@ -87,7 +87,7 @@ instance ToJSON KcServerState
 
 data State
   = State
-  { sServerIps :: IM.IntMap String -- value example: "203.104.209.71"
+  { sServerAddrs :: IM.IntMap String -- value example: "http://203.104.209.71/"
   , sKcServerStates :: IM.IntMap KcServerState
   , sVersionInfoCache :: VerPackDb
   } deriving (Eq, Generic)
@@ -146,4 +146,5 @@ threadStep markStart = do
         + all servers are caught up on VerPack
      -}
     markEnd
-    liftIO $ threadDelay $ oneSec * 60 * 10 -- 10 mins for now
+    -- wake up every hour, it's not doing anything anyway.
+    liftIO $ threadDelay $ oneSec * 60 * 60
