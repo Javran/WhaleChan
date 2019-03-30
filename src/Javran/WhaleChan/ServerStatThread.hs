@@ -47,22 +47,32 @@ import qualified Data.Text as T
     is no longer being used by any server
 
  -}
+
+{-
+  a VerPack stands for content parsed from kcs2/version.json,
+  meaning its a set of pairs from components to their corresponding version strings.
+ -}
+type VerPack = M.Map T.Text T.Text
+
+{-
+  contains all known VerPack data
+  - any unknown VerPack is registered here with an incremental key.
+    (i.e. new key = current maximum key + 1)
+  - (TODO) in the future, no longer referred data will be removed as well.
+ -}
+type VerPackDb = IM.IntMap VerPack
+
 data ServerState
   = ServerState
-  { ssVersionTimestamp :: UTCTime
+  { ssVerPackKey :: Int
   , ssLastContact :: UTCTime
   }
-
-type Version = String
-
-type VersionInfoCache =
-  [(UTCTime, M.Map T.Text Version)] -- in descending order of time
 
 data State
   = State
   { sServerIps :: IM.IntMap String -- value example: "203.104.209.71"
   , sServerState :: IM.IntMap ServerState
-  , sVersionInfoCache :: VersionInfoCache
+  , sVersionInfoCache :: VerPackDb
   }
 
 -- known server names
