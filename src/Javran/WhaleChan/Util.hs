@@ -2,6 +2,7 @@
     OverloadedStrings
   , TypeApplications
   , FlexibleContexts
+  , ScopedTypeVariables
   #-}
 module Javran.WhaleChan.Util
   ( oneSec
@@ -13,16 +14,18 @@ module Javran.WhaleChan.Util
   , isConnectionResetException
   , waitUntilStartOfNextMinute
   , dTell
+  , checkNetwork
   ) where
 
-import Control.Exception
 import Control.Concurrent
+import Control.DeepSeq
+import Control.Exception
 import Control.Monad.Writer
 import Data.List (isPrefixOf)
 import Data.Time.Clock
-
 import GHC.IO.Exception
 import Network.HTTP.Client
+import Network.HTTP.Client.TLS (tlsManagerSettings)
 
 import qualified Data.Yaml as Yaml
 import qualified Data.DList as DL
@@ -90,3 +93,16 @@ waitUntilStartOfNextMinute = do
 
 dTell :: MonadWriter (DL.DList a) m => a -> m ()
 dTell = tell . DL.singleton
+
+-- | check network connection
+checkNetwork :: IO Bool
+checkNetwork =
+    catch checkGoogle (\(_ :: SomeException) -> pure False)
+  where
+    checkGoogle =  do
+      -- one shot manager. in case there are caching related behaviors
+      mgr <- newManager tlsManagerSettings
+      req <- parseUrlThrow "http://www.google.com/generate_204"
+      resp <- httpNoBody req mgr
+      let hdrs = responseHeaders resp
+      pure $! hdrs `deepseq` True

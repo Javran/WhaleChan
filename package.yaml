@@ -43,6 +43,7 @@ dependencies:
   - mime-types
   - dlist
   - conduit-extra
+  - deepseq
 
 library:
   source-dirs: src
