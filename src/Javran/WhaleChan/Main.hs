@@ -26,6 +26,7 @@ import Javran.WhaleChan.ReminderThread (reminderThread)
 import Javran.WhaleChan.TweetSyncThread (tweetSyncThread, createTwMVar)
 import Javran.WhaleChan.ExtInfoThread (extInfoThread)
 import Javran.WhaleChan.ProfileDiffThread (profileDiffThread)
+import Javran.WhaleChan.ServerStatThread (serverStatThread)
 import Javran.WhaleChan.HealthThread
 import Javran.WhaleChan.Types
 import qualified Javran.WhaleChan.Log as Log
@@ -44,6 +45,7 @@ startService wconf = do
   tcTwitter <- createTwMVar
   tcReminder <- newMVar (Nothing, Nothing)
   tcHealth <- mkTcHealth
+  tcServerStat <- newMVar Nothing
   aLog <- async (startLogger tcLogger)
   -- ref: https://stackoverflow.com/q/43835656/315302
   tzTokyo <- getTimeZoneSeriesFromOlsonFile "/usr/share/zoneinfo/Asia/Tokyo"
@@ -55,6 +57,7 @@ startService wconf = do
           , tweetSyncThread
           , extInfoThread
           , profileDiffThread
+          , serverStatThread
           ]
   let info = Log.i' (wenvToLoggerIO wenv) "Main"
   t <- getCurrentTime

@@ -1,13 +1,26 @@
 {-# LANGUAGE
     OverloadedStrings
+  , TypeApplications
+  , DeriveGeneric
   #-}
-module Javran.WhaleChan.ServerStatThread where
+module Javran.WhaleChan.ServerStatThread
+  ( serverStatThread
+  ) where
 
-import Data.Time.Clock
-
-import qualified Data.Map.Strict as M
+import Control.Concurrent
+import Control.Monad.RWS
+import Data.Aeson
+import Data.Default
 import qualified Data.IntMap.Strict as IM
+import qualified Data.Map.Strict as M
 import qualified Data.Text as T
+import Data.Time.Clock
+import GHC.Generics
+
+import Javran.WhaleChan.Types
+import Javran.WhaleChan.Util
+import Javran.WhaleChan.Base
+import qualified Javran.WhaleChan.Log as Log
 
 {-
   for getting server related infomation.
@@ -15,6 +28,7 @@ import qualified Data.Text as T
 
 {-
   design draft:
+  (TODO) impl
 
   - in order not to get too noisy, we only post about following events:
 
@@ -62,22 +76,29 @@ type VerPack = M.Map T.Text T.Text
  -}
 type VerPackDb = IM.IntMap VerPack
 
-data ServerState
-  = ServerState
+data KcServerState
+  = KcServerState
   { ssVerPackKey :: Int
   , ssLastContact :: UTCTime
-  }
+  } deriving (Eq, Generic)
+
+instance FromJSON KcServerState
+instance ToJSON KcServerState
 
 data State
   = State
   { sServerIps :: IM.IntMap String -- value example: "203.104.209.71"
-  , sServerState :: IM.IntMap ServerState
+  , sKcServerStates :: IM.IntMap KcServerState
   , sVersionInfoCache :: VerPackDb
-  }
+  } deriving (Eq, Generic)
+
+instance FromJSON State
+instance ToJSON State
+instance Default State
 
 -- known server names
-serverNamesTable :: IM.IntMap T.Text
-serverNamesTable = IM.fromList
+_serverNamesTable :: IM.IntMap T.Text
+_serverNamesTable = IM.fromList
   [ (1 , "横須賀鎮守府")
   , (2 , "呉鎮守府")
   , (3 , "佐世保鎮守府")
@@ -99,3 +120,30 @@ serverNamesTable = IM.fromList
   , (19 , "佐伯湾泊地")
   , (20 , "柱島泊地")
   ]
+
+serverStatThread :: WEnv -> IO ()
+serverStatThread wenv =
+    autoWCM @State tag "server-stat.yaml" wenv threadStep
+
+tag :: String
+tag = "ServerStat"
+
+type M = WCM State
+
+threadStep :: M (M ()) -> M ()
+threadStep markStart = do
+    (_,TCommon{tcServerStat=ch}) <- ask
+    markEnd <- markStart
+    mServerInfo <- liftIO $ swapMVar ch Nothing
+    -- TODO: notify about server ip change
+    Log.i tag $ "Received: " <> show mServerInfo
+    {-
+      TODO:
+      - scan servers and download VerPack for inspection
+      - update sKcServerStates accordingly
+      - post new message when:
+        + a new VerPack is known
+        + all servers are caught up on VerPack
+     -}
+    markEnd
+    liftIO $ threadDelay $ oneSec * 60 * 10 -- 10 mins for now

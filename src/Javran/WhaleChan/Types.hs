@@ -38,6 +38,7 @@ import Web.Twitter.Types
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
 import qualified Data.Map.Strict as M
+import qualified Data.IntMap.Strict as IM
 import qualified Data.Sequence as Seq
 import qualified Data.Text as T
 import qualified Data.Yaml as Yaml
@@ -121,6 +122,7 @@ data TCommon
   , tcReminder :: MVar MaintenanceInfo -- mvar for reminder thread
   , tcLogger :: Chan WLog
   , tcHealth :: MVar (Seq.Seq Heartbeat)
+  , tcServerStat :: MVar (Maybe (IM.IntMap String))
   , tzTokyo :: TimeZoneSeries
   }
 

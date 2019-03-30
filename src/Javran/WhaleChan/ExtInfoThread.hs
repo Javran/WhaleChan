@@ -74,7 +74,7 @@ type EIM = WCM ExtInfo
 
 extInfoThread :: WEnv -> IO ()
 extInfoThread wenv = do
-    let (_,TCommon{tcManager=mgr,tcReminder=tRmdr}) = wenv
+    let (_,TCommon{tcManager=mgr,tcReminder=tRmdr,tcServerStat=tSS}) = wenv
         logErr = Log.e "ExtInfo"
         consumeErr srcName eResult procResult = case eResult of
             Left e -> logErr $ "Error on source: '" <> srcName <> "', " <> displayException e
@@ -105,7 +105,7 @@ extInfoThread wenv = do
                     modify $ \ei -> ei {serverInfo = si}
                   Nothing -> pure ()
             markEnd :: EIM ()
-            ExtInfo mtNew _ <- get
+            ExtInfo mtNew si <- get
             {-
               always send message to interested threads.
               the idea is to allow recipient's persistent state to be wiped out
@@ -114,7 +114,10 @@ extInfoThread wenv = do
              -}
             liftIO $ do
                 t <- getCurrentTime
+                -- put maintenance info to ReminderThread
                 _ <- swapMVar tRmdr (summarize t mtNew)
+                -- put server map to ServerStatThread
+                _ <- swapMVar tSS (Just si)
                 threadDelay $ oneSec * 60
     autoWCM @ExtInfo "ExtInfo" "ext-info.yaml" wenv extInfoStep
 
