@@ -90,7 +90,7 @@ data State
   = State
   { sServerAddrs :: IM.IntMap String -- value example: "http://203.104.209.71/"
   , sKcServerStates :: IM.IntMap KcServerState
-  , sVersionInfoCache :: VerPackDb
+  , sVerPackDb :: VerPackDb
   } deriving (Eq, Generic)
 
 instance FromJSON State
@@ -140,6 +140,24 @@ _getInfoFromKcServer mgr addr = do
     let Just vp = decode raw
     t <- getCurrentTime
     pure (vp, t)
+
+_registerVerPack :: VerPack -> M Int
+_registerVerPack vp = do
+    State {sVerPackDb = db} <- get
+    let vps = IM.toList db
+        -- admittedly this is not an efficient way to do it
+        -- but in our case the map is very small.
+        existing = filter ((==vp) . snd) vps
+    case existing of
+      [] -> do
+        let thisKey =
+              if IM.null db
+                then 0
+                else fst (IM.findMax db) + 1
+        modify (\s -> s {sVerPackDb = IM.insert thisKey vp db })
+        pure thisKey
+      [(k, _)] -> pure k
+      _ -> error "uncreachable"
 
 threadStep :: M (M ()) -> M ()
 threadStep markStart = do
