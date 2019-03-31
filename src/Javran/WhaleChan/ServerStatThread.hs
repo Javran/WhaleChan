@@ -16,6 +16,7 @@ import qualified Data.Map.Strict as M
 import qualified Data.Text as T
 import Data.Time.Clock
 import GHC.Generics
+import Network.HTTP.Client
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Util
@@ -130,6 +131,16 @@ tag = "ServerStat"
 
 type M = WCM State
 
+-- try to download resource from a kcserver
+_getInfoFromKcServer :: Manager -> String -> IO (VerPack, UTCTime)
+_getInfoFromKcServer mgr addr = do
+    let url = addr <> "/kcs2/version.json"
+    req <- parseUrlThrow url
+    raw <- responseBody <$> httpLbs req mgr
+    let Just vp = decode raw
+    t <- getCurrentTime
+    pure (vp, t)
+
 threadStep :: M (M ()) -> M ()
 threadStep markStart = do
     (_,TCommon{tcServerStat=ch}) <- ask
@@ -138,6 +149,7 @@ threadStep markStart = do
     -- update server addrs (if available)
     case mServerInfo of
       Just si ->
+        -- TODO: signal changes
         modify $ \s@State {sServerAddrs=addrs} ->
           s {sServerAddrs = si `IM.union` addrs}
       Nothing ->
