@@ -150,8 +150,13 @@ threadStep markStart = do
     case mServerInfo of
       Just si ->
         -- TODO: signal changes
-        modify $ \s@State {sServerAddrs=addrs} ->
-          s {sServerAddrs = si `IM.union` addrs}
+        {-
+          here we are replacing server addrs with
+          whatever info available from channel rather than updating
+          as the infomation is parsed from same file
+          therefore they should stay together
+         -}
+        modify $ \s-> s {sServerAddrs = si}
       Nothing ->
         pure ()
     {-
