@@ -135,8 +135,13 @@ threadStep markStart = do
     (_,TCommon{tcServerStat=ch}) <- ask
     markEnd <- markStart
     mServerInfo <- liftIO $ swapMVar ch Nothing
-    -- TODO: notify about server ip change
-    Log.i tag $ "Received: " <> show mServerInfo
+    -- update server addrs (if available)
+    case mServerInfo of
+      Just si ->
+        modify $ \s@State {sServerAddrs=addrs} ->
+          s {sServerAddrs = si `IM.union` addrs}
+      Nothing ->
+        pure ()
     {-
       TODO:
       - scan servers and download VerPack for inspection
