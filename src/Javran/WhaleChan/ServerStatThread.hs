@@ -8,9 +8,11 @@ module Javran.WhaleChan.ServerStatThread
   ) where
 
 import Control.Concurrent
+import Control.Concurrent.Async
 import Control.Monad.RWS
 import Data.Aeson
 import Data.Default
+import Data.Either
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
@@ -132,8 +134,8 @@ tag = "ServerStat"
 type M = WCM State
 
 -- try to download resource from a kcserver
-_getInfoFromKcServer :: Manager -> String -> IO (VerPack, UTCTime)
-_getInfoFromKcServer mgr addr = do
+getInfoFromKcServer :: Manager -> String -> IO (VerPack, UTCTime)
+getInfoFromKcServer mgr addr = do
     let url = addr <> "/kcs2/version.json"
     req <- parseUrlThrow url
     raw <- responseBody <$> httpLbs req mgr
@@ -159,6 +161,25 @@ _registerVerPack vp = do
       [(k, _)] -> pure k
       _ -> error "uncreachable"
 
+scanAllServers :: M ()
+scanAllServers = do
+  -- TODO: should we use a dedicated manager instead?
+  (_,TCommon{tcManager=mgr}) <- ask
+  State {sServerAddrs = as} <- get
+  liftIO $  do
+    aActions <- traverse (async . getInfoFromKcServer mgr) as
+    aResults <- traverse waitCatch aActions
+    let (errs, results) =
+          partitionEithers
+          . fmap (\(k,e) -> case e of
+                     Left l -> Left (k,l)
+                     Right r -> Right (k,r)
+                     )
+          . IM.toList
+          $ aResults
+    putStrLn $ "error count = " <> show (length errs)
+    putStrLn $ "result count = " <> show (length results)
+
 threadStep :: M (M ()) -> M ()
 threadStep markStart = do
     (_,TCommon{tcServerStat=ch}) <- ask
@@ -177,6 +198,7 @@ threadStep markStart = do
         modify $ \s-> s {sServerAddrs = si}
       Nothing ->
         pure ()
+    scanAllServers
     {-
       TODO:
       - scan servers and download VerPack for inspection
