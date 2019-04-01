@@ -143,8 +143,8 @@ getInfoFromKcServer mgr addr = do
     t <- getCurrentTime
     pure (vp, t)
 
-_registerVerPack :: VerPack -> M Int
-_registerVerPack vp = do
+registerVerPack :: VerPack -> M Int
+registerVerPack vp = do
     State {sVerPackDb = db} <- get
     let vps = IM.toList db
         -- admittedly this is not an efficient way to do it
@@ -166,19 +166,31 @@ scanAllServers = do
   -- TODO: should we use a dedicated manager instead?
   (_,TCommon{tcManager=mgr}) <- ask
   State {sServerAddrs = as} <- get
-  liftIO $  do
+  aResults <- liftIO $ do
     aActions <- traverse (async . getInfoFromKcServer mgr) as
-    aResults <- traverse waitCatch aActions
-    let (errs, results) =
+    traverse waitCatch aActions
+  let (errs, results) =
           partitionEithers
-          . fmap (\(k,e) -> case e of
+          . fmap (\(k,e) -> case e of -- TODO: should be better ways of writing this.
                      Left l -> Left (k,l)
                      Right r -> Right (k,r)
                      )
           . IM.toList
           $ aResults
-    putStrLn $ "error count = " <> show (length errs)
-    putStrLn $ "result count = " <> show (length results)
+      errCount = length errs
+      resCount = length results
+  when (errCount > 0) $
+    Log.i tag $ "error count = " <> show (length errs)
+  when (resCount /= IM.size as) $
+    Log.i tag $ "result count = " <> show (length results)
+  -- TODO for now we do "dark register", which silently registers but tells nothing
+  vpIds <- mapM (\(_k, (vp, _t)) -> registerVerPack vp) results
+  case vpIds of
+    [] -> pure ()
+    [_] -> pure ()
+    x:xs ->
+      when (any (/=x) xs) $
+        Log.i tag $ "VerPackIds: " <> show vpIds
 
 threadStep :: M (M ()) -> M ()
 threadStep markStart = do
@@ -210,3 +222,5 @@ threadStep markStart = do
     markEnd
     -- wake up every hour, it's not doing anything anyway.
     liftIO $ threadDelay $ oneSec * 60 * 60
+    -- TODO: much shorter sleep just for debugging.
+    -- liftIO $ threadDelay oneSec
