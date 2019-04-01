@@ -186,8 +186,8 @@ scanAllServers = do
   -- TODO for now we do "dark register", which silently registers but tells nothing
   vpIds <- mapM (\(_k, (vp, _t)) -> registerVerPack vp) results
   case vpIds of
-    [] -> pure ()
-    [_] -> pure ()
+    [] -> Log.i tag "no vp id available"
+    [_] -> Log.i tag "exactly one vp id found"
     x:xs ->
       when (any (/=x) xs) $
         Log.i tag $ "VerPackIds: " <> show vpIds
