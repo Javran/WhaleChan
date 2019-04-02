@@ -55,6 +55,13 @@ import qualified Javran.WhaleChan.Log as Log
 
  -}
 
+{-
+  TODO:
+
+  - create link to original tweet
+  - properly deal with entities, tags should link to twitter links
+ -}
+
 createTwMVar :: IO TwMVar
 createTwMVar = newMVar Seq.empty
 
