@@ -25,6 +25,7 @@ import Data.Time.Clock
 
 import qualified Data.Map.Strict as M
 import qualified Data.Sequence as Seq
+import qualified Data.Text as T
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Util
@@ -74,6 +75,18 @@ createTwMVar = newMVar Seq.empty
 putTwMsg :: TwMVar -> TwRxMsg -> IO ()
 putTwMsg mv m =
   modifyMVar_ mv (pure . (Seq.|> m))
+
+{-
+  ref:
+  - https://stackoverflow.com/a/49924429/315302
+  - https://core.telegram.org/bots/api#markdown-style
+ -}
+simpleMarkdownEscape :: T.Text -> T.Text
+simpleMarkdownEscape =
+    T.replace "_" "\\_"
+    . T.replace "*" "\\*"
+    . T.replace "[" "\\["
+    . T.replace "`" "\\`"
 
 tweetSyncThread :: WEnv -> IO ()
 tweetSyncThread wenv = do
@@ -143,12 +156,13 @@ tweetSyncThread wenv = do
                      -}
                     forM_ (reverse tCreated) $ \st -> liftIO $  do
                       let content = "[Tweet] " <> statusText st
+                          escContent = simpleMarkdownEscape content
                       -- TODO: set TSTimedOut
                       if statusCreatedAt st > startTime
                         then do
                           Log.i' loggerIO tag $
                             "push status " <> show (statusId st) <> " to tg"
-                          writeChan tcTelegram (TgRMTweetCreate (statusId st) content)
+                          writeChan tcTelegram (TgRMTweetCreate (statusId st) escContent)
                         else
                           Log.i' loggerIO tag $
                             "status " <> show (statusId st) <> " ignored (outdated)"

@@ -103,11 +103,13 @@ telegramThread wenv@(wconf, tcomm) =
                   Left e -> do
                     logErr (displayException e)
                     logErr $ "request is: " <> show req
-            TgRMTweetCreate stId t ->
-                sendMessageSimple t Nothing >>= \case
-                  Right Response {result = Message {message_id}} ->
+            TgRMTweetCreate stId content -> do
+                let req = (sendMessageRequest chatId content)
+                           {message_parse_mode = Just Markdown}
+                sendMessage tok req tcManager >>= \case
+                   Right Response {result = Message {message_id}} ->
                     putTwMsg tcTwitter (TwRMTgSent message_id stId)
-                  Left err -> logErr $ displayException err
+                   Left err -> logErr $ displayException err
             TgRMTweetDestroy stId msgId ->
                 sendMessageSimple "This tweet is deleted." (Just msgId) >>= \case
                   Right Response {result = Message {message_id}} ->
