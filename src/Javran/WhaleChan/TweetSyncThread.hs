@@ -58,8 +58,6 @@ import qualified Javran.WhaleChan.Log as Log
 
 {-
   TODO:
-
-  - create link to original tweet
   - properly deal with entities, tags should link to twitter links
  -}
 
@@ -157,12 +155,14 @@ tweetSyncThread wenv = do
                     forM_ (reverse tCreated) $ \st -> liftIO $  do
                       let content = "[Tweet] " <> statusText st
                           escContent = simpleMarkdownEscape content
+                          mdLink = createTweetLinkMarkdown tzTokyo st
+                          finalContent = escContent <> "\n" <> mdLink
                       -- TODO: set TSTimedOut
                       if statusCreatedAt st > startTime
                         then do
                           Log.i' loggerIO tag $
                             "push status " <> show (statusId st) <> " to tg"
-                          writeChan tcTelegram (TgRMTweetCreate (statusId st) escContent)
+                          writeChan tcTelegram (TgRMTweetCreate (statusId st) finalContent)
                         else
                           Log.i' loggerIO tag $
                             "status " <> show (statusId st) <> " ignored (outdated)"
