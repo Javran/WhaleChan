@@ -8,16 +8,23 @@
   #-}
 module Javran.WhaleChan.Twitter
   ( callTwApi
+  , createTweetLinkMarkdown
   ) where
 
 import Control.Exception
 import Control.Monad.RWS
 import Data.Aeson
+import Data.Conduit.Attoparsec
+import Data.Time.Format
+import Data.Time.LocalTime.TimeZone.Series
 import Network.HTTP.Client
 import Web.Twitter.Conduit hiding (count)
-import Data.Conduit.Attoparsec
+import Web.Twitter.Types
 
 import qualified Data.ByteString.Char8 as BSC
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as TB
+import qualified Data.Text.Lazy.Builder.Int as TB
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Util
@@ -117,3 +124,26 @@ callTwApi tag req handleResp = do
              -}
             Log.i tag "rate limit header not available"
         handleResp responseBody
+
+{-
+  format: [<Month> <Day>, <Year> at <HH>:<MM> JST](https://twitter.com/<user>/status/<id>)
+ -}
+createTweetLinkMarkdown :: TimeZoneSeries -> Status -> T.Text
+createTweetLinkMarkdown tzTokyo st =
+    buildStrictText $
+      "[" <> TB.fromString timeStr <> "](" <> twUrl <> ")"
+  where
+    Status
+      { statusCreatedAt = stTime
+      , statusId = sId
+      , statusUser =
+        User
+          { userScreenName = uScrName }
+      } = st
+    twUrl = "https://twitter.com/" <> TB.fromText uScrName <> "/status/" <> TB.decimal sId
+    jstLocalTime = utcToLocalTime' tzTokyo stTime
+    timeStr =
+      formatTime
+        defaultTimeLocale
+        "%B %d, %Y at %R JST"
+        jstLocalTime
