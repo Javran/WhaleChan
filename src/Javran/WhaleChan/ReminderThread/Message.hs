@@ -5,7 +5,6 @@ module Javran.WhaleChan.ReminderThread.Message where
 
 import Data.List
 import Data.Time.Clock
-import Data.Text.Lazy (toStrict)
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as TB
@@ -24,7 +23,7 @@ type MessageRep =
 
 renderMessage :: UTCTime -> MessageRep -> Maybe T.Text
 renderMessage curTime xsD =
-    toStrict . TB.toLazyText <$>
+    buildStrictText <$>
       case filter (not . null . snd) . DL.toList $ xsD of
         [] -> Nothing
         [(eDesc, [eTimeSrc])] ->

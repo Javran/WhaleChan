@@ -15,6 +15,7 @@ module Javran.WhaleChan.Util
   , waitUntilStartOfNextMinute
   , dTell
   , checkNetwork
+  , buildStrictText
   ) where
 
 import Control.Concurrent
@@ -29,6 +30,9 @@ import Network.HTTP.Client.TLS (tlsManagerSettings)
 
 import qualified Data.Yaml as Yaml
 import qualified Data.DList as DL
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as TB
+import qualified Data.Text.Lazy as TL
 
 {-
   place for some commonly used functions.
@@ -106,3 +110,6 @@ checkNetwork =
       resp <- httpNoBody req mgr
       let hdrs = responseHeaders resp
       pure $! hdrs `deepseq` True
+
+buildStrictText :: TB.Builder -> T.Text
+buildStrictText = TL.toStrict . TB.toLazyText

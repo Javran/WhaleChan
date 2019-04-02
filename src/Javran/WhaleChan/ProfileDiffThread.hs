@@ -29,7 +29,6 @@ import Web.Twitter.Types
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Text as T
-import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Javran.WhaleChan.Log as Log
 import qualified Text.ParserCombinators.ReadP as P
@@ -189,7 +188,7 @@ profileDiffThread wenv@(_, TCommon{tzTokyo}) = do
                     , "- Followers: " <> TB.fromString (show fodCnt) <> fodDiff <> "\n"
                     ]
               Log.i tag "sending new twitter stats"
-              liftIO $ writeChan tcTelegram (TgRMProfileStat (TL.toStrict . TB.toLazyText $ contentB))
+              liftIO $ writeChan tcTelegram (TgRMProfileStat (buildStrictText contentB))
               modify (\s -> s {lastStat = Just (curTime, pStat)})
         markEnd
         liftIO $ threadDelay $ 2 * oneSec
