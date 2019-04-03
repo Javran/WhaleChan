@@ -193,8 +193,9 @@ scanAllServers = do
     [] -> Log.i tag "no vp id available"
     [_] -> Log.i tag "exactly one vp id found"
     x:xs ->
-      when (any (/=x) xs) $
-        Log.i tag $ "VerPackIds: " <> show vpIds
+      if any (/=x) xs
+        then Log.i tag $ "VerPackIds: " <> show vpIds
+        else Log.i tag $ "all VarPackIds are: " <> show x
 
 threadStep :: M (M ()) -> M ()
 threadStep markStart = do
