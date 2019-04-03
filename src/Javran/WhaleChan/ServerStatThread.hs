@@ -9,6 +9,7 @@ module Javran.WhaleChan.ServerStatThread
 
 import Control.Concurrent
 import Control.Concurrent.Async
+import Control.Exception
 import Control.Monad.RWS
 import Data.Aeson
 import Data.Default
@@ -136,7 +137,7 @@ type M = WCM State
 -- try to download resource from a kcserver
 getInfoFromKcServer :: Manager -> String -> IO (VerPack, UTCTime)
 getInfoFromKcServer mgr addr = do
-    let url = addr <> "/kcs2/version.json"
+    let url = addr <> "kcs2/version.json"
     req <- parseUrlThrow url
     raw <- responseBody <$> httpLbs req mgr
     let Just vp = decode raw
@@ -179,8 +180,11 @@ scanAllServers = do
           $ aResults
       errCount = length errs
       resCount = length results
-  when (errCount > 0) $
+  when (errCount > 0) $ do
     Log.i tag $ "error count = " <> show (length errs)
+    forM_ errs $ \(i, e) -> do
+      Log.e tag $ "server #" <> show i <> " encountered exception: " <> displayException e
+      pure ()
   when (resCount /= IM.size as) $
     Log.i tag $ "result count = " <> show (length results)
   -- TODO for now we do "dark register", which silently registers but tells nothing
