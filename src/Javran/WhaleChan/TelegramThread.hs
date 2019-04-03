@@ -105,7 +105,9 @@ telegramThread wenv@(wconf, tcomm) =
                     logErr $ "request is: " <> show req
             TgRMTweetCreate stId content -> do
                 let req = (sendMessageRequest chatId content)
-                           {message_parse_mode = Just Markdown}
+                           { message_parse_mode = Just Markdown
+                           , message_disable_web_page_preview = Just True
+                           }
                 sendMessage tok req tcManager >>= \case
                    Right Response {result = Message {message_id}} ->
                     putTwMsg tcTwitter (TwRMTgSent message_id stId)
