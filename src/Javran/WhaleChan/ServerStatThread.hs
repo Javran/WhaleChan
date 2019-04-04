@@ -16,13 +16,16 @@ import Data.Aeson
 import Data.Bifunctor
 import Data.Default
 import Data.Either
-import qualified Data.IntMap.Strict as IM
-import qualified Data.Map.Strict as M
-import qualified Data.Text as T
+import Data.Maybe
 import Data.Time.Clock
 import GHC.Generics
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS (tlsManagerSettings)
+
+import qualified Data.IntMap.Strict as IM
+import qualified Data.Map.Strict as M
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder.Int as TB
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Util
@@ -104,8 +107,8 @@ instance ToJSON State
 instance Default State
 
 -- known server names
-_serverNamesTable :: IM.IntMap T.Text
-_serverNamesTable = IM.fromList
+serverNamesTable :: IM.IntMap T.Text
+serverNamesTable = IM.fromList
   [ (1 , "横須賀鎮守府")
   , (2 , "呉鎮守府")
   , (3 , "佐世保鎮守府")
@@ -127,6 +130,13 @@ _serverNamesTable = IM.fromList
   , (19 , "佐伯湾泊地")
   , (20 , "柱島泊地")
   ]
+
+_describeServer :: Int -> T.Text
+_describeServer sId =
+    fromMaybe fallbackName (IM.lookup sId serverNamesTable)
+  where
+    fallbackName = buildStrictText $
+      "KcServer#" <> TB.decimal sId
 
 {-
   TODO: we might consider to use HealthThread,
