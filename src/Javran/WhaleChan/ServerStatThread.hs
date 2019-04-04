@@ -2,6 +2,7 @@
     OverloadedStrings
   , TypeApplications
   , DeriveGeneric
+  , TupleSections
   #-}
 module Javran.WhaleChan.ServerStatThread
   ( serverStatThread
@@ -12,6 +13,7 @@ import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad.RWS
 import Data.Aeson
+import Data.Bifunctor
 import Data.Default
 import Data.Either
 import qualified Data.IntMap.Strict as IM
@@ -144,43 +146,46 @@ type M = WCM State
 -- try to download resource from a kcserver
 getInfoFromKcServer :: Manager -> String -> IO (VerPack, UTCTime)
 getInfoFromKcServer mgr addr = do
-    let url = addr <> "kcs2/version.json"
-    req <- parseUrlThrow url
-    raw <- responseBody <$> httpLbs req mgr
-    let Just vp = decode raw
-    t <- getCurrentTime
-    pure (vp, t)
+  let url = addr <> "kcs2/version.json"
+  req <- parseUrlThrow url
+  raw <- responseBody <$> httpLbs req mgr
+  let Just vp = decode raw
+  t <- getCurrentTime
+  pure (vp, t)
 
 registerVerPack :: VerPack -> M Int
 registerVerPack vp = do
-    State {sVerPackDb = db} <- get
-    let vps = IM.toList db
-        -- admittedly this is not an efficient way to do it
-        -- but in our case the map is very small.
-        existing = filter ((==vp) . snd) vps
-    case existing of
-      [] -> do
-        let thisKey =
-              if IM.null db
-                then 0
-                else fst (IM.findMax db) + 1
-        modify (\s -> s {sVerPackDb = IM.insert thisKey vp db })
-        pure thisKey
-      [(k, _)] -> pure k
-      _ -> error "uncreachable"
+  State {sVerPackDb = db} <- get
+  let vps = IM.toList db
+      -- admittedly this is not an efficient way to do it
+      -- but in our case the map is very small.
+      existing = filter ((==vp) . snd) vps
+  case existing of
+    [] -> do
+      let thisKey =
+            if IM.null db
+              then 0
+              else fst (IM.findMax db) + 1
+      modify (\s -> s {sVerPackDb = IM.insert thisKey vp db })
+      pure thisKey
+    [(k, _)] -> pure k
+    _ -> error "uncreachable"
 
 scanAllServers :: Manager -> M ()
 scanAllServers mgr = do
   State {sServerAddrs = as} <- get
+  {-
+    start async actions to fetch VerPack from all known servers
+    and wait for their completions.
+   -}
   aResults <- liftIO $ do
     aActions <- traverse (async . getInfoFromKcServer mgr) as
     traverse waitCatch aActions
-  let (errs, results) =
+  let errs :: [(Int, SomeException)]
+      results :: [(Int, (VerPack, UTCTime))]
+      (errs, results) =
           partitionEithers
-          . fmap (\(k,e) -> case e of -- TODO: should be better ways of writing this.
-                     Left l -> Left (k,l)
-                     Right r -> Right (k,r)
-                     )
+          . fmap (\(k,e) -> bimap (k,) (k,) e)
           . IM.toList
           $ aResults
       errCount = length errs
