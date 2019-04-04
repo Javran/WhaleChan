@@ -131,8 +131,8 @@ serverNamesTable = IM.fromList
   , (20 , "柱島泊地")
   ]
 
-_describeServer :: Int -> T.Text
-_describeServer sId =
+describeServer :: Int -> T.Text
+describeServer sId =
     fromMaybe fallbackName (IM.lookup sId serverNamesTable)
   where
     fallbackName = buildStrictText $
@@ -206,16 +206,28 @@ scanAllServers mgr = do
       errCount = length errs
       resCount = length results
   when (errCount > 0 || resCount /= IM.size as) $
-    Log.i tag $ "(# of errors, # of success) = " <> show (length errs, length results)
-
-  vpIds <- mapM (\(_k, (vp, _t)) -> registerVerPack vp) results
-  case vpIds of
-    [] -> Log.i tag "no vp id available"
-    [_] -> Log.i tag "exactly one vp id found"
-    x:xs ->
-      if any (/=x) xs
-        then Log.i tag $ "VerPackIds: " <> show vpIds
-        else Log.i tag $ "all VarPackIds are: " <> show x
+    Log.i tag $ "abnormal: (# of errors, # of success)=" <> show (errCount, resCount)
+  -- now another traversal to update the State of current thread for each server.
+  vpdBefore <- gets sVerPackDb
+  forM_ (IM.toList aResults) $ \(serverId, aResult) -> case aResult of
+    Left e ->
+      Log.e tag $
+        T.unpack (describeServer serverId)
+        <> " encountered exception: "
+        <> displayException e
+    Right (vp, t) -> do
+      vpId <- registerVerPack vp
+      modify $ \s ->
+        let kss = sKcServerStates s
+            v = KcServerState vpId t
+        in s {sKcServerStates = IM.insert serverId v kss}
+  vpdAfter <- gets sVerPackDb
+  if vpdBefore == vpdAfter
+    then Log.i tag "no difference found in VerPackDb"
+    else do
+      Log.i tag "Found difference in VerPackDb"
+      Log.i tag $ "Before: " <> show vpdBefore
+      Log.i tag $ "After: " <> show vpdAfter
 
 threadStep :: Manager -> M (M ()) -> M ()
 threadStep mgr markStart = do
