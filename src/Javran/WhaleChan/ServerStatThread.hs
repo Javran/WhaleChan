@@ -128,6 +128,11 @@ _serverNamesTable = IM.fromList
   , (20 , "柱島泊地")
   ]
 
+{-
+  TODO: we might consider to use HealthThread,
+  as this thread itself makes frequent network communication
+  and might get stuck.
+ -}
 serverStatThread :: WEnv -> IO ()
 serverStatThread wenv = do
     {-
@@ -190,14 +195,9 @@ scanAllServers mgr = do
           $ aResults
       errCount = length errs
       resCount = length results
-  when (errCount > 0) $ do
-    Log.i tag $ "error count = " <> show (length errs)
-    forM_ errs $ \(i, e) -> do
-      Log.e tag $ "server #" <> show i <> " encountered exception: " <> displayException e
-      pure ()
-  when (resCount /= IM.size as) $
-    Log.i tag $ "result count = " <> show (length results)
-  -- TODO for now we do "dark register", which silently registers but tells nothing
+  when (errCount > 0 || resCount /= IM.size as) $
+    Log.i tag $ "(# of errors, # of success) = " <> show (length errs, length results)
+
   vpIds <- mapM (\(_k, (vp, _t)) -> registerVerPack vp) results
   case vpIds of
     [] -> Log.i tag "no vp id available"
