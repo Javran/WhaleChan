@@ -20,6 +20,7 @@ import qualified Data.Text as T
 import Data.Time.Clock
 import GHC.Generics
 import Network.HTTP.Client
+import Network.HTTP.Client.TLS (tlsManagerSettings)
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Util
@@ -126,8 +127,14 @@ _serverNamesTable = IM.fromList
   ]
 
 serverStatThread :: WEnv -> IO ()
-serverStatThread wenv =
-    autoWCM @State tag "server-stat.yaml" wenv threadStep
+serverStatThread wenv = do
+    {-
+      we are creating one dedicated to talking to various kc servers.
+      since only this very server talks to these servers,
+      it makes sense not to use the shared manager.
+     -}
+    mgr <- newManager tlsManagerSettings
+    autoWCM @State tag "server-stat.yaml" wenv (threadStep mgr)
 
 tag :: String
 tag = "ServerStat"
@@ -162,10 +169,8 @@ registerVerPack vp = do
       [(k, _)] -> pure k
       _ -> error "uncreachable"
 
-scanAllServers :: M ()
-scanAllServers = do
-  -- TODO: should we use a dedicated manager instead?
-  (_,TCommon{tcManager=mgr}) <- ask
+scanAllServers :: Manager -> M ()
+scanAllServers mgr = do
   State {sServerAddrs = as} <- get
   aResults <- liftIO $ do
     aActions <- traverse (async . getInfoFromKcServer mgr) as
@@ -197,8 +202,8 @@ scanAllServers = do
         then Log.i tag $ "VerPackIds: " <> show vpIds
         else Log.i tag $ "all VarPackIds are: " <> show x
 
-threadStep :: M (M ()) -> M ()
-threadStep markStart = do
+threadStep :: Manager -> M (M ()) -> M ()
+threadStep mgr markStart = do
     (_,TCommon{tcServerStat=ch}) <- ask
     markEnd <- markStart
     mServerInfo <- liftIO $ swapMVar ch Nothing
@@ -215,7 +220,7 @@ threadStep markStart = do
         modify $ \s-> s {sServerAddrs = si}
       Nothing ->
         pure ()
-    scanAllServers
+    scanAllServers mgr
     {-
       TODO:
       - scan servers and download VerPack for inspection
