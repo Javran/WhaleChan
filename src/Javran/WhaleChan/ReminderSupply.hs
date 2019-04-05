@@ -3,4 +3,4 @@ module Javran.WhaleChan.ReminderSupply
   ) where
 
 import Javran.WhaleChan.ReminderThread.Types
-
+-- TODO: this module should be eliminated

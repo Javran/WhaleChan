@@ -79,10 +79,14 @@ createEventReminderWithDueList eventTime dueListPre =
     dueList = 0 : dueListPre
     mkTime mins = addUTCTime (fromIntegral @Int $ -60 * mins) eventTime
 
-renewSupplyByFunc ::
-  (LocalTime -> LocalTime) -> TimeZoneSeries -> UTCTime -> Maybe EventReminder
-renewSupplyByFunc getNextTime tzs ut =
-    createEventReminderWithDueList eventTime [24*60, 30, 10, 5]
+renewSupplyByFunc
+  :: (LocalTime -> LocalTime)
+  -> [Int]
+  -> TimeZoneSeries
+  -> UTCTime
+  -> Maybe EventReminder
+renewSupplyByFunc getNextTime xs tzs ut =
+    createEventReminderWithDueList eventTime xs
   where
     eventTime :: UTCTime
     eventTime =
@@ -92,35 +96,59 @@ renewSupplyByFunc getNextTime tzs ut =
       $ ut
 
 instance ReminderSupply 'PracticeReset where
-    renewSupply _ = renewSupplyByFunc nextPracticeReset
+    renewSupply _ =
+      renewSupplyByFunc
+        nextPracticeReset
+        [24*60, 30, 10, 5]
     eventDescription _ = "Practice Reset"
 
 instance ReminderSupply 'DailyQuestReset where
-    renewSupply _ = renewSupplyByFunc nextDailyQuestReset
+    renewSupply _ =
+      renewSupplyByFunc
+        nextDailyQuestReset
+        [24*60, 30, 10, 5]
     eventDescription _ = "Daily Quest Reset"
 
 instance ReminderSupply 'WeeklyQuestReset where
-    renewSupply _ = renewSupplyByFunc nextWeeklyQuestReset
+    renewSupply _ =
+      renewSupplyByFunc
+        nextWeeklyQuestReset
+        [24*60, 30, 10, 5]
     eventDescription _ = "Weekly Quest Reset"
 
 instance ReminderSupply 'MonthlyQuestReset where
-    renewSupply _ = renewSupplyByFunc nextMonthlyQuestReset
+    renewSupply _ =
+      renewSupplyByFunc
+        nextMonthlyQuestReset
+        [24*60, 30, 10, 5]
     eventDescription _ = "Monthly Quest Reset"
 
 instance ReminderSupply 'QuarterlyQuestReset where
-    renewSupply _ = renewSupplyByFunc nextQuarterlyQuestReset
+    renewSupply _ =
+      renewSupplyByFunc
+        nextQuarterlyQuestReset
+        [24*60, 30, 10, 5]
     eventDescription _ = "Quarterly Quest Reset"
 
 instance ReminderSupply 'ExtraOperationReset where
-    renewSupply _ = renewSupplyByFunc nextExtraOperationReset
+    renewSupply _ =
+      renewSupplyByFunc
+        nextExtraOperationReset
+        [24*60, 30, 10, 5]
     eventDescription _ = "Extra Operation Reset"
 
 instance ReminderSupply 'SenkaAccounting where
-    renewSupply _ = renewSupplyByFunc nextSenkaAccounting
+    renewSupply _ =
+      renewSupplyByFunc
+        nextSenkaAccounting
+        [24*60, 30, 10, 5]
     eventDescription _ = "Senka Accounting"
 
 instance ReminderSupply 'QuestPointDeadline where
-    renewSupply _ = renewSupplyByFunc nextQuestPointDeadline
+    renewSupply _ =
+      renewSupplyByFunc
+        nextQuestPointDeadline
+        [24*60, 30, 10, 5]
     eventDescription _ = "Quest Point Deadline"
 
 
