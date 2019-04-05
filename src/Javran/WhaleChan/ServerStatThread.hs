@@ -208,7 +208,6 @@ scanAllServers mgr = do
   when (errCount > 0 || resCount /= IM.size as) $
     Log.i tag $ "abnormal: (# of errors, # of success)=" <> show (errCount, resCount)
   -- now another traversal to update the State of current thread for each server.
-  vpdBefore <- gets sVerPackDb
   forM_ (IM.toList aResults) $ \(serverId, aResult) -> case aResult of
     Left e ->
       Log.e tag $
@@ -221,13 +220,6 @@ scanAllServers mgr = do
         let kss = sKcServerStates s
             v = KcServerState vpId t
         in s {sKcServerStates = IM.insert serverId v kss}
-  vpdAfter <- gets sVerPackDb
-  if vpdBefore == vpdAfter
-    then Log.i tag "no difference found in VerPackDb"
-    else do
-      Log.i tag "Found difference in VerPackDb"
-      Log.i tag $ "Before: " <> show vpdBefore
-      Log.i tag $ "After: " <> show vpdAfter
 
 threadStep :: Manager -> M (M ()) -> M ()
 threadStep mgr markStart = do
@@ -237,7 +229,7 @@ threadStep mgr markStart = do
     -- update server addrs (if available)
     case mServerInfo of
       Just si ->
-        -- TODO: signal changes
+        -- TODO: signal changes to server ips
         {-
           here we are replacing server addrs with
           whatever info available from channel rather than updating
@@ -247,12 +239,19 @@ threadStep mgr markStart = do
         modify $ \s-> s {sServerAddrs = si}
       Nothing ->
         pure ()
+    dbBefore <- gets sVerPackDb
     scanAllServers mgr
+    dbAfter <- gets sVerPackDb
+    if dbBefore == dbAfter
+      then Log.i tag "no difference found in VerPackDb"
+      else do
+        Log.i tag "Found difference in VerPackDb"
+        Log.i tag $ "Before: " <> show dbBefore
+        Log.i tag $ "After: " <> show dbAfter
     {-
-      TODO:
       - scan servers and download VerPack for inspection
       - update sKcServerStates accordingly
-      - post new message when:
+      - (TODO) post new message when:
         + a new VerPack is known
         + all servers are caught up on VerPack
      -}
