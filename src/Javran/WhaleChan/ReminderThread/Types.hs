@@ -99,56 +99,56 @@ instance ReminderSupply 'PracticeReset where
     renewSupply _ =
       renewSupplyByFunc
         nextPracticeReset
-        [24*60, 30, 10, 5]
+        [60, 30, 10, 5]
     eventDescription _ = "Practice Reset"
 
 instance ReminderSupply 'DailyQuestReset where
     renewSupply _ =
       renewSupplyByFunc
         nextDailyQuestReset
-        [24*60, 30, 10, 5]
+        [60, 30, 10, 5]
     eventDescription _ = "Daily Quest Reset"
 
 instance ReminderSupply 'WeeklyQuestReset where
     renewSupply _ =
       renewSupplyByFunc
         nextWeeklyQuestReset
-        [24*60, 30, 10, 5]
+        [24*60, 60, 30, 10, 5]
     eventDescription _ = "Weekly Quest Reset"
 
 instance ReminderSupply 'MonthlyQuestReset where
     renewSupply _ =
       renewSupplyByFunc
         nextMonthlyQuestReset
-        [24*60, 30, 10, 5]
+        [2*24*60, 24*60, 60, 30, 10, 5]
     eventDescription _ = "Monthly Quest Reset"
 
 instance ReminderSupply 'QuarterlyQuestReset where
     renewSupply _ =
       renewSupplyByFunc
         nextQuarterlyQuestReset
-        [24*60, 30, 10, 5]
+        [3*24*60, 2*24*60, 24*60, 60, 30, 10, 5]
     eventDescription _ = "Quarterly Quest Reset"
 
 instance ReminderSupply 'ExtraOperationReset where
     renewSupply _ =
       renewSupplyByFunc
         nextExtraOperationReset
-        [24*60, 30, 10, 5]
+        [2*24*60, 24*60, 60, 30, 10, 5]
     eventDescription _ = "Extra Operation Reset"
 
 instance ReminderSupply 'SenkaAccounting where
     renewSupply _ =
       renewSupplyByFunc
         nextSenkaAccounting
-        [24*60, 30, 10, 5]
+        [60, 30, 10, 5]
     eventDescription _ = "Senka Accounting"
 
 instance ReminderSupply 'QuestPointDeadline where
     renewSupply _ =
       renewSupplyByFunc
         nextQuestPointDeadline
-        [24*60, 30, 10, 5]
+        [2*24*60, 24*60, 60, 30, 10, 5]
     eventDescription _ = "Quest Point Deadline"
 
 
