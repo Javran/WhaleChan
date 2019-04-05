@@ -246,8 +246,27 @@ threadStep mgr markStart = do
       then Log.i tag "no difference found in VerPackDb"
       else do
         Log.i tag "Found difference in VerPackDb"
-        Log.i tag $ "Before: " <> show dbBefore
-        Log.i tag $ "After: " <> show dbAfter
+        {-
+          note #1: up until this point we have removed nothing
+          from db, meaning that if dbBefore is non-empty, so will dbAfter be.
+
+          note #2: hopefully VerPack with the lowest vpId is the one that
+          all servers have agreed upon (in the past) and the max one after
+          server scan is the latest version of VerPack, comparing these two
+          allows us to give more detailed info about which part of the game has been updated.
+         -}
+        case (IM.minView dbBefore, IM.maxView dbAfter) of
+          (Nothing, _) -> Log.i tag "Fresh start."
+          (Just (vpBefore, _), Just (vpAfter, _)) -> do
+            Log.i tag $ "Before: " <> show vpBefore
+            Log.i tag $ "After: " <> show vpAfter
+          _ -> do
+            -- this should be unreachable
+            Log.e tag "could not determine the difference"
+            Log.e tag $ "Db Before: " <> show dbBefore
+            Log.e tag $ "Db After: " <> show dbAfter
+
+        pure ()
     {-
       - scan servers and download VerPack for inspection
       - update sKcServerStates accordingly
