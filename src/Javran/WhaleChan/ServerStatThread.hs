@@ -24,6 +24,7 @@ import Network.HTTP.Client.TLS (tlsManagerSettings)
 
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Map.Strict as M
+import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder.Int as TB
 
@@ -258,8 +259,26 @@ threadStep mgr markStart = do
         case (IM.minView dbBefore, IM.maxView dbAfter) of
           (Nothing, _) -> Log.i tag "Fresh start."
           (Just (vpBefore, _), Just (vpAfter, _)) -> do
+            Log.i tag "Summary:"
             Log.i tag $ "Before: " <> show vpBefore
             Log.i tag $ "After: " <> show vpAfter
+            when (IM.size dbBefore == 1) $ do
+              -- db size went from 1 to something, that means
+              -- a new VerPack comes into existence
+              let added = vpAfter `M.difference` vpBefore
+                  removed = vpBefore `M.difference` vpAfter
+                  ksBefore = M.keysSet vpBefore
+                  ksAfter = M.keysSet vpAfter
+                  ksModified = ksBefore `S.intersection` ksAfter
+                  modified = M.fromList (find <$> S.toList ksModified)
+                    where
+                      find k =
+                        ( k
+                        , (fromJust (M.lookup k vpBefore), fromJust (M.lookup k vpAfter))
+                        )
+              Log.i tag $ "Added: " <> show added
+              Log.i tag $ "Removed: " <> show removed
+              Log.i tag $ "Modified: " <> show modified
           _ -> do
             -- this should be unreachable
             Log.e tag "could not determine the difference"
