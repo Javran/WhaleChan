@@ -222,6 +222,17 @@ scanAllServers mgr = do
             v = KcServerState vpId t
         in s {sKcServerStates = IM.insert serverId v kss}
 
+{-
+  scan through sKcServerStates and drop sVerPackDb items no longer being referred
+ -}
+cleanupDb :: M ()
+cleanupDb = do
+  refs <- fmap ssVerPackKey . IM.elems <$> gets sKcServerStates
+  db <- gets sVerPackDb
+  let (dbKeep, dbDrop) = IM.partitionWithKey (\k _ -> k `elem` refs) db
+  Log.i tag $ "Dropping: " <> show dbDrop
+  modify (\s -> s {sVerPackDb = dbKeep})
+
 threadStep :: Manager -> M (M ()) -> M ()
 threadStep mgr markStart = do
     (_,TCommon{tcServerStat=ch}) <- ask
@@ -293,6 +304,11 @@ threadStep mgr markStart = do
         + a new VerPack is known
         + all servers are caught up on VerPack
      -}
+    cleanupDb
+    dbAfterClean <- gets sVerPackDb
+    when (dbAfter /= dbAfterClean && IM.size dbAfter == 1) $
+      Log.i tag "All known server versions are now caught up."
+    Log.i tag $ "db size after gc: " <> show (IM.size dbAfterClean)
     markEnd
     -- wake up every hour, it's not doing anything anyway.
     liftIO $ threadDelay $ oneSec * 60 * 60
