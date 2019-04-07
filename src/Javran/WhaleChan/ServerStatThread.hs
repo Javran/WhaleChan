@@ -34,14 +34,10 @@ import Javran.WhaleChan.Base
 import qualified Javran.WhaleChan.Log as Log
 
 {-
+
   for getting server related infomation.
- -}
 
-{-
-  design draft:
-  (TODO) impl
-
-  - in order not to get too noisy, we only post about following events:
+  - (TODO) in order not to get too noisy, we only post about following events:
 
     + a new version change is first detected at a specific server
     + announce that versions in all servers are now in sync with latest
@@ -49,8 +45,8 @@ import qualified Javran.WhaleChan.Log as Log
     + a server is down (by trying to get the version number)
     + a server is back online
 
-  - keep a list of [(UTCTime, VersionInfo)] in descending order of time,
-    detected versions are first compared against this list then
+  - keep a set of VerPack indexed by ascending number.
+    detected versions are first compared against this set of items then
     registered if missing (with detection time)
 
   - we'll try to make minimum of assumption:
@@ -63,13 +59,14 @@ import qualified Javran.WhaleChan.Log as Log
 
   - at a higher level, we don't actually care about whether a specific
     component, when a new change is detected, we put it into a "known version data file"
-    list together with a timestamp
+    list together with a Int referencing to the VerPackDb
+
   - as soon as a server returns a version data that is not in the "known" map,
     we announce the change (so if other server starts to pick the same new version data file,
     we can remain silence
   - once all servers are caught up, we'll make another announcement
-  - optimize: remove item from known version data file once the item in question
-    is no longer being used by any server
+  - to prevent VerPackDb from piling up items that are no longer being used,
+    any item no longer being referred by any server will be dropped.
 
  -}
 
@@ -83,7 +80,7 @@ type VerPack = M.Map T.Text T.Text
   contains all known VerPack data
   - any unknown VerPack is registered here with an incremental key.
     (i.e. new key = current maximum key + 1)
-  - (TODO) in the future, no longer referred data will be removed as well.
+  - no longer referred data will be removed as well.
  -}
 type VerPackDb = IM.IntMap VerPack
 
@@ -314,5 +311,3 @@ threadStep mgr markStart = do
     markEnd
     -- wake up every hour, it's not doing anything anyway.
     liftIO $ threadDelay $ oneSec * 60 * 60
-    -- TODO: much shorter sleep just for debugging.
-    -- liftIO $ threadDelay oneSec
