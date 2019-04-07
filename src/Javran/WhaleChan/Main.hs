@@ -14,7 +14,7 @@ import Control.Concurrent
 import Control.Concurrent.Async
 import Data.Time.Clock
 import Data.Time.LocalTime.TimeZone.Olson
-import Network.HTTP.Client (newManager)
+import Network.HTTP.Client (newManager, managerResponseTimeout, responseTimeoutMicro)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import System.Directory
 import System.Environment
@@ -34,7 +34,16 @@ import qualified Javran.WhaleChan.Log as Log
 startService :: WConf -> IO ()
 startService wconf = do
   tcLogger <- newChan
-  tcManager <- newManager tlsManagerSettings
+  {-
+    set default timeout to 23 seconds.
+    we are using a prime number (at second precision)
+    to reduce the amount of simultaneous computations.
+   -}
+  let mgrSettings =
+        tlsManagerSettings
+          { managerResponseTimeout = responseTimeoutMicro (23 * 1000 * 1000)
+          }
+  tcManager <- newManager mgrSettings
   tcTelegram <- newChan
   tcTwitter <- createTwMVar
   tcReminder <- newMVar (Nothing, Nothing)
