@@ -87,7 +87,7 @@ simpleMarkdownEscape =
     . T.replace "`" "\\`"
 
 {-
-  TODO: post extra links.
+  TODO: smarter preview switch
   - since tweets are now attached with link
     to the original tweet, we don't want the links to be previewed
     (otherwise it'll be the same content repeated again)
@@ -95,7 +95,10 @@ simpleMarkdownEscape =
   - however, this means that if tweet contains some important links,
     they are no longer being previewed - and we want to fix it.
 
-  - the plan is to post extra telegram messages once the syncing message is posted
+  - the plan is to detect: if the original tweet contains any kind of media or url,
+    the preview option will be turned on
+
+  - otherwise, we have only the link to original tweet, in which case a preview is not desired.
 
  -}
 
