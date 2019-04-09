@@ -86,6 +86,19 @@ simpleMarkdownEscape =
     . T.replace "[" "\\["
     . T.replace "`" "\\`"
 
+{-
+  TODO: post extra links.
+  - since tweets are now attached with link
+    to the original tweet, we don't want the links to be previewed
+    (otherwise it'll be the same content repeated again)
+
+  - however, this means that if tweet contains some important links,
+    they are no longer being previewed - and we want to fix it.
+
+  - the plan is to post extra telegram messages once the syncing message is posted
+
+ -}
+
 tweetSyncThread :: WEnv -> IO ()
 tweetSyncThread wenv = do
     t <- getCurrentTime
