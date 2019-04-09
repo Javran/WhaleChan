@@ -178,7 +178,10 @@ tweetSyncThread wenv = do
                         then do
                           Log.i' loggerIO tag $
                             "push status " <> show (statusId st) <> " to tg"
-                          writeChan tcTelegram (TgRMTweetCreate (statusId st) finalContent)
+                              -- TODO
+                          let shouldPreview = False
+                          writeChan tcTelegram $
+                            TgRMTweetCreate (statusId st) finalContent shouldPreview
                         else
                           Log.i' loggerIO tag $
                             "status " <> show (statusId st) <> " ignored (outdated)"

@@ -37,10 +37,11 @@ describeMessage = \case
       <> "{ parseMode=" <> ps pMode
       <> ", content=" <> shortContent content
       <> "}"
-    TgRMTweetCreate stId content ->
+    TgRMTweetCreate stId content preview ->
       "MsgTweetCreate"
       <> "{ statusId=" <> ps stId
       <> ", content=" <> shortContent content
+      <> ", preview=" <> ps preview
       <> "}"
     TgRMTweetDestroy stId tgId ->
       "MsgTweetDestroy"
@@ -103,10 +104,10 @@ telegramThread wenv@(wconf, tcomm) =
                   Left e -> do
                     logErr (displayException e)
                     logErr $ "request is: " <> show req
-            TgRMTweetCreate stId content -> do
+            TgRMTweetCreate stId content preview -> do
                 let req = (sendMessageRequest chatId content)
                            { message_parse_mode = Just Markdown
-                           , message_disable_web_page_preview = Just True
+                           , message_disable_web_page_preview = Just (not preview)
                            }
                 sendMessage tok req tcManager >>= \case
                    Right Response {result = Message {message_id}} ->

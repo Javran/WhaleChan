@@ -83,7 +83,13 @@ instance FromJSON WConf where
 -- messages received by TelegramThread
 data TgRxMsg
   = TgRMTimer T.Text (Maybe Tg.ParseMode) -- sent from ReminderThread
-  | TgRMTweetCreate Integer T.Text -- sent from TweetSyncThread
+    {-
+       sent from TweetSyncThread:
+
+       TgRMTweetCreate <tweet id> <content> <should preview?>
+
+     -}
+  | TgRMTweetCreate Integer T.Text Bool --
   | TgRMTweetDestroy Integer Int -- sent from TweetSyncThread
   | TgRMProfileImg T.Text -- sent from ProfileDiff
   | TgRMProfileStat T.Text -- sent from ProfileDiff
