@@ -87,22 +87,17 @@ simpleMarkdownEscape =
     . T.replace "`" "\\`"
 
 {-
-  TODO: smarter preview switch
-  - since tweets are now attached with link
-    to the original tweet, we don't want the links to be previewed
-    (otherwise it'll be the same content repeated again)
+  because:
+  (1) telegram tries to be smart and preview all links
+  (2) we want user to be able to go to the original tweet,
+      which by default will be previewed, so the actual content show up twice
+      (second time as preview)
 
-  - however, this means that if tweet contains some important links,
-    they are no longer being previewed - and we want to fix it.
-
-  - the plan is to detect: if the original tweet contains any kind of media or url,
-    the preview option will be turned on
-
-  - otherwise, we have only the link to original tweet, in which case a preview is not desired.
+  preview should not be always disabled.
+  we'll still need preview to be present in the case a tweet contains
+  either media or url.
 
  -}
-
--- preview should be on whenever we have media or url to show
 shouldPreview :: Status -> Bool
 shouldPreview
   Status {
@@ -190,7 +185,6 @@ tweetSyncThread wenv = do
                         then do
                           Log.i' loggerIO tag $
                             "push status " <> show (statusId st) <> " to tg"
-                              -- TODO
                           writeChan tcTelegram $
                             TgRMTweetCreate
                               (statusId st)
