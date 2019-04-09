@@ -102,6 +102,18 @@ simpleMarkdownEscape =
 
  -}
 
+-- preview should be on whenever we have media or url to show
+shouldPreview :: Status -> Bool
+shouldPreview
+  Status {
+    statusEntities =
+      Just Entities
+        { enURLs = eus
+        , enMedia = ems
+        }
+  } = not (null eus && null ems)
+shouldPreview _ = False
+
 tweetSyncThread :: WEnv -> IO ()
 tweetSyncThread wenv = do
     t <- getCurrentTime
@@ -179,9 +191,11 @@ tweetSyncThread wenv = do
                           Log.i' loggerIO tag $
                             "push status " <> show (statusId st) <> " to tg"
                               -- TODO
-                          let shouldPreview = False
                           writeChan tcTelegram $
-                            TgRMTweetCreate (statusId st) finalContent shouldPreview
+                            TgRMTweetCreate
+                              (statusId st)
+                              finalContent
+                              (shouldPreview st)
                         else
                           Log.i' loggerIO tag $
                             "status " <> show (statusId st) <> " ignored (outdated)"
