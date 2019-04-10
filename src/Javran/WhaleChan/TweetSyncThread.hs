@@ -167,22 +167,20 @@ tweetSyncThread wenv = do
                  -}
                 (tCreated, tDeleted) <- state (`updateTweetStates` statusList)
 
-                liftIO $ do
-                  unless (null tCreated) $ do
-                    info $ "created tweets: " <>
+                unless (null tCreated) $ do
+                    liftIO $ info $ "created tweets: " <>
                       intercalate "," (show . statusId <$> tCreated)
                     {-
                       as tCreated is in descending order of time, we'll need to consider
                       every tweet in backward order to keep tg channel's history in sync
                      -}
-                    forM_ (reverse tCreated) $ \st -> liftIO $  do
+                    forM_ (reverse tCreated) $ \st -> do
                       let content = "[Tweet] " <> statusText st
                           escContent = simpleMarkdownEscape content
                           mdLink = createTweetLinkMarkdown tzTokyo st
                           finalContent = escContent <> "\n" <> mdLink
-                      -- TODO: set TSIgnored
                       if statusCreatedAt st > startTime
-                        then do
+                        then liftIO $ do
                           Log.i' loggerIO tag $
                             "push status " <> show (statusId st) <> " to tg"
                           writeChan tcTelegram $
@@ -190,10 +188,11 @@ tweetSyncThread wenv = do
                               (statusId st)
                               finalContent
                               (shouldPreview st)
-                        else
-                          Log.i' loggerIO tag $
+                        else do
+                          liftIO $ Log.i' loggerIO tag $
                             "status " <> show (statusId st) <> " ignored (outdated)"
-                  unless (null tDeleted) $ do
+                          modify $ M.insert (statusId st) (st, TSIgnored)
+                unless (null tDeleted) $ liftIO $ do
                     info $ "deleted tweets: " <>
                       intercalate "," (show . statusId . fst <$> tDeleted)
                     forM_ tDeleted $ \case
