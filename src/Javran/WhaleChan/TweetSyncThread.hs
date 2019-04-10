@@ -143,7 +143,8 @@ tweetSyncThread wenv = do
             markEnd <- markStart
             hb
             mQueue <- liftIO $ swapMVar tcTwitter Seq.empty
-            let info = Log.i' loggerIO tag
+            let info = liftIO . Log.i' loggerIO tag
+                writeToTg = liftIO . writeChan tcTelegram
             callTwApi tag req $ \statusList -> do
                 {-
                   handle received messages.
@@ -166,39 +167,37 @@ tweetSyncThread wenv = do
                   of api call `statusList`, and recognize created and deleted tweets.
                  -}
                 (tCreated, tDeleted) <- state (`updateTweetStates` statusList)
-
                 unless (null tCreated) $ do
-                    liftIO $ info $ "created tweets: " <>
-                      intercalate "," (show . statusId <$> tCreated)
-                    {-
-                      as tCreated is in descending order of time, we'll need to consider
-                      every tweet in backward order to keep tg channel's history in sync
-                     -}
-                    forM_ (reverse tCreated) $ \st -> do
-                      let content = "[Tweet] " <> statusText st
-                          escContent = simpleMarkdownEscape content
-                          mdLink = createTweetLinkMarkdown tzTokyo st
-                          finalContent = escContent <> "\n" <> mdLink
-                      if statusCreatedAt st > startTime
-                        then liftIO $ do
-                          Log.i' loggerIO tag $
-                            "push status " <> show (statusId st) <> " to tg"
-                          writeChan tcTelegram $
-                            TgRMTweetCreate
-                              (statusId st)
-                              finalContent
-                              (shouldPreview st)
-                        else do
-                          liftIO $ Log.i' loggerIO tag $
-                            "status " <> show (statusId st) <> " ignored (outdated)"
-                          modify $ M.insert (statusId st) (st, TSIgnored)
-                unless (null tDeleted) $ liftIO $ do
-                    info $ "deleted tweets: " <>
-                      intercalate "," (show . statusId . fst <$> tDeleted)
-                    forM_ tDeleted $ \case
-                      (st, Just msgId) ->
-                        liftIO $ writeChan tcTelegram (TgRMTweetDestroy (statusId st) msgId)
-                      _ -> pure ()
+                  info $ "created tweets: " <>
+                    intercalate "," (show . statusId <$> tCreated)
+                  {-
+                    as tCreated is in descending order of time, we'll need to consider
+                    every tweet in backward order to keep tg channel's history in sync
+                   -}
+                  forM_ (reverse tCreated) $ \st -> do
+                    let content = "[Tweet] " <> statusText st
+                        escContent = simpleMarkdownEscape content
+                        mdLink = createTweetLinkMarkdown tzTokyo st
+                        finalContent = escContent <> "\n" <> mdLink
+                    if statusCreatedAt st > startTime
+                      then do
+                        info $ "push status " <> show (statusId st) <> " to tg"
+                        writeToTg $
+                          TgRMTweetCreate
+                            (statusId st)
+                            finalContent
+                            (shouldPreview st)
+                      else do
+                        let stId = statusId st
+                        info $ "status " <> show stId <> " ignored (outdated)"
+                        modify $ M.insert stId (st, TSIgnored)
+                unless (null tDeleted) $ do
+                  info $ "deleted tweets: " <>
+                    intercalate "," (show . statusId . fst <$> tDeleted)
+                  forM_ tDeleted $ \case
+                    (st, Just msgId) ->
+                      writeToTg $ TgRMTweetDestroy (statusId st) msgId
+                    _ -> pure ()
             markEnd
             liftIO $ threadDelay $ 3 * oneSec
     autoWCM tag "tweet-sync.yaml" wenv tweetSyncStep
