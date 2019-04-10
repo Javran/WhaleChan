@@ -98,9 +98,6 @@ import qualified Javran.WhaleChan.Log as Log
       during each loop, it looks at the latest MVar and update itself accordingly
  -}
 
-
--- TODO: use lens-datetime
-
 convertResult :: [(EReminderSupply, [UTCTime])] -> MessageRep
 convertResult = DL.fromList . fmap (conv *** fmap (,[]))
   where

@@ -17,6 +17,8 @@ import Data.Time.Calendar
 import Data.Time.Calendar.WeekDate
 import Data.Time.LocalTime
 
+-- TODO: use lens-datetime
+
 {-
   this module implements a bunch of nextXXXX functions
   corresponding to the game.
