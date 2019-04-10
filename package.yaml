@@ -52,7 +52,6 @@ library:
     - Javran.WhaleChan.Base
     - Javran.WhaleChan.Util
     - Javran.WhaleChan.Log
-    - Javran.WhaleChan.ReminderThread.ReminderSupply
     - Javran.WhaleChan.ReminderThread.ReoccuringEvents
     - Javran.WhaleChan.ReminderThread.EventReminder
     - Javran.WhaleChan.ReminderThread.Message

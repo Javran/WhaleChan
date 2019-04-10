@@ -1,4 +1,4 @@
-module Javran.WhaleChan.ReminderThread.ReminderSupplySpec where
+module Javran.WhaleChan.ReminderThread.EventReminderSpec where
 
 import Data.Time.Calendar
 import Data.Time.LocalTime

@@ -1,10 +1,14 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE
+    DeriveGeneric
+  , TypeApplications
+  #-}
 module Javran.WhaleChan.ReminderThread.EventReminder
   ( EventReminder
   , eventOccurTime
   , eventReminderDues
   , makeEventReminder
   , getDuesByTime
+  , createEventReminderWithDueList
   ) where
 
 import GHC.Generics
@@ -55,3 +59,15 @@ getDuesByTime cutTime er@(EventReminder et erds) =
       if null erdsOld
         then Just er
         else makeEventReminder et erdsNew
+
+-- | create a EventReminder with supplied eventTime and a list
+--   of due times (in minutes) by which the reminder should be sent out
+--   prior to the event time.
+--   note that in the resulting list, eventTime is always in the list of
+--   dueTimes so you don't have to pass that as argument explicitly.
+createEventReminderWithDueList :: UTCTime -> [Int] -> Maybe EventReminder
+createEventReminderWithDueList eventTime dueListPre =
+    makeEventReminder eventTime (mkTime <$> dueList)
+  where
+    dueList = 0 : dueListPre
+    mkTime mins = addUTCTime (fromIntegral @Int $ -60 * mins) eventTime

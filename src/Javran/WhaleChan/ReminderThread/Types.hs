@@ -66,19 +66,6 @@ class ReminderSupply (r :: k) where
     default eventDescription :: (Typeable r) => p r -> String
     eventDescription p = show (typeRep p)
 
-
--- | create a EventReminder with supplied eventTime and a list
---   of due times (in minutes) by which the reminder should be sent out
---   prior to the event time.
---   note that in the resulting list, eventTime is always in the list of
---   dueTimes so you don't have to pass that as argument explicitly.
-createEventReminderWithDueList :: UTCTime -> [Int] -> Maybe EventReminder
-createEventReminderWithDueList eventTime dueListPre =
-    makeEventReminder eventTime (mkTime <$> dueList)
-  where
-    dueList = 0 : dueListPre
-    mkTime mins = addUTCTime (fromIntegral @Int $ -60 * mins) eventTime
-
 renewSupplyByFunc
   :: (LocalTime -> LocalTime)
   -> [Int]
