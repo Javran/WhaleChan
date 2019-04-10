@@ -139,7 +139,7 @@ type WEnv = (WConf, TCommon)
 data TgSyncState
   = TSPending -- indicate that a tweet is detected but not yet sent to the channel
   | TSSynced Int -- indicate that a tweet is already sent as a telegram message
-  | TSTimedOut -- tweets acknowledged without syncing to tg (<= tweet-id-greater-than)
+  | TSIgnored -- tweets acknowledged without syncing to tg (<= tweet-id-greater-than)
   | TSRemoving Int -- indicate that a tweet is removed but channel is not yet notified
   | TSRemoved -- indicate that a tweet is removed and ack-ed with another tg message.
       Int {- first one is for the existing tg msg id -}

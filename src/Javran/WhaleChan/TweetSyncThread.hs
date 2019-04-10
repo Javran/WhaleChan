@@ -180,7 +180,7 @@ tweetSyncThread wenv = do
                           escContent = simpleMarkdownEscape content
                           mdLink = createTweetLinkMarkdown tzTokyo st
                           finalContent = escContent <> "\n" <> mdLink
-                      -- TODO: set TSTimedOut
+                      -- TODO: set TSIgnored
                       if statusCreatedAt st > startTime
                         then do
                           Log.i' loggerIO tag $
