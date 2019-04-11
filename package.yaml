@@ -13,6 +13,7 @@ dependencies:
   - text
   - bytestring
   - twitter-conduit
+  - http-types
   - telegram-api
   - authenticate-oauth
   - mtl
