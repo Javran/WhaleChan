@@ -38,6 +38,17 @@ startService wconf = do
     set default timeout to 23 seconds.
     we are using a prime number (at second precision)
     to reduce the amount of simultaneous computations.
+
+    note that the timeout is not guaranteed (see ref below)
+    so sometimes a thread won't be responding for a few seconds or even minutes,
+    to deal with this situation, we need healthThread to keep an close eye on
+    those thread (so far the problem only seems to raise in twitter-related
+    network communications, so only TweetSyncThread and ProfileDiffThread is
+    being monitored.
+
+    ref regarding timeout not working:
+    - https://github.com/snoyberg/http-client/issues/302
+    - https://gitlab.haskell.org/ghc/ghc/issues/8684
    -}
   let mgrSettings =
         tlsManagerSettings

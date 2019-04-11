@@ -23,6 +23,19 @@ import Javran.WhaleChan.Util
 import Javran.WhaleChan.Base
 import qualified Javran.WhaleChan.Log as Log
 
+{-
+
+  This thread monitors other threads by
+  consuming messages from other threads (aka heartbeat) on a regular basis,
+  and print warning messages when threads haven't send heartbeat for a while.
+
+  This thread will also try to restart other threads given that enough
+  duration has passed without receiving a single heartbeat.
+  The restarting works by sending threads in question an async exception.
+  On the recipient thread it will be captured and hopefully restart itself.
+
+ -}
+
 mkTcHealth :: IO (MVar (Seq.Seq Heartbeat))
 mkTcHealth = newMVar Seq.empty
 
