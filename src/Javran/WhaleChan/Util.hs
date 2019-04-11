@@ -126,6 +126,8 @@ displayExceptionShort :: SomeException -> String
 displayExceptionShort se
   | Just (HttpExceptionRequest _ ConnectionTimeout) <- fromException se
     = "HttpConnectionTimeout"
+  | Just (HttpExceptionRequest _ ResponseTimeout) <- fromException se
+    = "HttpResponseTimeout"
   | Just (
       Tw.TwitterErrorResponse
       Tw.Status {Tw.statusCode = 404}
