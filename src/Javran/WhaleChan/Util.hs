@@ -16,6 +16,7 @@ module Javran.WhaleChan.Util
   , dTell
   , checkNetwork
   , buildStrictText
+  , displayExceptionShort
   ) where
 
 import Control.Concurrent
@@ -28,11 +29,13 @@ import GHC.IO.Exception
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 
-import qualified Data.Yaml as Yaml
 import qualified Data.DList as DL
 import qualified Data.Text as T
-import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Builder as TB
+import qualified Data.Yaml as Yaml
+import qualified Network.HTTP.Types.Status as Tw
+import qualified Web.Twitter.Conduit.Response as Tw
 
 {-
   place for some commonly used functions.
@@ -113,3 +116,21 @@ checkNetwork =
 
 buildStrictText :: TB.Builder -> T.Text
 buildStrictText = TL.toStrict . TB.toLazyText
+
+{-
+  like displayException but will try to shorten the description of known exceptions
+  so they don't take too much space in logs
+ -}
+displayExceptionShort :: SomeException -> String
+displayExceptionShort se
+  | Just (HttpExceptionRequest _ ConnectionTimeout) <- fromException se
+    = "HttpConnectionTimeout"
+  | Just (
+      Tw.TwitterErrorResponse
+      Tw.Status {Tw.statusCode = 404}
+      _
+      [Tw.TwitterErrorMessage {Tw.twitterErrorCode = 34}]
+    ) <- fromException se
+    = "TwitterPageNotFound"
+  | otherwise
+    = displayException se
