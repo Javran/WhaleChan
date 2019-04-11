@@ -211,7 +211,7 @@ scanAllServers mgr = do
       Log.e tag $
         T.unpack (describeServer serverId)
         <> " encountered exception: "
-        <> displayException e
+        <> displayExceptionShort e
     Right (vp, t) -> do
       vpId <- registerVerPack vp
       modify $ \s ->

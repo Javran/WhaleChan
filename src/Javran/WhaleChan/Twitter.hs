@@ -98,7 +98,7 @@ callTwApi tag req handleResp = do
       Left e ->
         -- a network exception could be temporary, so
         -- we'll let it proceed instead of throwing exceptions
-        Log.e tag (displayException e)
+        Log.e tag (displayExceptionShort e)
       Right Response{responseHeaders, responseBody} -> do
         let [rlLimit,rlRemaining,_rlReset] =
               ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders) <$>

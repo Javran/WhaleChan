@@ -77,7 +77,10 @@ extInfoThread wenv = do
     let (_,TCommon{tcManager=mgr,tcReminder=tRmdr,tcServerStat=tSS}) = wenv
         logErr = Log.e "ExtInfo"
         consumeErr srcName eResult procResult = case eResult of
-            Left e -> logErr $ "Error on source: '" <> srcName <> "', " <> displayException e
+            Left e ->
+              logErr $
+                "Error on source: '" <> srcName <> "', "
+                <> displayExceptionShort (toException e)
             Right v -> procResult v
         extInfoStep markStart = do
             markEnd <- markStart

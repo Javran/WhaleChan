@@ -118,7 +118,8 @@ buildStrictText :: TB.Builder -> T.Text
 buildStrictText = TL.toStrict . TB.toLazyText
 
 {-
-  like displayException but will try to shorten the description of known exceptions
+  like displayException but will try to shorten the description of
+  known and insignificant exceptions
   so they don't take too much space in logs
  -}
 displayExceptionShort :: SomeException -> String
