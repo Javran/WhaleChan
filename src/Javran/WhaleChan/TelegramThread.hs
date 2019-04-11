@@ -65,6 +65,7 @@ describeMessage = \case
       where
         l = T.length s
 
+{- TODO: messy, cleanup needed -}
 telegramThread :: WEnv -> IO ()
 telegramThread wenv@(wconf, tcomm) =
     protectedAction loggerIO "TelegramThread" 16 $
