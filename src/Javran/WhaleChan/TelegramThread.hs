@@ -64,7 +64,6 @@ describeMessage = \case
       where
         l = T.length s
 
-{- TODO: messy, cleanup needed -}
 telegramThread :: WEnv -> IO ()
 telegramThread wenv@(wconf, tcomm) =
     protectedAction loggerIO "TelegramThread" 16 $
@@ -79,62 +78,45 @@ telegramThread wenv@(wconf, tcomm) =
     TCommon {tcTelegram, tcTwitter, tcManager} = tcomm
     tokenIsEmpty = T.null tokContent
     chatId = ChatId tgChannelId
-    sendTgMessage msgContent modifyRequest afterSuccess = do
+    sendTgMessage msgContent modifyRequest afterSuccess =
       let req = modifyRequest $ sendMessageRequest chatId msgContent
-      sendMessage tok req tcManager >>= \case
+      in sendMessage tok req tcManager >>= \case
         Right resp -> afterSuccess resp
         Left err -> logErr $ displayException err
-
-    sendMessageSimple msg replyTo = sendMessage tok req tcManager
-      where
-        req = SendMessageRequest
-              { message_chat_id = chatId
-              , message_text = msg
-              , message_parse_mode = Nothing
-              , message_disable_web_page_preview = Nothing
-              , message_disable_notification = Nothing
-              , message_reply_to_message_id = replyTo
-              , message_reply_markup = Nothing
-              }
     telegramStep = do
         msg <- readChan tcTelegram
         logInfo $ T.unpack $ describeMessage msg
         if tokenIsEmpty
           then logInfo "token is empty, actual call omitted."
           else case msg of
-            TgRMTimer t pm -> do
-                let req = (sendMessageRequest chatId t) {message_parse_mode=pm}
-                r <- sendMessage tok req tcManager
-                case r of
-                  Right _ -> pure ()
-                  Left e -> do
-                    logErr (displayException e)
-                    logErr $ "request is: " <> show req
-            TgRMTweetCreate stId content preview -> do
-                let req = (sendMessageRequest chatId content)
-                           { message_parse_mode = Just Markdown
+            TgRMTimer content pm ->
+                sendTgMessage
+                  content
+                  (\r -> r {message_parse_mode=pm})
+                  (\_ -> pure ())
+            TgRMTweetCreate stId content preview ->
+                sendTgMessage
+                  content
+                  (\r -> r { message_parse_mode = Just Markdown
                            , message_disable_web_page_preview = Just (not preview)
-                           }
-                sendMessage tok req tcManager >>= \case
-                   Right Response {result = Message {message_id}} ->
+                           }) $
+                  \Response {result = Message {message_id}} ->
                     putTwMsg tcTwitter (TwRMTgSent message_id stId)
-                   Left err -> logErr $ displayException err
             TgRMTweetDestroy stId msgId ->
-                sendMessageSimple "This tweet is deleted." (Just msgId) >>= \case
-                  Right Response {result = Message {message_id}} ->
+                sendTgMessage
+                  "This tweet is deleted."
+                  (\r -> r {message_reply_to_message_id = Just msgId}) $
+                  \Response {result = Message {message_id}} ->
                     putTwMsg tcTwitter (TwRMTgSent message_id stId)
-                  Left err -> logErr $ displayException err
-            TgRMProfileImg {-imgData-} imgUrl -> do
-                 let content = "\\[Profile] " <> "[Source](" <> imgUrl <> ")"
-                     req = (sendMessageRequest chatId content)
-                           {message_parse_mode = Just Markdown}
-                 sendMessage tok req tcManager >>= \case
-                   Right _ -> pure ()
-                   Left err -> logErr $ displayException err
-                 -- for now loading always fails. use url instead
-                 -- until we can figure out how to do this properly
+            TgRMProfileImg {-imgData-} imgUrl ->
+                -- for now loading always fails. use url instead
+                -- until we can figure out how to do this properly
+                sendTgMessage
+                  ("\\[Profile] " <> "[Source](" <> imgUrl <> ")")
+                  (\r -> r {message_parse_mode = Just Markdown})
+                  (\_ -> pure ())
             TgRMProfileStat content ->
-              sendTgMessage
-                content
-                (\r -> r {message_parse_mode = Just Markdown})
-                (\_ -> pure ())
+                sendTgMessage
+                  content
+                  (\r -> r {message_parse_mode = Just Markdown})
+                  (\_ -> pure ())
