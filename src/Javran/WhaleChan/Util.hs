@@ -28,6 +28,7 @@ import Data.Time.Clock
 import GHC.IO.Exception
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS (tlsManagerSettings)
+import Text.Printf
 
 import qualified Data.DList as DL
 import qualified Data.Text as T
@@ -128,12 +129,18 @@ displayExceptionShort se
     = "HttpConnectionTimeout"
   | Just (HttpExceptionRequest _ ResponseTimeout) <- fromException se
     = "HttpResponseTimeout"
+  | Just (HttpExceptionRequest _ (InternalException e)) <- fromException se
+    = "HttpResponseInternalException: " <> displayException e
   | Just (
       Tw.TwitterErrorResponse
-      Tw.Status {Tw.statusCode = 404}
+      Tw.Status {Tw.statusCode = stCode}
       _
-      [Tw.TwitterErrorMessage {Tw.twitterErrorCode = 34}]
+      [ Tw.TwitterErrorMessage
+          { Tw.twitterErrorCode = twErrCode
+          , Tw.twitterErrorMessage = twErrMsg
+          }
+      ]
     ) <- fromException se
-    = "TwitterPageNotFound"
+    = printf "TwitterError: st=%d, err=%d, msg=%s" stCode twErrCode twErrMsg
   | otherwise
     = displayException se
