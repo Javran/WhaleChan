@@ -13,7 +13,6 @@ module Javran.WhaleChan.TelegramThread
 import Control.Concurrent.Chan
 import Control.Exception.Base
 import Control.Monad
-import Control.Monad.RWS
 import Web.Telegram.API.Bot
 -- import Network.Mime
 -- import qualified Data.Map.Strict as M
@@ -80,7 +79,13 @@ telegramThread wenv@(wconf, tcomm) =
     TCommon {tcTelegram, tcTwitter, tcManager} = tcomm
     tokenIsEmpty = T.null tokContent
     chatId = ChatId tgChannelId
-    sendMessageSimple msg replyTo = liftIO $ sendMessage tok req tcManager
+    sendTgMessage msgContent modifyRequest afterSuccess = do
+      let req = modifyRequest $ sendMessageRequest chatId msgContent
+      sendMessage tok req tcManager >>= \case
+        Right resp -> afterSuccess resp
+        Left err -> logErr $ displayException err
+
+    sendMessageSimple msg replyTo = sendMessage tok req tcManager
       where
         req = SendMessageRequest
               { message_chat_id = chatId
@@ -128,9 +133,8 @@ telegramThread wenv@(wconf, tcomm) =
                    Left err -> logErr $ displayException err
                  -- for now loading always fails. use url instead
                  -- until we can figure out how to do this properly
-            TgRMProfileStat content -> do
-                 let req = (sendMessageRequest chatId content)
-                           {message_parse_mode = Just Markdown}
-                 sendMessage tok req tcManager >>= \case
-                   Right _ -> pure ()
-                   Left err -> logErr $ displayException err
+            TgRMProfileStat content ->
+              sendTgMessage
+                content
+                (\r -> r {message_parse_mode = Just Markdown})
+                (\_ -> pure ())
