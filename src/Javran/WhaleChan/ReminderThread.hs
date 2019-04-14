@@ -279,7 +279,6 @@ updateMER curTime curERPair mInfo = do
                 predefDueTimes =
                   reverse
                     (takeWhile (>curTime)
-                      -- TODO: we'd better have some tests.
                       (tail $ iterate (addUTCTime (fInt $ -1 * dayInSecs)) eventTime))
                   <> (mkTime <$> [6*60, 2*60, 60, 30, 10, 5, 0])
                 dueTimes = preCurTime `insertSet` predefDueTimes
