@@ -205,6 +205,14 @@ scanAllServers mgr = do
       resCount = length results
   when (errCount > 0 || resCount /= IM.size as) $
     Log.i tag $ "abnormal: (# of errors, # of success)=" <> show (errCount, resCount)
+  when (errCount > 0 && IM.size as == errCount) $ do
+    Log.w tag "encountering error from all servers"
+    bNetwork <- liftIO checkNetwork
+    if bNetwork
+      then
+        Log.w tag "looks like all servers are down"
+      else
+        Log.w tag "looks like network is down"
   -- now another traversal to update the State of current thread for each server.
   forM_ (IM.toList aResults) $ \(serverId, aResult) -> case aResult of
     Left e ->
