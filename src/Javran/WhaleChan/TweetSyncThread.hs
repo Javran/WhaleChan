@@ -104,6 +104,23 @@ shouldPreview
   } = not (null eus && null ems)
 shouldPreview _ = False
 
+{-
+  For tweets with medias, We'd like to prepend the link to media before showing
+  the content of the tweet, this makes sure that media gets previewed.
+
+  TODO: text builder?
+ -}
+mediaPrependMarkdown :: Status -> Maybe T.Text
+mediaPrependMarkdown st = do
+  Entities {enMedia = ems@(_:_)} <- statusEntities st
+  let mediaToMdLink num ent
+        | Entity
+          { entityBody = MediaEntity {meMediaURLHttps = mUrl}
+          } <- ent =
+          "[" <> T.pack (show num) <> "](" <> mUrl <> ")"
+  -- Media: [1](<link>), [2](<link>), ...
+  pure $ "Media: " <> T.intercalate ", " (zipWith mediaToMdLink [1::Int ..] ems)
+
 tweetSyncThread :: WEnv -> IO ()
 tweetSyncThread wenv = do
     t <- getCurrentTime
@@ -170,17 +187,24 @@ tweetSyncThread wenv = do
                     every tweet in backward order to keep tg channel's history in sync
                    -}
                   forM_ (reverse tCreated) $ \st -> do
-                    let content = "[Tweet] " <> statusText st
-                        escContent = simpleMarkdownEscape content
-                        mdLink = createTweetLinkMarkdown tzTokyo st
-                        finalContent = escContent <> "\n" <> mdLink
+                    -- TODO: clean this up
+                    let mdLink = createTweetLinkMarkdown tzTokyo st
+                        content = case mediaPrependMarkdown st of
+                          Nothing ->
+                            let escContent =
+                                  simpleMarkdownEscape $ "[Tweet] " <> statusText st
+                            in escContent <> "\n" <> mdLink
+                          Just mp ->
+                            simpleMarkdownEscape "[Tweet] " <> mp <> "\n"
+                            <> simpleMarkdownEscape (statusText st) <> "\n"
+                            <> mdLink
                     if statusCreatedAt st > startTime
                       then do
                         info $ "push status " <> show (statusId st) <> " to tg"
                         writeToTg $
                           TgRMTweetCreate
                             (statusId st)
-                            finalContent
+                            content
                             (shouldPreview st)
                       else do
                         let stId = statusId st
