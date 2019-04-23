@@ -41,6 +41,7 @@ import qualified Data.Yaml as Yaml
 import qualified Network.HTTP.Types.Status as Tw
 import qualified Web.Twitter.Conduit.Response as Tw
 import qualified Data.Containers as C
+import qualified Data.MonoTraversable as MT
 
 {-
   place for some commonly used functions.
@@ -150,7 +151,8 @@ displayExceptionShort se
     = displayException se
 
 
-mapDiff :: forall t m mp k v .
+
+mapDiff :: forall ks m mp k v .
            {-
              type variables explained:
              - m, k, v: the map type m that we are diff-ing,
@@ -158,7 +160,7 @@ mapDiff :: forall t m mp k v .
              - mp: same as m, except the value is of type (v,v)
                  to indicate that the value is changed
                  from old (fst) to new one (snd)
-             - t: intermediate container for map keys
+             - ks: type for return value of keysSet
             -}
            ( C.HasKeysSet m
            , C.IsMap m
@@ -167,10 +169,10 @@ mapDiff :: forall t m mp k v .
            , C.IsMap mp
            , k ~ C.ContainerKey mp
            , (v,v) ~ C.MapValue mp
-           , Foldable t
            , Eq v
-           , C.SetContainer (t k)
-           , C.KeySet m ~ t k
+           , C.SetContainer ks
+           , C.KeySet m ~ ks
+           , MT.Element ks ~ k
            )
         => m -> m
         -> ((m, m), mp)
@@ -190,4 +192,4 @@ mapDiff mBefore mAfter = ((added, removed), modified)
       where
         valBefore = fromJust (C.lookup k mBefore)
         valAfter = fromJust (C.lookup k mAfter)
-    modified = foldMap find ksPreserved
+    modified = MT.ofoldMap find ksPreserved

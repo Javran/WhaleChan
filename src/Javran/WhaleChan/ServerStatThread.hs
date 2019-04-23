@@ -253,7 +253,12 @@ threadStep mgr markStart = do
           as the infomation is parsed from same file
           therefore they should stay together
          -}
-        modify $ \s -> s {sServerAddrs = si}
+        modify $ \s ->
+          let oldSi = sServerAddrs s
+              _modified :: IM.IntMap (String, String)
+              _added, _removed :: IM.IntMap String
+              ((_added, _removed), _modified) = mapDiff oldSi si
+          in s {sServerAddrs = si}
       Nothing ->
         pure ()
     dbBefore <- gets sVerPackDb
