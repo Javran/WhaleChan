@@ -286,6 +286,9 @@ threadStep mgr markStart = do
                   removed = vpBefore `M.difference` vpAfter
                   ksBefore = M.keysSet vpBefore
                   ksAfter = M.keysSet vpAfter
+                  -- TODO: this is incorrect: what ksModified currently
+                  -- shows is all keys preserved in the process, we'll still need
+                  -- to know if there are differences in values
                   ksModified = ksBefore `S.intersection` ksAfter
                   modified = M.fromList (find <$> S.toList ksModified)
                     where
