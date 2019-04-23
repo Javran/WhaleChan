@@ -3,6 +3,7 @@
   , TypeApplications
   , FlexibleContexts
   , ScopedTypeVariables
+  , TypeFamilies
   #-}
 module Javran.WhaleChan.Util
   ( oneSec
@@ -39,8 +40,7 @@ import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Yaml as Yaml
 import qualified Network.HTTP.Types.Status as Tw
 import qualified Web.Twitter.Conduit.Response as Tw
-import qualified Data.Map.Strict as M
-import qualified Data.Set as S
+import qualified Data.Containers as C
 
 {-
   place for some commonly used functions.
@@ -149,24 +149,45 @@ displayExceptionShort se
   | otherwise
     = displayException se
 
-mapDiff :: forall k v. (Ord k, Eq k, Eq v)
-        => M.Map k v -> M.Map k v
-        -> ((M.Map k v, M.Map k v), M.Map k (v,v))
+
+mapDiff :: forall t m mp k v .
+           {-
+             type variables explained:
+             - m, k, v: the map type m that we are diff-ing,
+                 whose key is k and value v.
+             - mp: same as m, except the value is of type (v,v)
+                 to indicate that the value is changed
+                 from old (fst) to new one (snd)
+             - t: intermediate container for map keys
+            -}
+           ( C.HasKeysSet m
+           , C.IsMap m
+           , k ~ C.ContainerKey m
+           , v ~ C.MapValue m
+           , C.IsMap mp
+           , k ~ C.ContainerKey mp
+           , (v,v) ~ C.MapValue mp
+           , Foldable t
+           , Eq v
+           , C.SetContainer (t k)
+           , C.KeySet m ~ t k
+           )
+        => m -> m
+        -> ((m, m), mp)
 mapDiff mBefore mAfter = ((added, removed), modified)
   where
-    added = mAfter `M.difference` mBefore
-    removed = mBefore `M.difference` mAfter
-    ksBefore = M.keysSet mBefore
-    ksAfter = M.keysSet mAfter
+    added = mAfter `C.difference` mBefore
+    removed = mBefore `C.difference` mAfter
+    ksBefore = C.keysSet mBefore
+    ksAfter = C.keysSet mAfter
     -- the set of keys being preseved (existing before and after)
-    ksPreserved = ksBefore `S.intersection` ksAfter
-    modified :: M.Map k (v,v)
-    modified = foldMap find ksPreserved
+    ksPreserved = ksBefore `C.intersection` ksAfter
+    find :: k -> mp
+    find k =
+      if valBefore == valAfter
+        then mempty
+        else C.singletonMap k (valBefore, valAfter)
       where
-        find k =
-            if valBefore == valAfter
-              then M.empty
-              else M.singleton k (valBefore, valAfter)
-          where
-            valBefore = fromJust (M.lookup k mBefore)
-            valAfter = fromJust (M.lookup k mAfter)
+        valBefore = fromJust (C.lookup k mBefore)
+        valAfter = fromJust (C.lookup k mAfter)
+    modified = foldMap find ksPreserved

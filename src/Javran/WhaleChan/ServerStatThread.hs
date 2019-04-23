@@ -24,7 +24,6 @@ import Network.HTTP.Client.TLS (tlsManagerSettings)
 
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Map.Strict as M
-import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder.Int as TB
 
@@ -280,8 +279,11 @@ threadStep mgr markStart = do
             Log.i tag $ "Before: " <> show vpBefore
             Log.i tag $ "After: " <> show vpAfter
             when (IM.size dbBefore == 1) $ do
-              let ((added, removed), modified) =
+              let added, removed :: M.Map T.Text T.Text
+                  modified :: M.Map T.Text (T.Text, T.Text)
+                  ((added, removed), modified) =
                     vpBefore `mapDiff` vpAfter
+
               Log.i tag $ "Added: " <> show added
               Log.i tag $ "Removed: " <> show removed
               Log.i tag $ "Modified: " <> show modified

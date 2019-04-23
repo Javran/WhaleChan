@@ -45,6 +45,7 @@ dependencies:
   - dlist
   - conduit-extra
   - deepseq
+  - mono-traversable
 
 library:
   source-dirs: src
