@@ -17,6 +17,7 @@ module Javran.WhaleChan.Util
   , checkNetwork
   , buildStrictText
   , displayExceptionShort
+  , mapDiff
   ) where
 
 import Control.Concurrent
@@ -24,6 +25,7 @@ import Control.DeepSeq
 import Control.Exception
 import Control.Monad.Writer
 import Data.List (isPrefixOf)
+import Data.Maybe (fromJust)
 import Data.Time.Clock
 import GHC.IO.Exception
 import Network.HTTP.Client
@@ -37,6 +39,8 @@ import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Yaml as Yaml
 import qualified Network.HTTP.Types.Status as Tw
 import qualified Web.Twitter.Conduit.Response as Tw
+import qualified Data.Map.Strict as M
+import qualified Data.Set as S
 
 {-
   place for some commonly used functions.
@@ -144,3 +148,25 @@ displayExceptionShort se
     = printf "TwitterError: st=%d, err=%d, msg=%s" stCode twErrCode twErrMsg
   | otherwise
     = displayException se
+
+mapDiff :: forall k v. (Ord k, Eq k, Eq v)
+        => M.Map k v -> M.Map k v
+        -> ((M.Map k v, M.Map k v), M.Map k (v,v))
+mapDiff mBefore mAfter = ((added, removed), modified)
+  where
+    added = mAfter `M.difference` mBefore
+    removed = mBefore `M.difference` mAfter
+    ksBefore = M.keysSet mBefore
+    ksAfter = M.keysSet mAfter
+    -- the set of keys being preseved (existing before and after)
+    ksPreserved = ksBefore `S.intersection` ksAfter
+    modified :: M.Map k (v,v)
+    modified = foldMap find ksPreserved
+      where
+        find k =
+            if valBefore == valAfter
+              then M.empty
+              else M.singleton k (valBefore, valAfter)
+          where
+            valBefore = fromJust (M.lookup k mBefore)
+            valAfter = fromJust (M.lookup k mAfter)

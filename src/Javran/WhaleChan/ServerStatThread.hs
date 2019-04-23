@@ -280,24 +280,8 @@ threadStep mgr markStart = do
             Log.i tag $ "Before: " <> show vpBefore
             Log.i tag $ "After: " <> show vpAfter
             when (IM.size dbBefore == 1) $ do
-              -- db size went from 1 to something, that means
-              -- a new VerPack comes into existence
-              let added = vpAfter `M.difference` vpBefore
-                  removed = vpBefore `M.difference` vpAfter
-                  ksBefore = M.keysSet vpBefore
-                  ksAfter = M.keysSet vpAfter
-                  -- the set of keys being preseved (existing before and after)
-                  ksPreserved = ksBefore `S.intersection` ksAfter
-                  modified :: M.Map T.Text (T.Text, T.Text)
-                  modified = foldMap find ksPreserved
-                    where
-                      find k =
-                        if valBefore == valAfter
-                          then M.empty
-                          else M.singleton k (valBefore, valAfter)
-                        where
-                          valBefore = fromJust (M.lookup k vpBefore)
-                          valAfter = fromJust (M.lookup k vpAfter)
+              let ((added, removed), modified) =
+                    vpBefore `mapDiff` vpAfter
               Log.i tag $ "Added: " <> show added
               Log.i tag $ "Removed: " <> show removed
               Log.i tag $ "Modified: " <> show modified
