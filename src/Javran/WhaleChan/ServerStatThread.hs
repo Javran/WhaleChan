@@ -286,16 +286,18 @@ threadStep mgr markStart = do
                   removed = vpBefore `M.difference` vpAfter
                   ksBefore = M.keysSet vpBefore
                   ksAfter = M.keysSet vpAfter
-                  -- TODO: this is incorrect: what ksModified currently
-                  -- shows is all keys preserved in the process, we'll still need
-                  -- to know if there are differences in values
-                  ksModified = ksBefore `S.intersection` ksAfter
-                  modified = M.fromList (find <$> S.toList ksModified)
+                  -- the set of keys being preseved (existing before and after)
+                  ksPreserved = ksBefore `S.intersection` ksAfter
+                  modified :: M.Map T.Text (T.Text, T.Text)
+                  modified = foldMap find ksPreserved
                     where
                       find k =
-                        ( k
-                        , (fromJust (M.lookup k vpBefore), fromJust (M.lookup k vpAfter))
-                        )
+                        if valBefore == valAfter
+                          then M.empty
+                          else M.singleton k (valBefore, valAfter)
+                        where
+                          valBefore = fromJust (M.lookup k vpBefore)
+                          valAfter = fromJust (M.lookup k vpAfter)
               Log.i tag $ "Added: " <> show added
               Log.i tag $ "Removed: " <> show removed
               Log.i tag $ "Modified: " <> show modified
