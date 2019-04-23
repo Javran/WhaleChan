@@ -254,14 +254,14 @@ threadStep mgr markStart = do
           as the infomation is parsed from same file
           therefore they should stay together
          -}
-        modify $ \s-> s {sServerAddrs = si}
+        modify $ \s -> s {sServerAddrs = si}
       Nothing ->
         pure ()
     dbBefore <- gets sVerPackDb
     scanAllServers mgr
     dbAfter <- gets sVerPackDb
     if dbBefore == dbAfter
-      then Log.i tag "no difference found in VerPackDb"
+      then Log.i tag "No difference found in VerPackDb"
       else do
         Log.i tag "Found difference in VerPackDb"
         {-
