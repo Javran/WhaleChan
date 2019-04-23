@@ -9,8 +9,10 @@
 module Javran.WhaleChan.Twitter
   ( callTwApi
   , createTweetLinkMarkdown
+  , statusGetEntities
   ) where
 
+import Control.Applicative
 import Control.Exception
 import Control.Monad.RWS
 import Data.Aeson
@@ -147,3 +149,16 @@ createTweetLinkMarkdown tzTokyo st =
         defaultTimeLocale
         "%B %d, %Y at %R JST"
         jstLocalTime
+
+{-
+  since extended_entities is more precise and is the recommended way of dealing with
+  media objects, we can have this getter to pick the most precise info for us,
+  all use of statusEntities and statusExtendedEntities should be using this
+  function from now on.
+
+  ref:
+  https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/extended-entities-object
+ -}
+statusGetEntities :: Status -> Maybe Entities
+statusGetEntities st =
+  statusExtendedEntities st <|> statusEntities st

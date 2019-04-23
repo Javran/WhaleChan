@@ -18,10 +18,10 @@ import Control.Lens
 import Control.Monad
 import Control.Monad.RWS
 import Data.List
+import Data.Time.Clock
 import Web.Twitter.Conduit hiding (count)
 import Web.Twitter.Conduit.Parameters
 import Web.Twitter.Types
-import Data.Time.Clock
 
 import qualified Data.Map.Strict as M
 import qualified Data.Sequence as Seq
@@ -94,15 +94,13 @@ simpleMarkdownEscape =
 
  -}
 shouldPreview :: Status -> Bool
-shouldPreview
-  Status {
-    statusEntities =
-      Just Entities
-        { enURLs = eus
-        , enMedia = ems
-        }
-  } = not (null eus && null ems)
-shouldPreview _ = False
+shouldPreview st
+  | Just Entities
+    { enURLs = eus
+    , enMedia = ems
+    } <- statusGetEntities st
+    = not (null eus && null ems)
+  | otherwise = False
 
 {-
   For tweets with medias, We'd like to prepend the link to media before showing
@@ -112,7 +110,7 @@ shouldPreview _ = False
  -}
 mediaPrependMarkdown :: Status -> Maybe T.Text
 mediaPrependMarkdown st = do
-  Entities {enMedia = ems@(_:_)} <- statusEntities st
+  Entities {enMedia = ems@(_:_)} <- statusGetEntities st
   let mediaToMdLink num ent
         | Entity
           { entityBody = MediaEntity {meMediaURLHttps = mUrl}
