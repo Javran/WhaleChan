@@ -136,9 +136,9 @@ describeServer sId =
       "KcServer#" <> TB.decimal sId
 
 {-
-  TODO: we might consider to use HealthThread,
-  as this thread itself makes frequent network communication
-  and might get stuck.
+  we are not using HealthThread for now,
+  as the timeout-not-being-respected issue
+  only seems to come from twitter-related threads,
  -}
 serverStatThread :: WEnv -> IO ()
 serverStatThread wenv = do
@@ -247,6 +247,7 @@ threadStep mgr markStart = do
     case mServerInfo of
       Just si ->
         -- TODO: signal changes to server ips
+        -- TODO: warn about potentially server outage?
         {-
           here we are replacing server addrs with
           whatever info available from channel rather than updating
@@ -277,24 +278,19 @@ threadStep mgr markStart = do
        -}
       case (IM.minView dbBefore, IM.maxView dbAfter) of
         (Nothing, _) -> Log.i tag "Fresh start."
-        (Just (vpBefore, _), Just (vpAfter, _)) -> do
-          Log.i tag "Summary:"
-          Log.i tag $ "Before: " <> show vpBefore
-          Log.i tag $ "After: " <> show vpAfter
+        (Just (vpBefore, _), Just (vpAfter, _)) ->
           when (IM.size dbBefore == 1) $ do
             let added, removed :: M.Map T.Text T.Text
                 modified :: M.Map T.Text (T.Text, T.Text)
                 ((added, removed), modified) =
                   vpBefore `mapDiff` vpAfter
-
             Log.i tag $ "Added: " <> show added
             Log.i tag $ "Removed: " <> show removed
             Log.i tag $ "Modified: " <> show modified
         _ -> do
           -- this should be unreachable
-          Log.e tag "could not determine the difference"
-          Log.e tag $ "Db Before: " <> show dbBefore
-          Log.e tag $ "Db After: " <> show dbAfter
+          Log.e tag "Unreachable code path reached?"
+          Log.e tag $ "Before & After: " <> show (dbBefore, dbAfter)
     {-
       - scan servers and download VerPack for inspection
       - update sKcServerStates accordingly
