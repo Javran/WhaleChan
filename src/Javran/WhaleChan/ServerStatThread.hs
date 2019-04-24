@@ -265,7 +265,7 @@ threadStep mgr markStart = do
     dbBefore <- gets sVerPackDb
     scanAllServers mgr
     dbAfter <- gets sVerPackDb
-    when (dbBefore == dbAfter) $ do
+    when (dbBefore /= dbAfter) $ do
       Log.i tag "Found difference in VerPackDb"
       {-
         note #1: up until this point we have removed nothing
