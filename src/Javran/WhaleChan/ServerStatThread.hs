@@ -264,41 +264,37 @@ threadStep mgr markStart = do
     dbBefore <- gets sVerPackDb
     scanAllServers mgr
     dbAfter <- gets sVerPackDb
-    if dbBefore == dbAfter
-      then Log.i tag "No difference found in VerPackDb"
-      else do
-        Log.i tag "Found difference in VerPackDb"
-        {-
-          note #1: up until this point we have removed nothing
-          from db, meaning that if dbBefore is non-empty, so will dbAfter be.
+    when (dbBefore == dbAfter) $ do
+      Log.i tag "Found difference in VerPackDb"
+      {-
+        note #1: up until this point we have removed nothing
+        from db, meaning that if dbBefore is non-empty, so will dbAfter be.
 
-          note #2: hopefully VerPack with the lowest vpId is the one that
-          all servers have agreed upon (in the past) and the max one after
-          server scan is the latest version of VerPack, comparing these two
-          allows us to give more detailed info about which part of the game has been updated.
-         -}
-        case (IM.minView dbBefore, IM.maxView dbAfter) of
-          (Nothing, _) -> Log.i tag "Fresh start."
-          (Just (vpBefore, _), Just (vpAfter, _)) -> do
-            Log.i tag "Summary:"
-            Log.i tag $ "Before: " <> show vpBefore
-            Log.i tag $ "After: " <> show vpAfter
-            when (IM.size dbBefore == 1) $ do
-              let added, removed :: M.Map T.Text T.Text
-                  modified :: M.Map T.Text (T.Text, T.Text)
-                  ((added, removed), modified) =
-                    vpBefore `mapDiff` vpAfter
+        note #2: hopefully VerPack with the lowest vpId is the one that
+        all servers have agreed upon (in the past) and the max one after
+        server scan is the latest version of VerPack, comparing these two
+        allows us to give more detailed info about which part of the game has been updated.
+       -}
+      case (IM.minView dbBefore, IM.maxView dbAfter) of
+        (Nothing, _) -> Log.i tag "Fresh start."
+        (Just (vpBefore, _), Just (vpAfter, _)) -> do
+          Log.i tag "Summary:"
+          Log.i tag $ "Before: " <> show vpBefore
+          Log.i tag $ "After: " <> show vpAfter
+          when (IM.size dbBefore == 1) $ do
+            let added, removed :: M.Map T.Text T.Text
+                modified :: M.Map T.Text (T.Text, T.Text)
+                ((added, removed), modified) =
+                  vpBefore `mapDiff` vpAfter
 
-              Log.i tag $ "Added: " <> show added
-              Log.i tag $ "Removed: " <> show removed
-              Log.i tag $ "Modified: " <> show modified
-          _ -> do
-            -- this should be unreachable
-            Log.e tag "could not determine the difference"
-            Log.e tag $ "Db Before: " <> show dbBefore
-            Log.e tag $ "Db After: " <> show dbAfter
-
-        pure ()
+            Log.i tag $ "Added: " <> show added
+            Log.i tag $ "Removed: " <> show removed
+            Log.i tag $ "Modified: " <> show modified
+        _ -> do
+          -- this should be unreachable
+          Log.e tag "could not determine the difference"
+          Log.e tag $ "Db Before: " <> show dbBefore
+          Log.e tag $ "Db After: " <> show dbAfter
     {-
       - scan servers and download VerPack for inspection
       - update sKcServerStates accordingly
