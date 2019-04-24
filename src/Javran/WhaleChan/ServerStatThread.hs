@@ -295,8 +295,36 @@ threadStep mgr markStart = do
       - scan servers and download VerPack for inspection
       - update sKcServerStates accordingly
       - (TODO) post new message when:
-        + a new VerPack is known
-        + all servers are caught up on VerPack
+        + a new VerPack is known:
+
+          message:
+
+          one-liner:
+          > [ServerStat] Game version updated: foo: 0.1.2.3 -> 3.4.5.6
+
+          multilines:
+          > [ServerStat] Game version updated:
+          > + foo: 0.1.2.3 -> 3.4.5.6
+          > + bar: 1.1.1.1 -> 2.2.2.2
+
+        + info about servers catching up on VerPack:
+          it makes sense that these checks are only done
+          when we already have detected some differences.
+
+          note: whether a server has caught up can
+          simply checked by looking at ssVerPackKey fields
+          and see whether all of them are using a unique value
+
+          If not all servers are caught up:
+
+          > [ServerStat] New game version observed on
+          > <num> of <total num> servers
+
+          If all servers are updated at the same time:
+
+          > [ServerStat] New game version observed on
+          > all <total num> servers
+
      -}
     cleanupDb
     dbAfterClean <- gets sVerPackDb
