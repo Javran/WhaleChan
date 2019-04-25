@@ -262,7 +262,8 @@ type VerPackDiff = MapDiffResult M.Map T.Text T.Text
 renderVerPackDiffMd :: VerPackDiff -> T.Text
 renderVerPackDiffMd ((added, removed), modified) =
     buildStrictText . mconcat . intersperse "\n" $
-      catMaybes [rdrAdded,rdrRemoved] <> fromMaybe [] rdrModified
+      "\\[ServerStat] Game version changed:"
+      : catMaybes [rdrAdded,rdrRemoved] <> fromMaybe [] rdrModified
   where
     simpleRender m
       | xs@(_:_) <- M.toAscList m =
@@ -326,10 +327,12 @@ threadStep mgr markStart = do
           when (IM.size dbBefore == 1) $ do
             let vpd@((added, removed), modified) =
                   vpBefore `mapDiff` vpAfter :: VerPackDiff
-                _tgMessage = renderVerPackDiffMd vpd
+                tgMessage = renderVerPackDiffMd vpd
             Log.i tag $ "Added: " <> show added
             Log.i tag $ "Removed: " <> show removed
             Log.i tag $ "Modified: " <> show modified
+            -- TODO: dark launch mode, post the actual message when impl is done.
+            Log.i tag $ "Tg Message:\n" <> T.unpack tgMessage
         _ -> do
           -- this should be unreachable
           Log.e tag "Unreachable code path reached?"
