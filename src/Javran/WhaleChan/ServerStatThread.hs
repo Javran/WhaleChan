@@ -14,6 +14,7 @@ import Control.Exception
 import Control.Monad.RWS
 import Data.Aeson
 import Data.Bifunctor
+import Data.List
 import Data.Default
 import Data.Either
 import Data.Maybe
@@ -25,6 +26,7 @@ import Network.HTTP.Client.TLS (tlsManagerSettings)
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.Builder.Int as TB
 
 import Javran.WhaleChan.Types
@@ -243,24 +245,42 @@ type VerPackDiff = MapDiffResult M.Map T.Text T.Text
 
 
 {-
-  -- TODO: impl
-          message:
+  message:
 
-          + added: "Added: foo(version), bar(version)"
-          + removed: "Removed: foo(version), bar(version)"
-          + updated: for this one we'd like to break them into details.
+  + added: "Added: foo(version), bar(version)"
+  + removed: "Removed: foo(version), bar(version)"
+  + updated: for this one we'd like to break them into details.
 
-          full message:
-          > [ServerStat] Game version changed:
-          > + Added: ...
-          > + Removed: ...
-          > + foo: 0.1.2.3 -> 3.4.5.6
-          > + bar: 1.1.1.1 -> 2.2.2.2
+  full message:
+  > [ServerStat] Game version changed:
+  > + Added: ...
+  > + Removed: ...
+  > + foo: 0.1.2.3 -> 3.4.5.6
+  > + bar: 1.1.1.1 -> 2.2.2.2
 
  -}
 renderVerPackDiffMd :: VerPackDiff -> T.Text
-renderVerPackDiffMd ((_added, _removed), _modified) =
-  buildStrictText ""
+renderVerPackDiffMd ((added, removed), modified) =
+    buildStrictText . mconcat . intersperse "\n" $
+      catMaybes [rdrAdded,rdrRemoved] <> fromMaybe [] rdrModified
+  where
+    simpleRender m
+      | xs@(_:_) <- M.toAscList m =
+          let render (k,v) = TB.fromText k <> " (" <> TB.fromText v <> ")"
+          in Just . mconcat . intersperse ", " . fmap render $ xs
+      | otherwise = Nothing
+    rdrAdded, rdrRemoved :: Maybe TB.Builder
+    rdrModified :: Maybe [TB.Builder]
+    rdrAdded = ("- Added: " <>) <$> simpleRender added
+    rdrRemoved = ("- Removed: " <>) <$> simpleRender removed
+    rdrModified
+      | xs@(_:_) <- M.toAscList modified =
+          let render (k,(vOld,vNew)) =
+                "- " <> TB.fromText k
+                <> ": " <> TB.fromText vOld
+                <> " -> " <> TB.fromText vNew
+          in Just . fmap render $ xs
+      | otherwise = Nothing
 
 threadStep :: Manager -> M (M ()) -> M ()
 threadStep mgr markStart = do
