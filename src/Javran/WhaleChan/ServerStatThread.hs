@@ -238,6 +238,30 @@ cleanupDb = do
     Log.i tag $ "Dropping: " <> show dbDrop
   modify (\s -> s {sVerPackDb = dbKeep})
 
+type MapDiffResult m k v = ((m k v, m k v), m k (v,v))
+type VerPackDiff = MapDiffResult M.Map T.Text T.Text
+
+
+{-
+  -- TODO: impl
+          message:
+
+          + added: "Added: foo(version), bar(version)"
+          + removed: "Removed: foo(version), bar(version)"
+          + updated: for this one we'd like to break them into details.
+
+          full message:
+          > [ServerStat] Game version changed:
+          > + Added: ...
+          > + Removed: ...
+          > + foo: 0.1.2.3 -> 3.4.5.6
+          > + bar: 1.1.1.1 -> 2.2.2.2
+
+ -}
+renderVerPackDiffMd :: VerPackDiff -> T.Text
+renderVerPackDiffMd ((_added, _removed), _modified) =
+  buildStrictText ""
+
 threadStep :: Manager -> M (M ()) -> M ()
 threadStep mgr markStart = do
     (_,TCommon{tcServerStat=ch}) <- ask
@@ -280,10 +304,9 @@ threadStep mgr markStart = do
         (Nothing, _) -> Log.i tag "Fresh start."
         (Just (vpBefore, _), Just (vpAfter, _)) ->
           when (IM.size dbBefore == 1) $ do
-            let added, removed :: M.Map T.Text T.Text
-                modified :: M.Map T.Text (T.Text, T.Text)
-                ((added, removed), modified) =
-                  vpBefore `mapDiff` vpAfter
+            let vpd@((added, removed), modified) =
+                  vpBefore `mapDiff` vpAfter :: VerPackDiff
+                _tgMessage = renderVerPackDiffMd vpd
             Log.i tag $ "Added: " <> show added
             Log.i tag $ "Removed: " <> show removed
             Log.i tag $ "Modified: " <> show modified
@@ -295,17 +318,8 @@ threadStep mgr markStart = do
       - scan servers and download VerPack for inspection
       - update sKcServerStates accordingly
       - (TODO) post new message when:
-        + a new VerPack is known:
 
-          message:
-
-          one-liner:
-          > [ServerStat] Game version updated: foo: 0.1.2.3 -> 3.4.5.6
-
-          multilines:
-          > [ServerStat] Game version updated:
-          > + foo: 0.1.2.3 -> 3.4.5.6
-          > + bar: 1.1.1.1 -> 2.2.2.2
+        + a new VerPack is known: render through renderVerPackDiffMd
 
         + info about servers catching up on VerPack:
           it makes sense that these checks are only done
