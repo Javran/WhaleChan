@@ -26,6 +26,8 @@ import Web.Twitter.Types
 import qualified Data.Map.Strict as M
 import qualified Data.Sequence as Seq
 import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as TB
+import qualified Data.Text.Lazy.Builder.Int as TB
 
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Util
@@ -105,8 +107,6 @@ shouldPreview st
 {-
   For tweets with medias, We'd like to prepend the link to media before showing
   the content of the tweet, this makes sure that media gets previewed.
-
-  TODO: text builder?
  -}
 mediaPrependMarkdown :: Status -> Maybe T.Text
 mediaPrependMarkdown st = do
@@ -115,9 +115,11 @@ mediaPrependMarkdown st = do
         | Entity
           { entityBody = MediaEntity {meMediaURLHttps = mUrl}
           } <- ent =
-          "[" <> T.pack (show num) <> "](" <> mUrl <> ")"
+          "[" <> TB.decimal num <> "](" <> TB.fromText mUrl <> ")"
+      mediaMdLinks = zipWith mediaToMdLink [1::Int ..] ems
+      mediaContentMd = "Media: " <> mconcat (intersperse ", " mediaMdLinks)
   -- Media: [1](<link>), [2](<link>), ...
-  pure $ "Media: " <> T.intercalate ", " (zipWith mediaToMdLink [1::Int ..] ems)
+  pure . buildStrictText $ mediaContentMd
 
 tweetSyncThread :: WEnv -> IO ()
 tweetSyncThread wenv = do
