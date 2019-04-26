@@ -243,7 +243,6 @@ cleanupDb = do
 type MapDiffResult m k v = ((m k v, m k v), m k (v,v))
 type VerPackDiff = MapDiffResult M.Map T.Text T.Text
 
-
 {-
   message:
 
@@ -285,7 +284,9 @@ renderVerPackDiffMd ((added, removed), modified) =
 
 threadStep :: Manager -> M (M ()) -> M ()
 threadStep mgr markStart = do
-    (_,TCommon{tcServerStat=ch}) <- ask
+    (_,TCommon{tcServerStat=ch, tcTelegram=tgCh}) <- ask
+    -- TODO: writeToTg could be something in Base
+    let writeToTg = liftIO . writeChan tgCh
     markEnd <- markStart
     mServerInfo <- liftIO $ swapMVar ch Nothing
     -- update server addrs (if available)
@@ -331,7 +332,7 @@ threadStep mgr markStart = do
             Log.i tag $ "Added: " <> show added
             Log.i tag $ "Removed: " <> show removed
             Log.i tag $ "Modified: " <> show modified
-            -- TODO: dark launch mode, post the actual message when impl is done.
+            writeToTg (TgRMServerStat tgMessage)
             Log.i tag $ "Tg Message:\n" <> T.unpack tgMessage
         _ -> do
           -- this should be unreachable
@@ -340,11 +341,11 @@ threadStep mgr markStart = do
     {-
       - scan servers and download VerPack for inspection
       - update sKcServerStates accordingly
-      - (TODO) post new message when:
+      - post new message when:
 
         + a new VerPack is known: render through renderVerPackDiffMd
 
-        + info about servers catching up on VerPack:
+        + (TODO) info about servers catching up on VerPack:
           it makes sense that these checks are only done
           when we already have detected some differences.
 
