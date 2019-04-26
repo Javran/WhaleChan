@@ -55,6 +55,10 @@ describeMessage = \case
       "MsgProfileStat"
       <> "{ content=" <> shortContent content
       <> "}"
+    TgRMServerStat content ->
+      "MsgServerStat"
+      <> "{ content=" <> shortContent content
+      <> "}"
   where
     ps = T.pack . show
     shortContent s =
@@ -120,3 +124,9 @@ telegramThread wenv@(wconf, tcomm) =
                   content
                   (\r -> r {message_parse_mode = Just Markdown})
                   (\_ -> pure ())
+            TgRMServerStat content ->
+                sendTgMessage
+                  content
+                  (\r -> r {message_parse_mode = Just Markdown})
+                  (\_ -> pure ())
+
