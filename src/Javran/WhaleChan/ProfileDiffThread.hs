@@ -111,9 +111,8 @@ fetchImg uri = do
   pure (BSL.toStrict <$> z)
 
 profileDiffThread :: WEnv -> IO ()
-profileDiffThread wenv@(_, TCommon{tzTokyo}) = do
-    let (WConf{twWatchingUserId},TCommon{tcTelegram}) = wenv
-        req = usersShow (UserIdParam (fromIntegral twWatchingUserId))
+profileDiffThread wenv@(WConf{twWatchingUserId}, TCommon{tzTokyo}) = do
+    let req = usersShow (UserIdParam (fromIntegral twWatchingUserId))
               & includeEntities ?~ False
         tag = "ProfileDiff"
         hb = heartbeat "ProfileDiff" 3600 -- kill this thread if it doesn't come back in 1 hr
@@ -129,7 +128,7 @@ profileDiffThread wenv@(_, TCommon{tzTokyo}) = do
                 ProfileInfo curUrl _ <- get
                 when (curUrl /= mNewUrl) $ do
                   Log.i tag "new img detected"
-                  liftIO $ writeChan tcTelegram (TgRMProfileImg newUrl)
+                  writeToTg (TgRMProfileImg newUrl)
                   modify (\s -> s {lastProfileImage = mNewUrl})
             -- now see if we can update stat, it's still inside
             -- the twitter api so we have access to userInfo
@@ -188,7 +187,7 @@ profileDiffThread wenv@(_, TCommon{tzTokyo}) = do
                     , "- Followers: " <> TB.fromString (show fodCnt) <> fodDiff <> "\n"
                     ]
               Log.i tag "sending new twitter stats"
-              liftIO $ writeChan tcTelegram (TgRMProfileStat (buildStrictText contentB))
+              writeToTg (TgRMProfileStat (buildStrictText contentB))
               modify (\s -> s {lastStat = Just (curTime, pStat)})
         markEnd
         liftIO $ threadDelay $ 2 * oneSec

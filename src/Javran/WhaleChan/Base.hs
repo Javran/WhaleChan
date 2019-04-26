@@ -6,6 +6,7 @@
   , TypeFamilies
   , NamedFieldPuns
   , OverloadedStrings
+  , FlexibleContexts
   #-}
 module Javran.WhaleChan.Base
   ( loadWEnv
@@ -14,6 +15,7 @@ module Javran.WhaleChan.Base
   , startLogger
   , wenvToLoggerIO
   , protectedAction
+  , writeToTg
   ) where
 
 import Control.Concurrent
@@ -193,3 +195,8 @@ protectedAction loggerIO aName maxRetry action = run 0
         errHandler e = do
           logErr $ "Exception caught for Action " ++ aName ++ ": " ++ displayException e
           run (retryCount+1)
+
+writeToTg :: (MonadIO m, MonadReader WEnv m) => TgRxMsg -> m ()
+writeToTg msg = do
+  (_,TCommon{tcTelegram=tgCh}) <- ask
+  liftIO . writeChan tgCh $ msg

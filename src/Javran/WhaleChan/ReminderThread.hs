@@ -107,7 +107,7 @@ reminderThread :: WEnv -> IO ()
 reminderThread wenv = do
     let cv :: forall a. ReminderM' a -> ReminderM a
         cv = coerce -- to avoid the noise introduced by newtype
-        (_, TCommon{tcTelegram, tcReminder, tzTokyo}) = wenv
+        (_, TCommon{tcReminder, tzTokyo}) = wenv
         tag = "Reminder"
 
     autoWCM @ReminderState tag "reminder.yaml" wenv $ \markStart' -> cv $ do
@@ -191,7 +191,7 @@ reminderThread wenv = do
       case renderMessage curTime $ mMsgRep <> convertResult displayList of
         Nothing -> pure ()
         Just txt ->
-          void $ liftIO $ writeChan tcTelegram (TgRMTimer txt (Just Markdown))
+          writeToTg (TgRMTimer txt (Just Markdown))
 
 updateMER :: forall m. MonadWriter MessageRep m
           => UTCTime

@@ -156,7 +156,6 @@ tweetSyncThread wenv = do
             hb
             mQueue <- liftIO $ swapMVar tcTwitter Seq.empty
             let info = liftIO . Log.i' loggerIO tag
-                writeToTg = liftIO . writeChan tcTelegram
             callTwApi tag req $ \statusList -> do
                 {-
                   handle received messages.

@@ -284,9 +284,7 @@ renderVerPackDiffMd ((added, removed), modified) =
 
 threadStep :: Manager -> M (M ()) -> M ()
 threadStep mgr markStart = do
-    (_,TCommon{tcServerStat=ch, tcTelegram=tgCh}) <- ask
-    -- TODO: writeToTg could be something in Base
-    let writeToTg = liftIO . writeChan tgCh
+    (_,TCommon{tcServerStat=ch}) <- ask
     markEnd <- markStart
     mServerInfo <- liftIO $ swapMVar ch Nothing
     -- update server addrs (if available)
