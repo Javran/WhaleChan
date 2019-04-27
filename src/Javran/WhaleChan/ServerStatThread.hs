@@ -345,30 +345,6 @@ threadStep mgr markStart = do
 
     cleanupDb
     dbAfterClean <- gets sVerPackDb
-    {-
-      (TODO) at this point we want to have follow-up
-      message about whether all servers have agreed
-      on the same version, case include:
-
-      (1) when a new VerPack is just detected:
-
-        (1.1) If not all servers are caught up:
-
-        > [ServerStat] New game version observed on
-        > <num> of <total num> servers
-
-        (1.2) If all servers are updated at the same time:
-
-        > [ServerStat] New game version observed on
-        > all <total num> servers
-
-      (2) no new VerPack is detected but we are going from
-        having multiple existing VerPack to exactly one.
-
-        > [ServerStat] New game version observed on
-        > all <total num> servers
-
-      -}
     when (dbAfter /= dbAfterClean && IM.size dbAfterClean == 1) $ do
       let tgMessage =
             simpleMarkdownEscape "[ServerStat] New game version observed on all servers"
