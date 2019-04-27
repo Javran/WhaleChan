@@ -72,18 +72,6 @@ putTwMsg mv m =
   modifyMVar_ mv (pure . (Seq.|> m))
 
 {-
-  ref:
-  - https://stackoverflow.com/a/49924429/315302
-  - https://core.telegram.org/bots/api#markdown-style
- -}
-simpleMarkdownEscape :: T.Text -> T.Text
-simpleMarkdownEscape =
-    T.replace "_" "\\_"
-    . T.replace "*" "\\*"
-    . T.replace "[" "\\["
-    . T.replace "`" "\\`"
-
-{-
   because:
   (1) telegram tries to be smart and preview all links
   (2) we want user to be able to go to the original tweet,

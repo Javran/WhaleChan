@@ -19,6 +19,7 @@ module Javran.WhaleChan.Util
   , buildStrictText
   , displayExceptionShort
   , mapDiff
+  , simpleMarkdownEscape
   ) where
 
 import Control.Concurrent
@@ -193,3 +194,15 @@ mapDiff mBefore mAfter = ((added, removed), modified)
         valBefore = fromJust (C.lookup k mBefore)
         valAfter = fromJust (C.lookup k mAfter)
     modified = MT.ofoldMap find ksPreserved
+
+{-
+  ref:
+  - https://stackoverflow.com/a/49924429/315302
+  - https://core.telegram.org/bots/api#markdown-style
+ -}
+simpleMarkdownEscape :: T.Text -> T.Text
+simpleMarkdownEscape =
+    T.replace "_" "\\_"
+    . T.replace "*" "\\*"
+    . T.replace "[" "\\["
+    . T.replace "`" "\\`"
