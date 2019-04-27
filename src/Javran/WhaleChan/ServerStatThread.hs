@@ -338,36 +338,41 @@ threadStep mgr markStart = do
               post new message when a new VerPack is known
              -}
             writeToTg (TgRMServerStat tgMessage)
-            {-
-              (TODO)
-              at this point we have detected some difference,
-              now we can give a followup message regarding
-              whether all servers have agreed on the same version:
-
-              If not all servers are caught up:
-
-              > [ServerStat] New game version observed on
-              > <num> of <total num> servers
-
-              If all servers are updated at the same time:
-
-              > [ServerStat] New game version observed on
-              > all <total num> servers
-
-              note: whether a server has caught up can
-              simply checked by looking at ssVerPackKey fields
-              and see whether all of them are using a unique value
-           -}
         _ -> do
           -- this should be unreachable
           Log.e tag "Unreachable code path reached?"
           Log.e tag $ "Before & After: " <> show (dbBefore, dbAfter)
+
     cleanupDb
     dbAfterClean <- gets sVerPackDb
-    when (dbAfter /= dbAfterClean && IM.size dbAfter == 1) $
-      Log.i tag "All known server versions are now caught up."
-    when (dbAfter /= dbAfterClean) $
-      Log.i tag $ "db size after gc: " <> show (IM.size dbAfterClean)
+    {-
+      (TODO) at this point we want to have follow-up
+      message about whether all servers have agreed
+      on the same version, case include:
+
+      (1) when a new VerPack is just detected:
+
+        (1.1) If not all servers are caught up:
+
+        > [ServerStat] New game version observed on
+        > <num> of <total num> servers
+
+        (1.2) If all servers are updated at the same time:
+
+        > [ServerStat] New game version observed on
+        > all <total num> servers
+
+      (2) no new VerPack is detected but we are going from
+        having multiple existing VerPack to exactly one.
+
+        > [ServerStat] New game version observed on
+        > all <total num> servers
+
+      -}
+    when (dbAfter /= dbAfterClean && IM.size dbAfterClean == 1) $ do
+      let tgMessage =
+            simpleMarkdownEscape "[ServerStat] New game version observed on all servers"
+      writeToTg (TgRMServerStat tgMessage)
     markEnd
     {-
       wake up every 53 seconds.
