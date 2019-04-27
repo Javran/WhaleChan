@@ -185,6 +185,10 @@ registerVerPack vp = do
     [(k, _)] -> pure k
     _ -> error "uncreachable"
 
+{-
+  - scan all servers and download VerPack for inspection
+  - update sKcServerStates accordingly
+ -}
 scanAllServers :: Manager -> M ()
 scanAllServers mgr = do
   State {sServerAddrs = as} <- get
@@ -318,7 +322,7 @@ threadStep mgr markStart = do
         note #2: hopefully VerPack with the lowest vpId is the one that
         all servers have agreed upon (in the past) and the max one after
         server scan is the latest version of VerPack, comparing these two
-        allows us to give more detailed info about which part of the game has been updated.
+        allows us to derive detailed info about which part of the game has been updated.
        -}
       case (IM.minView dbBefore, IM.maxView dbAfter) of
         (Nothing, _) -> Log.i tag "Fresh start."
@@ -330,38 +334,34 @@ threadStep mgr markStart = do
             Log.i tag $ "Added: " <> show added
             Log.i tag $ "Removed: " <> show removed
             Log.i tag $ "Modified: " <> show modified
+            {-
+              post new message when a new VerPack is known
+             -}
             writeToTg (TgRMServerStat tgMessage)
-            Log.i tag $ "Tg Message:\n" <> T.unpack tgMessage
+            {-
+              (TODO)
+              at this point we have detected some difference,
+              now we can give a followup message regarding
+              whether all servers have agreed on the same version:
+
+              If not all servers are caught up:
+
+              > [ServerStat] New game version observed on
+              > <num> of <total num> servers
+
+              If all servers are updated at the same time:
+
+              > [ServerStat] New game version observed on
+              > all <total num> servers
+
+              note: whether a server has caught up can
+              simply checked by looking at ssVerPackKey fields
+              and see whether all of them are using a unique value
+           -}
         _ -> do
           -- this should be unreachable
           Log.e tag "Unreachable code path reached?"
           Log.e tag $ "Before & After: " <> show (dbBefore, dbAfter)
-    {-
-      - scan servers and download VerPack for inspection
-      - update sKcServerStates accordingly
-      - post new message when:
-
-        + a new VerPack is known: render through renderVerPackDiffMd
-
-        + (TODO) info about servers catching up on VerPack:
-          it makes sense that these checks are only done
-          when we already have detected some differences.
-
-          note: whether a server has caught up can
-          simply checked by looking at ssVerPackKey fields
-          and see whether all of them are using a unique value
-
-          If not all servers are caught up:
-
-          > [ServerStat] New game version observed on
-          > <num> of <total num> servers
-
-          If all servers are updated at the same time:
-
-          > [ServerStat] New game version observed on
-          > all <total num> servers
-
-     -}
     cleanupDb
     dbAfterClean <- gets sVerPackDb
     when (dbAfter /= dbAfterClean && IM.size dbAfter == 1) $
