@@ -369,5 +369,9 @@ threadStep mgr markStart = do
     when (dbAfter /= dbAfterClean) $
       Log.i tag $ "db size after gc: " <> show (IM.size dbAfterClean)
     markEnd
-    -- wake up every hour, it's not doing anything anyway.
-    liftIO $ threadDelay $ oneSec * 60 * 60
+    {-
+      wake up every 53 seconds.
+      the number is a random choice to be close to 1 minutes,
+      picking a prime number to reduce the amount simultaneous events.
+     -}
+    liftIO $ threadDelay $ oneSec * 53
