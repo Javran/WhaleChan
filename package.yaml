@@ -60,6 +60,8 @@ library:
     - Javran.WhaleChan.ReminderThread.Types
     - Javran.WhaleChan.ReminderThread
     - Javran.WhaleChan.TelegramThread
+    - Javran.WhaleChan.ServerStatThread.Types
+    - Javran.WhaleChan.ServerStatThread.Base
     - Javran.WhaleChan.ServerStatThread
     - Javran.WhaleChan.Twitter
     - Javran.WhaleChan.TweetSyncThread
