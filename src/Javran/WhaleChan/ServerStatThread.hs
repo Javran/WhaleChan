@@ -38,6 +38,8 @@ import qualified Javran.WhaleChan.Log as Log
 
   for getting server related infomation.
 
+  (TODO) looking into breaking this module into smaller pieces
+
   - (TODO) in order not to get too noisy, we only post about following events:
 
     + a new version change is first detected at a specific server
@@ -285,6 +287,19 @@ renderVerPackDiffMd ((added, removed), modified) =
                 <> " -> " <> TB.fromText vNew
           in Just . fmap render $ xs
       | otherwise = Nothing
+
+{-
+  TODO:
+  renderServerAddrDiffMd:
+  we don't expect server address to change too much overtime,
+  a slight less structured message (than VerPack) is easy and adequate for this.
+
+  > [ServerStat] Server Address Updated:
+  > + Added: <server name>: <ip addr>
+  > + Removed: <server name>: <ip addr>
+  > + Changed: <server name>: <ip addr> -> <ip addr>
+
+ -}
 
 threadStep :: Manager -> M (M ()) -> M ()
 threadStep mgr markStart = do
