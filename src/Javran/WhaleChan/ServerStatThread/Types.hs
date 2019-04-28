@@ -10,7 +10,6 @@ module Javran.WhaleChan.ServerStatThread.Types
   , State(..), M
   , tag
   , MapDiffResult
-  , VerPackDiff
   ) where
 
 import Data.Aeson
@@ -68,4 +67,3 @@ tag = "ServerStat"
 type M = WCM State
 
 type MapDiffResult m k v = ((m k v, m k v), m k (v,v))
-type VerPackDiff = MapDiffResult M.Map T.Text T.Text

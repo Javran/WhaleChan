@@ -211,12 +211,9 @@ threadStep mgr markStart = do
         (Nothing, _) -> Log.i tag "Fresh start."
         (Just (vpBefore, _), Just (vpAfter, _)) ->
           when (IM.size dbBefore == 1) $ do
-            let vpd@((added, removed), modified) =
-                  vpBefore `mapDiff` vpAfter :: VerPackDiff
+            let vpd = vpBefore `mapDiff` vpAfter
                 tgMessage = renderVerPackDiffMd vpd
-            Log.i tag $ "Added: " <> show added
-            Log.i tag $ "Removed: " <> show removed
-            Log.i tag $ "Modified: " <> show modified
+            Log.i tag $ "DiffResult: " <> show vpd
             {-
               post new message when a new VerPack is known
              -}

@@ -69,6 +69,7 @@ getInfoFromKcServer mgr addr = do
   t <- getCurrentTime
   pure (vp, t)
 
+type VerPackDiff = MapDiffResult M.Map T.Text T.Text
 {-
   message:
 
