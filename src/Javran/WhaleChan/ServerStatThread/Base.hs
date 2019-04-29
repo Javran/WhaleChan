@@ -69,7 +69,6 @@ getInfoFromKcServer mgr addr = do
   t <- getCurrentTime
   pure (vp, t)
 
-type VerPackDiff = MapDiffResult M.Map T.Text T.Text
 {-
   message:
 
@@ -85,7 +84,7 @@ type VerPackDiff = MapDiffResult M.Map T.Text T.Text
   > + bar: 1.1.1.1 -> 2.2.2.2
 
  -}
-renderVerPackDiffMd :: VerPackDiff -> T.Text
+renderVerPackDiffMd :: MapDiffResult M.Map T.Text T.Text -> T.Text
 renderVerPackDiffMd ((added, removed), modified) =
     buildStrictText . mconcat . intersperse "\n" $
       "\\[ServerStat] Game version changed:"
