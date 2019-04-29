@@ -8,6 +8,7 @@ module Javran.WhaleChan.ServerStatThread.Base
   , getInfoFromKcServer
   , renderVerPackDiffMd
   , renderServerAddrDiffMd
+  , parseServerAddr
   ) where
 
 import Data.Aeson
@@ -114,7 +115,6 @@ renderVerPackDiffMd ((added, removed), modified) =
           in Just . fmap render $ xs
       | otherwise = Nothing
 
--- TODO: better have some tests on this...
 parseServerAddr :: String -> Maybe String
 parseServerAddr raw = case readP_to_S ipP raw of
     [(r,"")] -> Just r
