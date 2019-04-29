@@ -1,10 +1,13 @@
 {-# LANGUAGE
     OverloadedStrings
+  , TypeFamilies
+  , RankNTypes
   #-}
 module Javran.WhaleChan.ServerStatThread.Base
   ( describeServer
   , getInfoFromKcServer
   , renderVerPackDiffMd
+  , renderServerAddrDiffMd
   ) where
 
 import Data.Aeson
@@ -87,7 +90,7 @@ getInfoFromKcServer mgr addr = do
 renderVerPackDiffMd :: MapDiffResult M.Map T.Text T.Text -> T.Text
 renderVerPackDiffMd ((added, removed), modified) =
     buildStrictText . mconcat . intersperse "\n" $
-      "\\[ServerStat] Game version changed:"
+      "\\[ServerStat] Game Version Updated:"
       : catMaybes [rdrAdded,rdrRemoved] <> fromMaybe [] rdrModified
   where
     simpleRender m
@@ -107,3 +110,37 @@ renderVerPackDiffMd ((added, removed), modified) =
                 <> " -> " <> TB.fromText vNew
           in Just . fmap render $ xs
       | otherwise = Nothing
+
+{-
+  we don't expect server address to change too much overtime,
+  a slight less structured message (than VerPack) is easy and adequate for this.
+
+  > [ServerStat] Server Address Updated:
+  > + Added: <server name>: <ip addr>
+  > + Removed: <server name>: <ip addr>
+  > + Changed: <server name>: <ip addr> -> <ip addr>
+
+ -}
+renderServerAddrDiffMd :: forall m. m ~ IM.IntMap
+                       => ((m String, m String), m (String, String)) -> Maybe T.Text
+renderServerAddrDiffMd ((added, removed), modified) = do
+    let doRender f = fmap f . IM.toAscList
+        simpleRender (k,v) = TB.fromText (describeServer k) <> ": " <> TB.fromText (pprIp v)
+        renderChange (k,(vOld, vNew)) =
+          TB.fromText (describeServer k) <> ": "
+          <> TB.fromText (pprIp vOld) <> " -> "
+          <> TB.fromText (pprIp vNew)
+        renderedLines =
+          doRender (("- Added: " <>) . simpleRender) added
+          <> doRender (("- Removed: " <>) . simpleRender) removed
+          <> doRender (("- Changed: " <>) . renderChange) modified
+    case renderedLines of
+      [] -> Nothing
+      _ ->
+        pure . buildStrictText . mconcat . intersperse "\n" $
+          "\\[ServerStat] Server Address Updated: "
+          : renderedLines
+  where
+    -- TODO: try shortening server address into ip address if possible
+    pprIp :: String -> T.Text
+    pprIp = T.pack
