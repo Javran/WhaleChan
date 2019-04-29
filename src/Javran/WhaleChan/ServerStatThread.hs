@@ -157,18 +157,6 @@ cleanupDb = do
     Log.i tag $ "Dropping: " <> show dbDrop
   modify (\s -> s {sVerPackDb = dbKeep})
 
-{-
-  TODO:
-  renderServerAddrDiffMd:
-  we don't expect server address to change too much overtime,
-  a slight less structured message (than VerPack) is easy and adequate for this.
-
-  > [ServerStat] Server Address Updated:
-  > + Added: <server name>: <ip addr>
-  > + Removed: <server name>: <ip addr>
-  > + Changed: <server name>: <ip addr> -> <ip addr>
-
- -}
 threadStep :: Manager -> M (M ()) -> M ()
 threadStep mgr markStart = do
     (_,TCommon{tcServerStat=ch}) <- ask
@@ -176,8 +164,7 @@ threadStep mgr markStart = do
     mServerInfo <- liftIO $ swapMVar ch Nothing
     -- update server addrs (if available)
     case mServerInfo of
-      Just si ->
-        -- TODO: signal changes to server ips
+      Just si -> do
         -- TODO: warn about potentially server outage?
         {-
           here we are replacing server addrs with
@@ -185,14 +172,13 @@ threadStep mgr markStart = do
           as the infomation is parsed from same file
           therefore they should stay together
          -}
-        modify $ \s ->
-          let oldSi = sServerAddrs s
-              _modified :: IM.IntMap (String, String)
-              _added, _removed :: IM.IntMap String
-              ((_added, _removed), _modified) = mapDiff oldSi si
-          in s {sServerAddrs = si}
-      Nothing ->
-        pure ()
+        oldSi <- gets sServerAddrs
+        modify $ \s -> s {sServerAddrs = si}
+        let sDiff = mapDiff oldSi si
+        case renderServerAddrDiffMd sDiff of
+          Nothing -> pure ()
+          Just content -> writeToTg (TgRMServerStat content)
+      Nothing -> pure ()
     dbBefore <- gets sVerPackDb
     scanAllServers mgr
     dbAfter <- gets sVerPackDb
