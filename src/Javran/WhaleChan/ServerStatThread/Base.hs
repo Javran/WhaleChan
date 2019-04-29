@@ -122,8 +122,9 @@ parseServerAddr raw = case readP_to_S ipP raw of
   where
     ipPartP :: ReadP Int
     ipPartP = do
+      -- expect full-consumption, no point backtracking on digits.
       xs <- munch1 isDigit
-      guard $ length xs < 4
+      guard $ length (take 4 xs) < 4
       let r = read xs
       guard $ 0 <= r && r <= 255
       pure r
