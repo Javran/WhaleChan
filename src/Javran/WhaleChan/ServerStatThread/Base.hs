@@ -11,10 +11,13 @@ module Javran.WhaleChan.ServerStatThread.Base
   ) where
 
 import Data.Aeson
+import Data.Char
 import Data.List
 import Data.Maybe
 import Data.Time.Clock
 import Network.HTTP.Client
+import Text.ParserCombinators.ReadP
+import Control.Monad
 
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Map.Strict as M
@@ -111,6 +114,26 @@ renderVerPackDiffMd ((added, removed), modified) =
           in Just . fmap render $ xs
       | otherwise = Nothing
 
+-- TODO: better have some tests on this...
+parseServerAddr :: String -> Maybe String
+parseServerAddr raw = case readP_to_S ipP raw of
+    [(r,"")] -> Just r
+    _ -> Nothing
+  where
+    ipPartP :: ReadP Int
+    ipPartP = do
+      xs <- munch1 isDigit
+      guard $ length xs < 4
+      let r = read xs
+      guard $ 0 <= r && r <= 255
+      pure r
+    ipP = do
+      _ <- string "http://"
+      a <- ipPartP
+      bcd <- replicateM 3 (char '.' *> ipPartP)
+      _ <- char '/'
+      pure (intercalate "." . map show $ a : bcd)
+
 {-
   we don't expect server address to change too much overtime,
   a slight less structured message (than VerPack) is easy and adequate for this.
@@ -141,6 +164,5 @@ renderServerAddrDiffMd ((added, removed), modified) = do
           "\\[ServerStat] Server Address Updated: "
           : renderedLines
   where
-    -- TODO: try shortening server address into ip address if possible
     pprIp :: String -> T.Text
-    pprIp = T.pack
+    pprIp raw = T.pack . fromMaybe raw $ parseServerAddr raw
