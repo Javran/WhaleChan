@@ -32,19 +32,19 @@ import Data.Time.LocalTime
  -}
 
 {-
-  events to be implemented:
 
-  - [x] daily quest reset
-  - [x] practice reset
-  - [x] senka accounting (3 times at the end of each month)
-  - [x] EO reset
-  - [x] quest senka freeze
-  - [ ] secretary & comment accounting
-  - [x] weekly quest reset
-  - [x] monthly quest reset
-  - [x] quaterly quest reset: 3 6 9 12
+  note: secretary & comment accounting time seems to be 00:00 JST,
+  but it is still unconfirmed whether it happens exactly at that time or
+  is actually slightly delayed. but for avoiding putting wrong info
+  into WhaleChan, I decided not to implement that at all.
 
- -}
+  for those want to dig further, here are some original responses
+  when I asked about this question:
+
+  - https://bbs.nga.cn/read.php?pid=208508863
+  - https://bbs.nga.cn/read.php?pid=208551356
+
+-}
 
 localDayAdd :: Int -> LocalTime -> LocalTime
 localDayAdd n lt@LocalTime{localDay = ld} = lt {localDay = addDays (fromIntegral n) ld}
