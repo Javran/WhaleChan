@@ -32,19 +32,19 @@ import Javran.WhaleChan.ServerStatThread.Base
 
   for getting server related infomation.
 
-  - (TODO) in order not to get too noisy, we only post about following events:
+  - in order not to get too noisy, we only post about following events:
 
     + a new version change is first detected at a specific server
     + announce that versions in all servers are now in sync with latest
     + a server ip is changed
-    + a server is down (by trying to get the version number)
-    + a server is back online
+    + (TODO) a server is down (by trying to get the version number)
+    + (TODO) a server is back online
 
   - keep a set of VerPack indexed by ascending number.
     detected versions are first compared against this set of items then
     registered if missing (with detection time)
 
-  - we'll try to make minimum of assumption:
+  - we'll try to make minimum # of assumptions:
 
     + "gadget" address is always fixed
     + the structure of the version file is always a JSON file
@@ -57,8 +57,8 @@ import Javran.WhaleChan.ServerStatThread.Base
     list together with a Int referencing to the VerPackDb
 
   - as soon as a server returns a version data that is not in the "known" map,
-    we announce the change (so if other server starts to pick the same new version data file,
-    we can remain silence
+    we announce the change (if other server starts to pick the same new version data file,
+    we can remain silence)
   - once all servers are caught up, we'll make another announcement
   - to prevent VerPackDb from piling up items that are no longer being used,
     any item no longer being referred by any server will be dropped.
