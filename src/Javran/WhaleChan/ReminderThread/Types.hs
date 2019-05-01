@@ -1,10 +1,10 @@
 {-# LANGUAGE
     TypeApplications
-  , DataKinds
   , ExistentialQuantification
-  , PolyKinds
   , DefaultSignatures
   , DeriveGeneric
+  , KindSignatures
+  , DataKinds
   #-}
 
 module Javran.WhaleChan.ReminderThread.Types
@@ -59,7 +59,7 @@ data ReminderSupplier
   a ReminderSupply, when given current time,
   supplies a sorted list of times for the timer thread
  -}
-class ReminderSupply (r :: k) where
+class ReminderSupply (r :: ReminderSupplier) where
     renewSupply :: forall p. p r -> TimeZoneSeries -> UTCTime -> Maybe EventReminder
     eventDescription :: forall p. p r -> String
 
