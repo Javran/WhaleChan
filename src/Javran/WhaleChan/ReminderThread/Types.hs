@@ -66,6 +66,15 @@ class ReminderSupply (r :: k) where
     default eventDescription :: (Typeable r) => p r -> String
     eventDescription p = show (typeRep p)
 
+{-
+  list of minutes that we should set for our reminders:
+  - reminderMinutesShort should be used for daily events that occurs frequently
+  - reminderMinutesMedium should be used for less frequent events (monthly)
+ -}
+reminderMinutesShort, reminderMinutesMedium :: [Int]
+reminderMinutesShort = [60, 30, 10, 5]
+reminderMinutesMedium = [2*24*60, 24*60, 6*60, 2*60] <> reminderMinutesShort
+
 renewSupplyByFunc
   :: (LocalTime -> LocalTime)
   -> [Int]
@@ -86,56 +95,56 @@ instance ReminderSupply 'PracticeReset where
     renewSupply _ =
       renewSupplyByFunc
         nextPracticeReset
-        [60, 30, 10, 5]
+        reminderMinutesShort
     eventDescription _ = "Practice Reset"
 
 instance ReminderSupply 'DailyQuestReset where
     renewSupply _ =
       renewSupplyByFunc
         nextDailyQuestReset
-        [60, 30, 10, 5]
+        reminderMinutesShort
     eventDescription _ = "Daily Quest Reset"
 
 instance ReminderSupply 'WeeklyQuestReset where
     renewSupply _ =
       renewSupplyByFunc
         nextWeeklyQuestReset
-        [24*60, 60, 30, 10, 5]
+        (24*60 : reminderMinutesShort)
     eventDescription _ = "Weekly Quest Reset"
 
 instance ReminderSupply 'MonthlyQuestReset where
     renewSupply _ =
       renewSupplyByFunc
         nextMonthlyQuestReset
-        [2*24*60, 24*60, 6*60, 2*60, 60, 30, 10, 5]
+        reminderMinutesMedium
     eventDescription _ = "Monthly Quest Reset"
 
 instance ReminderSupply 'QuarterlyQuestReset where
     renewSupply _ =
       renewSupplyByFunc
         nextQuarterlyQuestReset
-        [3*24*60, 2*24*60, 24*60, 6*60, 2*60, 60, 30, 10, 5]
+        (3*24*60 : reminderMinutesMedium)
     eventDescription _ = "Quarterly Quest Reset"
 
 instance ReminderSupply 'ExtraOperationReset where
     renewSupply _ =
       renewSupplyByFunc
         nextExtraOperationReset
-        [2*24*60, 24*60, 6*60, 2*60, 60, 30, 10, 5]
+        reminderMinutesMedium
     eventDescription _ = "Extra Operation Reset"
 
 instance ReminderSupply 'SenkaAccounting where
     renewSupply _ =
       renewSupplyByFunc
         nextSenkaAccounting
-        [60, 30, 10, 5]
+        reminderMinutesShort
     eventDescription _ = "Senka Accounting"
 
 instance ReminderSupply 'QuestPointDeadline where
     renewSupply _ =
       renewSupplyByFunc
         nextQuestPointDeadline
-        [2*24*60, 24*60, 6*60, 2*60, 60, 30, 10, 5]
+        reminderMinutesMedium
     eventDescription _ = "Quest Point Deadline"
 
 
