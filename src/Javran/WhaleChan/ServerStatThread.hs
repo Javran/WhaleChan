@@ -146,6 +146,20 @@ scanAllServers mgr = do
         in s {sKcServerStates = IM.insert serverId v kss}
 
 {-
+
+  (TODO) looks at ssLastContact of each server,
+  and report issues when last contact is too long (lose contact).
+
+  - for now let's say "too long" is 15 minutes
+  - check network again in case all servers are out of contact
+  - report when a server announced lose contact is went back online
+    (for this one to work we might need to get access to server stat before and after)
+
+ -}
+serverHealthCheck :: M ()
+serverHealthCheck = pure ()
+
+{-
   scan through sKcServerStates and drop sVerPackDb items no longer being referred
  -}
 cleanupDb :: M ()
@@ -181,6 +195,7 @@ threadStep mgr markStart = do
       Nothing -> pure ()
     dbBefore <- gets sVerPackDb
     scanAllServers mgr
+    serverHealthCheck
     dbAfter <- gets sVerPackDb
     when (dbBefore /= dbAfter) $ do
       Log.i tag "Found difference in VerPackDb"
