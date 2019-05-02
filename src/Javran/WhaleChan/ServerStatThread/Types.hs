@@ -52,7 +52,10 @@ instance ToJSON KcServerState
 
 data State
   = State
-  { sServerAddrs :: IM.IntMap String -- value example: "http://203.104.209.71/"
+  { -- note that sServerAddrs is the source of truth when answering
+    -- about the total number of servers.
+    -- value example: "http://203.104.209.71/"
+    sServerAddrs :: IM.IntMap String
   , sKcServerStates :: IM.IntMap KcServerState
   , sVerPackDb :: VerPackDb
   } deriving (Eq, Generic)

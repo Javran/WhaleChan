@@ -156,8 +156,8 @@ scanAllServers mgr = do
     (for this one to work we might need to get access to server stat before and after)
 
  -}
-serverHealthCheck :: M ()
-serverHealthCheck = pure ()
+serverHealthCheck :: IM.IntMap KcServerState -> IM.IntMap KcServerState -> M ()
+serverHealthCheck _ssBefore _ssAfter = pure ()
 
 {-
   scan through sKcServerStates and drop sVerPackDb items no longer being referred
@@ -179,7 +179,6 @@ threadStep mgr markStart = do
     -- update server addrs (if available)
     case mServerInfo of
       Just si -> do
-        -- TODO: warn about potentially server outage?
         {-
           here we are replacing server addrs with
           whatever info available from channel rather than updating
@@ -193,10 +192,10 @@ threadStep mgr markStart = do
           Nothing -> pure ()
           Just content -> writeToTg (TgRMServerStat content)
       Nothing -> pure ()
-    dbBefore <- gets sVerPackDb
+    State { sVerPackDb = dbBefore, sKcServerStates = ssBefore } <- get
     scanAllServers mgr
-    serverHealthCheck
-    dbAfter <- gets sVerPackDb
+    State { sVerPackDb = dbAfter, sKcServerStates = ssAfter } <- get
+    serverHealthCheck ssBefore ssAfter
     when (dbBefore /= dbAfter) $ do
       Log.i tag "Found difference in VerPackDb"
       {-
