@@ -155,6 +155,8 @@ scanAllServers mgr = do
   - report when a server announced lose contact is went back online
     (for this one to work we might need to get access to server stat before and after)
 
+  (TODO) how to prevent spamming the channel with "lost contact" info?
+
  -}
 serverHealthCheck :: IM.IntMap KcServerState -> IM.IntMap KcServerState -> M ()
 serverHealthCheck _ssBefore _ssAfter = pure ()
