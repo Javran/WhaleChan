@@ -110,6 +110,7 @@ scanAllServers mgr = do
     and wait for their completions.
    -}
   aResults <- liftIO $ do
+    -- TODO: getInfoFromKcServer is not exception-free and will cause ServerStat to crash.
     aActions <- traverse (async . getInfoFromKcServer mgr) as
     traverse waitCatch aActions
   let errs :: [(Int, SomeException)]
