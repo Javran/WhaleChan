@@ -43,7 +43,8 @@ type VerPackDb = IM.IntMap VerPack
 
 data KcServerState
   = KcServerState
-  { ssVerPackKey :: Int
+  { -- TODO: use Maybe in case we have working network but the data cannot be parsed.
+    ssVerPackKey :: Int
   , ssLastContact :: UTCTime
   } deriving (Eq, Generic)
 
