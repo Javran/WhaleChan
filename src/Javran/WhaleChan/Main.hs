@@ -71,7 +71,7 @@ startService wconf = do
           , tweetSyncThread
           , extInfoThread
           , profileDiffThread
-          , serverStatThread
+          -- , serverStatThread
           ]
   let info = Log.i' (wenvToLoggerIO wenv) "Main"
   t <- getCurrentTime
