@@ -223,7 +223,7 @@ simpleMarkdownEscape =
     then wrap it in "[]", separate by ","
  -}
 flattenJson :: Object -> HM.HashMap T.Text T.Text
-flattenJson = HM.map flattenValue
+flattenJson = HM.fromList . DL.toList . foldMap (uncurry flattenKeyVal) . HM.toList
   where
     tShow = T.pack . show
     wrapList xs = "[" <> T.intercalate "," xs <> "]"

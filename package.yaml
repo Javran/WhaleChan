@@ -46,6 +46,7 @@ dependencies:
   - conduit-extra
   - deepseq
   - mono-traversable
+  - unordered-containers
 
 library:
   source-dirs: src
