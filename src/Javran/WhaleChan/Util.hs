@@ -4,6 +4,8 @@
   , FlexibleContexts
   , ScopedTypeVariables
   , TypeFamilies
+  , LambdaCase
+  , NoMonomorphismRestriction
   #-}
 module Javran.WhaleChan.Util
   ( oneSec
@@ -26,7 +28,9 @@ module Javran.WhaleChan.Util
 import Control.Concurrent
 import Control.DeepSeq
 import Control.Exception
+import Control.Arrow
 import Control.Monad.Writer
+import Data.Foldable hiding (find)
 import Data.List (isPrefixOf)
 import Data.Maybe (fromJust)
 import Data.Time.Clock
@@ -210,5 +214,38 @@ simpleMarkdownEscape =
     . T.replace "[" "\\["
     . T.replace "`" "\\`"
 
+{-
+  Turn a JSON Object into a flat Text-to-Text map
+  - to flatten already-flat value is straightforward.
+  - to flatten an Object, we do it in a way that nested values are flatten
+    to top-level
+  - to flatten an Array, we first recursively flatten all its values
+    then wrap it in "[]", separate by ","
+ -}
 flattenJson :: Object -> HM.HashMap T.Text T.Text
-flattenJson = undefined -- TODO
+flattenJson = HM.map flattenValue
+  where
+    tShow = T.pack . show
+    wrapList xs = "[" <> T.intercalate "," xs <> "]"
+
+    flattenValue :: Value -> T.Text
+    flattenValue = \case
+      Object m -> flattenObject m
+      Array xs -> wrapList $ toList (flattenValue <$> xs)
+      String t -> t
+      Number n -> tShow n
+      Bool b -> tShow b
+      Null -> "Null"
+
+    flattenObject :: Object -> T.Text
+    flattenObject m =
+        wrapList $ pprKv <$>
+          toList (foldMap (uncurry flattenKeyVal) (HM.toList m))
+      where
+        pprKv (k,v) = "(" <> tShow k <> "," <> v <> ")"
+
+    flattenKeyVal :: T.Text -> Value -> DL.DList (T.Text, T.Text)
+    flattenKeyVal k = \case
+        Object m ->
+          first ((k <>).("." <>)) <$> foldMap (uncurry flattenKeyVal) (HM.toList m)
+        x -> DL.singleton (k, flattenValue x)
