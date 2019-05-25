@@ -48,6 +48,19 @@ data KcServerState
   , ssLastContact :: UTCTime
   } deriving (Eq, Generic)
 
+{-
+  TODO: we'll change KcServerState to the following fields:
+
+  - ssVerPackKey :: Int, we'll still use the old structure instead of Maybe,
+    but use `-1` to indicate nothing (a failure in parsing)
+  - ssLastContact :: UTCTime, last successful contact
+  - ssLastWarningTime :: UTCTime, last time that we send a warning of server being down.
+    the idea is not to spam the channel too much when a server is down for several hours,
+    let's only send warning for a minimum interval of 20 minutes.
+    (arbitrary decision, let's see how this will play out.)
+
+ -}
+
 instance FromJSON KcServerState
 instance ToJSON KcServerState
 
