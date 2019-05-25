@@ -20,6 +20,7 @@ module Javran.WhaleChan.Util
   , displayExceptionShort
   , mapDiff
   , simpleMarkdownEscape
+  , flattenJson
   ) where
 
 import Control.Concurrent
@@ -29,6 +30,7 @@ import Control.Monad.Writer
 import Data.List (isPrefixOf)
 import Data.Maybe (fromJust)
 import Data.Time.Clock
+import Data.Aeson
 import GHC.IO.Exception
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS (tlsManagerSettings)
@@ -43,6 +45,7 @@ import qualified Network.HTTP.Types.Status as Tw
 import qualified Web.Twitter.Conduit.Response as Tw
 import qualified Data.Containers as C
 import qualified Data.MonoTraversable as MT
+import qualified Data.HashMap.Strict as HM
 
 {-
   place for some commonly used functions.
@@ -206,3 +209,6 @@ simpleMarkdownEscape =
     . T.replace "*" "\\*"
     . T.replace "[" "\\["
     . T.replace "`" "\\`"
+
+flattenJson :: Object -> HM.HashMap T.Text T.Text
+flattenJson = undefined -- TODO
