@@ -215,37 +215,39 @@ simpleMarkdownEscape =
     . T.replace "`" "\\`"
 
 {-
-  Turn a JSON Object into a flat Text-to-Text map
-  - to flatten already-flat value is straightforward.
-  - to flatten an Object, we do it in a way that nested values are flatten
-    to top-level
-  - to flatten an Array, we first recursively flatten all its values
-    then wrap it in "[]", separate by ","
+  Turn a JSON Object into a flat Text-to-Text map.
+
+  The exact rule might not matter that much, but the idea should be that:
+  - already-flat value should be flat while still keep less verbosity
+    (e.g. string don't need to be wrapped around quotations)
+  - whenever an Object is encountered, we make sure all its inner nested structure
+    is "squeezed" into top layer (e.g. "{a:{b:{c:1},d:2}}" => "{a.b.c:1,a.d:2}")
+    Note: JSON syntax here is lax for sake of readability.
  -}
 flattenJson :: Object -> HM.HashMap T.Text T.Text
-flattenJson = HM.fromList . DL.toList . foldMap (uncurry flattenKeyVal) . HM.toList
+flattenJson =
+    HM.fromList
+    . toList . unnest
+    . HM.toList
   where
     tShow = T.pack . show
-    wrapList xs = "[" <> T.intercalate "," xs <> "]"
+    wrapToList xs = "[" <> T.intercalate "," (toList xs) <> "]"
+
+    unnest = foldMap flattenKeyVal
+      where
+        flattenKeyVal (k,v) = case v of
+          Object m ->
+            -- attempt to unnest whenever possible
+            first ((k <>).("." <>)) <$> unnest (HM.toList m)
+          x -> DL.singleton (k, flattenValue x)
 
     flattenValue :: Value -> T.Text
     flattenValue = \case
-      Object m -> flattenObject m
-      Array xs -> wrapList $ toList (flattenValue <$> xs)
+      Object m ->
+        let pprKv (k,v) = "(" <> tShow k <> "," <> v <> ")"
+        in wrapToList $ pprKv <$> unnest (HM.toList m)
+      Array xs -> wrapToList $ flattenValue <$> xs
       String t -> t
       Number n -> tShow n
       Bool b -> tShow b
       Null -> "Null"
-
-    flattenObject :: Object -> T.Text
-    flattenObject m =
-        wrapList $ pprKv <$>
-          toList (foldMap (uncurry flattenKeyVal) (HM.toList m))
-      where
-        pprKv (k,v) = "(" <> tShow k <> "," <> v <> ")"
-
-    flattenKeyVal :: T.Text -> Value -> DL.DList (T.Text, T.Text)
-    flattenKeyVal k = \case
-        Object m ->
-          first ((k <>).("." <>)) <$> foldMap (uncurry flattenKeyVal) (HM.toList m)
-        x -> DL.singleton (k, flattenValue x)
