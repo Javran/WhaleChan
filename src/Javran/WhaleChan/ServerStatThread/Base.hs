@@ -25,6 +25,7 @@ import qualified Data.Map.Strict as M
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.Builder.Int as TB
+import qualified Data.HashMap.Strict as HM
 
 import Javran.WhaleChan.Util
 import Javran.WhaleChan.ServerStatThread.Types
@@ -72,7 +73,9 @@ getInfoFromKcServer mgr addr = do
   let url = addr <> "kcs2/version.json"
   req <- parseUrlThrow url
   raw <- responseBody <$> httpLbs req mgr
-  let Just vp = decode raw
+  let Just (Object vpRaw) = decode raw :: Maybe Value
+      vp :: VerPack
+      vp = M.fromList . HM.toList . flattenJson $ vpRaw
   t <- getCurrentTime
   pure (vp, t)
 
