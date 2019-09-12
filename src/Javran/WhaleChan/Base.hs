@@ -194,6 +194,8 @@ protectedAction loggerIO aName maxRetry action = run 0
       where
         errHandler e = do
           logErr $ "Exception caught for Action " ++ aName ++ ": " ++ displayException e
+          -- TODO: recursive calls inside error handler will cause mask state to inherit,
+          -- we should consider whether this is desirable for our use case.
           run (retryCount+1)
 
 writeToTg :: (MonadIO m, MonadReader WEnv m) => TgRxMsg -> m ()
