@@ -1,4 +1,4 @@
-resolver: lts-13.20
+resolver: lts-14.0
 
 packages:
 - .
@@ -7,7 +7,7 @@ extra-deps:
 - git: https://github.com/Javran/twitter-conduit.git
   commit: d9e21188fb082390d4a91cdf74d4452c10146466
 - git: https://github.com/Javran/haskell-telegram-api.git
-  commit: d5a80a0d406bcae023fb48ad4204d8e72e546ad3
+  commit: 649480f5b414c24e08ae0159c925e8a097ec2d3b
 - git: https://github.com/Javran/twitter-types.git
   commit: 04c052e33e5be2cba17b931773013a0c435e4fed
   subdirs:

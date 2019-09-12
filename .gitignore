@@ -25,3 +25,4 @@ cabal.project.local~
 
 /wcz
 /private/
+/stack.yaml.lock
