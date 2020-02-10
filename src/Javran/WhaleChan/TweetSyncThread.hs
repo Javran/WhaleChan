@@ -5,6 +5,7 @@
   , ScopedTypeVariables
   , LambdaCase
   , FlexibleContexts
+  , OverloadedLabels
   #-}
 module Javran.WhaleChan.TweetSyncThread
   ( tweetSyncThread
@@ -21,6 +22,7 @@ import Data.List
 import Data.Time.Clock
 import Web.Twitter.Conduit hiding (count)
 import Web.Twitter.Conduit.Parameters
+import Web.Twitter.Conduit.Status
 import Web.Twitter.Types
 
 import qualified Data.Map.Strict as M
@@ -85,10 +87,10 @@ putTwMsg mv m =
  -}
 shouldPreview :: Status -> Bool
 shouldPreview st
-  | Just Entities
-    { enURLs = eus
-    , enMedia = ems
-    } <- statusGetEntities st
+  | Just TweetUrls
+    { otherUrls = eus
+    , mediaUrls = ems
+    } <- statusGetTweetUrls st
     = not (null eus && null ems)
   | otherwise = False
 
@@ -98,12 +100,8 @@ shouldPreview st
  -}
 mediaPrependMarkdown :: Status -> Maybe T.Text
 mediaPrependMarkdown st = do
-  Entities {enMedia = ems@(_:_)} <- statusGetEntities st
-  let mediaToMdLink num ent
-        | Entity
-          { entityBody = MediaEntity {meMediaURLHttps = mUrl}
-          } <- ent =
-          "[" <> TB.decimal num <> "](" <> TB.fromText mUrl <> ")"
+  TweetUrls {mediaUrls = ems@(_:_)} <- statusGetTweetUrls st
+  let mediaToMdLink num mUrl = "[" <> TB.decimal num <> "](" <> TB.fromText mUrl <> ")"
       mediaMdLinks = zipWith mediaToMdLink [1::Int ..] ems
       mediaContentMd = "Media: " <> mconcat (intersperse ", " mediaMdLinks)
   -- Media: [1](<link>), [2](<link>), ...
@@ -127,8 +125,8 @@ tweetSyncThread wenv = do
           (in order to make embeded links / images work better)
          -}
         req = userTimeline (UserIdParam (fromIntegral twWatchingUserId))
-                & count ?~ 200
-                & tweetMode ?~ "extended"
+                & #count ?~ 200
+                & #tweet_mode ?~ "extended"
         -- we ignore all messages older than a specific duration right
         -- after the thread is started, by doing so, we make sure not to flood
         -- the channel with old tweets (even if they are not yet sync-ed)

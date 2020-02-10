@@ -5,11 +5,13 @@
   , ScopedTypeVariables
   , TypeApplications
   , FlexibleContexts
+  , TypeApplications
   #-}
 module Javran.WhaleChan.Twitter
   ( callTwApi
   , createTweetLinkMarkdown
-  , statusGetEntities
+  , statusGetTweetUrls
+  , TweetUrls(..)
   ) where
 
 import Control.Applicative
@@ -20,8 +22,9 @@ import Data.Conduit.Attoparsec
 import Data.Time.Format
 import Data.Time.LocalTime.TimeZone.Series
 import Network.HTTP.Client
-import Web.Twitter.Conduit hiding (count)
+import Web.Twitter.Conduit
 import Web.Twitter.Types
+import Web.Twitter.Conduit.Base (ResponseBodyType)
 
 import qualified Data.ByteString.Char8 as BSC
 import qualified Data.Text as T
@@ -71,7 +74,7 @@ getTwInfo WConf{..} = TWInfo twTok Nothing
       ]
     twTok = TWToken oauth credential
 
-callTwApi :: FromJSON respTy
+callTwApi :: (FromJSON respTy, ResponseBodyType respTy)
           => String -> APIRequest apiName respTy -> (respTy -> WCM s ()) -> WCM s ()
 callTwApi tag req handleResp = do
     (wconf, TCommon{tcManager}) <- ask
@@ -159,6 +162,22 @@ createTweetLinkMarkdown tzTokyo st =
   ref:
   https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/extended-entities-object
  -}
-statusGetEntities :: Status -> Maybe Entities
-statusGetEntities st =
-  statusExtendedEntities st <|> statusEntities st
+
+data TweetUrls
+  = TweetUrls
+  { mediaUrls :: [URIString]
+  , otherUrls :: [URIString]
+  }
+
+statusGetTweetUrls :: Status -> Maybe TweetUrls
+statusGetTweetUrls st = tryExtended <|> tryCompat
+  where
+    tryExtended = do
+      ExtendedEntities exs <- statusExtendedEntities st
+      let urls = fmap (exeMediaUrlHttps . entityBody) exs
+      pure $ TweetUrls urls []
+    tryCompat = do
+      Entities { enURLs = ens, enMedia = ems } <- statusEntities st
+      let mediaUrls = fmap (meMediaURLHttps  . entityBody) ems
+          otherUrls = fmap (ueExpanded .entityBody) ens
+      pure $ TweetUrls mediaUrls otherUrls

@@ -4,6 +4,7 @@
   , NamedFieldPuns
   , RecordWildCards
   , OverloadedStrings
+  , OverloadedLabels
   #-}
 module Javran.WhaleChan.ProfileDiffThread
   ( profileDiffThread
@@ -113,7 +114,7 @@ fetchImg uri = do
 profileDiffThread :: WEnv -> IO ()
 profileDiffThread wenv@(WConf{twWatchingUserId}, TCommon{tzTokyo}) = do
     let req = usersShow (UserIdParam (fromIntegral twWatchingUserId))
-              & includeEntities ?~ False
+              & #include_entities ?~ False
         tag = "ProfileDiff"
         hb = heartbeat "ProfileDiff" 3600 -- kill this thread if it doesn't come back in 1 hr
     autoWCM @ProfileInfo tag "profile-diff.yaml" wenv $ \markStart -> do
