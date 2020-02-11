@@ -1,10 +1,8 @@
 {-# LANGUAGE
     LambdaCase
-  , ExplicitForAll
   , ScopedTypeVariables
   , TypeApplications
   , TypeFamilies
-  , NamedFieldPuns
   , OverloadedStrings
   , FlexibleContexts
   #-}
@@ -24,23 +22,22 @@ import Control.Monad
 import Control.Monad.Logger
 import Control.Monad.RWS
 import Data.Default
-import Data.Yaml.Internal
-
-import Javran.WhaleChan.Types
-import qualified Javran.WhaleChan.Log as Log
-import Javran.WhaleChan.Util
+import Data.String
+import Data.Text.Encoding (decodeUtf8)
 import Data.Time.Clock
 import Data.Time.Format
-import Data.String
-import System.IO
-import System.Log.FastLogger
-
-import qualified Data.ByteString as BS
-import qualified Data.Yaml as Yaml
+import Data.Yaml.Internal
 import System.Console.Terminfo.Base
 import System.Console.Terminfo.Color
-import Data.Text.Encoding (decodeUtf8)
+import System.IO
+
+import qualified Data.ByteString as BS
 import qualified Data.Text as T
+import qualified Data.Yaml as Yaml
+import qualified Javran.WhaleChan.Log as Log
+
+import Javran.WhaleChan.Types
+import Javran.WhaleChan.Util
 
 {-
   it is assumed that all files related to the current

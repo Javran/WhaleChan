@@ -20,7 +20,6 @@ import Control.Monad
 import Control.Monad.RWS
 import Data.List
 import Data.Time.Clock
-import Web.Twitter.Conduit hiding (count)
 import Web.Twitter.Conduit.Parameters
 import Web.Twitter.Conduit.Status
 import Web.Twitter.Types
