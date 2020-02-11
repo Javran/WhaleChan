@@ -6,88 +6,70 @@ maintainer: Javran Cheng <javran.c@gmail.com>
 github: Javran/WhaleChan
 category: Telegram
 
-ghc-options: -Wall -O2
-
 dependencies:
-  - base
-  - text
-  - bytestring
-  - twitter-conduit
-  - http-types
-  - telegram-api
+  - aeson
+  - async
   - authenticate-oauth
-  - mtl
-  - servant-client
+  - base
+  - bytestring
+  - conduit-extra
+  - containers
+  - data-default
+  - data-ordlist
+  - deepseq
+  - directory
+  - dlist
+  - fast-logger
+  - html-conduit
   - http-client
   - http-client-tls
-  - data-default
-  - containers
-  - aeson
-  - yaml
-  - async
+  - http-types
+  - lens
+  - mime-types
+  - monad-logger
+  - mono-traversable
+  - mtl
+  - servant-client
+  - tagsoup
+  - telegram-api
+  - terminfo
+  - text
   - time
   - timezone-olson
   - timezone-series
-  - telegram-api
-  - http-client
-  - http-client-tls
+  - twitter-conduit
   - twitter-types
-  - lens
-  - data-ordlist
-  - directory
-  - tagsoup
-  - html-conduit
-  - xml-conduit
-  - monad-logger
-  - fast-logger
-  - terminfo
-  - mime-types
-  - dlist
-  - conduit-extra
-  - deepseq
-  - mono-traversable
   - unordered-containers
+  - xml-conduit
+  - yaml
 
 library:
   source-dirs: src
-  exposed-modules:
-    - Javran.WhaleChan.Types
-    - Javran.WhaleChan.Base
-    - Javran.WhaleChan.Util
-    - Javran.WhaleChan.Log
-    - Javran.WhaleChan.ReminderThread.ReoccuringEvents
-    - Javran.WhaleChan.ReminderThread.EventReminder
-    - Javran.WhaleChan.ReminderThread.Message
-    - Javran.WhaleChan.ReminderThread.Types
-    - Javran.WhaleChan.ReminderThread
-    - Javran.WhaleChan.TelegramThread
-    - Javran.WhaleChan.ServerStatThread.Types
-    - Javran.WhaleChan.ServerStatThread.Base
-    - Javran.WhaleChan.ServerStatThread
-    - Javran.WhaleChan.Twitter
-    - Javran.WhaleChan.TweetSyncThread
-    - Javran.WhaleChan.ProfileDiffThread
-    - Javran.WhaleChan.FromSource.Util
-    - Javran.WhaleChan.FromSource.TimeFormat
-    - Javran.WhaleChan.FromSource.KcsConst
-    - Javran.WhaleChan.FromSource.Kc3Kai
-    - Javran.WhaleChan.FromSource.Wikia
-    - Javran.WhaleChan.FromSource.Kcwiki
-    - Javran.WhaleChan.ExtInfoThread
-    - Javran.WhaleChan.HealthThread
-    - Javran.WhaleChan.Main
+  ghc-options:
+  - -Wall
 
-executable:
-  main: Main.hs
-  source-dirs: src
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  dependencies:
-    - WhaleChan
+executables:
+  WhaleChan:
+    main: WhaleChan.hs
+    source-dirs: exe
+    ghc-options:
+      - -threaded
+      - -O2
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -main-is WhaleChan
+    dependencies:
+      - WhaleChan
 
 tests:
   hspec:
     main: Spec.hs
-    ghc-options: -main-is Spec
+    ghc-options:
+      - -threaded
+      - -O2
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -main-is Spec
     source-dirs:
       - test
       - src

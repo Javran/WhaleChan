@@ -1,3 +1,3 @@
-module Main (main) where
+module WhaleChan (main) where
 
 import Javran.WhaleChan.Main
