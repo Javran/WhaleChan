@@ -10,3 +10,5 @@ extra-deps:
   commit: 649480f5b414c24e08ae0159c925e8a097ec2d3b
 - twitter-types-0.10.0
 - twitter-types-lens-0.10.0
+- dhall-1.29.0
+- prettyprinter-1.6.0

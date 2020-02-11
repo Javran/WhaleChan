@@ -17,6 +17,7 @@ dependencies:
   - data-default
   - data-ordlist
   - deepseq
+  - dhall
   - directory
   - dlist
   - fast-logger
