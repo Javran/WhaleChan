@@ -55,19 +55,6 @@ data WConf = WConf
   , tgChannelId :: Int64
   } deriving (Show)
 
-instance ToJSON WConf where
-    toJSON WConf {..}
-      | Tg.Token tok <- tgBotToken
-      = object [ "twitter-consumer-key" .= BSC.unpack twConsumerKey
-               , "twitter-consumer-secret" .= BSC.unpack twConsumerSecret
-               , "twitter-oauth-token" .= twOAuthToken
-               , "twitter-oauth-secret" .= twOAuthSecret
-               , "twitter-watching-user-id" .= twWatchingUserId
-               , "twitter-ignore-older-than" .= twIgnoreOlderThan
-               , "telegram-bot-token" .= tok
-               , "telegram-channel-id" .= tgChannelId
-               ]
-
 instance FromJSON WConf where
     parseJSON = withObject "WEnv" $ \o ->
         WConf
