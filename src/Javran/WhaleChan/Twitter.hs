@@ -59,26 +59,10 @@ import qualified Javran.WhaleChan.Log as Log
 
  -}
 
-getTwInfo :: WConf -> TWInfo
-getTwInfo WConf{..} = TWInfo twTok Nothing
-  where
-    oauth =
-      twitterOAuth
-      { oauthConsumerKey = twConsumerKey
-      , oauthConsumerSecret = twConsumerSecret
-      }
-    credential =
-      Credential
-      [ ("oauth_token", BSC.pack twOAuthToken)
-      , ("oauth_token_secret", BSC.pack twOAuthSecret)
-      ]
-    twTok = TWToken oauth credential
-
 callTwApi :: (FromJSON respTy, ResponseBodyType respTy)
           => String -> APIRequest apiName respTy -> (respTy -> WCM s ()) -> WCM s ()
 callTwApi tag req handleResp = do
-    (wconf, TCommon{tcManager}) <- ask
-    let twInfo = getTwInfo wconf
+    (WConf {twInfo}, TCommon {tcManager}) <- ask
     respM <- liftIO $
       (Right <$> callWithResponse twInfo tcManager req) `catches`
         {-

@@ -32,23 +32,19 @@ import Data.Int (Int64)
 import Data.Time.Clock
 import Data.Time.LocalTime.TimeZone.Series
 import GHC.Generics
-import Web.Twitter.Conduit (Manager)
+import Web.Twitter.Conduit
 import Web.Twitter.Types
 
-import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
-import qualified Data.Map.Strict as M
 import qualified Data.IntMap.Strict as IM
+import qualified Data.Map.Strict as M
 import qualified Data.Sequence as Seq
 import qualified Data.Text as T
 import qualified Data.Yaml as Yaml
 import qualified Web.Telegram.API.Bot as Tg
 
 data WConf = WConf
-  { twConsumerKey :: BS.ByteString
-  , twConsumerSecret :: BS.ByteString
-  , twOAuthToken :: String
-  , twOAuthSecret :: String
+  { twInfo :: TWInfo
   , twWatchingUserId :: Int
   , twIgnoreOlderThan :: Int
   , tgBotToken :: Tg.Token
@@ -56,16 +52,29 @@ data WConf = WConf
   } deriving (Show)
 
 instance FromJSON WConf where
-    parseJSON = withObject "WEnv" $ \o ->
-        WConf
-            <$> (BSC.pack <$> o .: "twitter-consumer-key")
-            <*> (BSC.pack <$> o .: "twitter-consumer-secret")
-            <*> o .: "twitter-oauth-token"
-            <*> o .: "twitter-oauth-secret"
-            <*> o .: "twitter-watching-user-id"
-            <*> o .: "twitter-ignore-older-than"
-            <*> (Tg.Token <$> o .: "telegram-bot-token")
-            <*> o .: "telegram-channel-id"
+    parseJSON = withObject "WEnv" $ \o -> do
+      twConsumerKey <- BSC.pack <$> o .: "twitter-consumer-key"
+      twConsumerSecret <- BSC.pack <$> o .: "twitter-consumer-secret"
+      twOAuthToken <- BSC.pack <$> o .: "twitter-oauth-token"
+      twOAuthSecret <- BSC.pack <$> o .: "twitter-oauth-secret"
+      let oauth =
+            twitterOAuth
+              { oauthConsumerKey = twConsumerKey
+              , oauthConsumerSecret = twConsumerSecret
+              }
+          credential =
+            Credential
+            [ ("oauth_token", twOAuthToken)
+            , ("oauth_token_secret", twOAuthSecret)
+            ]
+          twTok = TWToken oauth credential
+          twInfo = TWInfo twTok Nothing
+      WConf
+        <$> pure twInfo
+        <*> o .: "twitter-watching-user-id"
+        <*> o .: "twitter-ignore-older-than"
+        <*> (Tg.Token <$> o .: "telegram-bot-token")
+        <*> o .: "telegram-channel-id"
 
 -- messages received by TelegramThread
 data TgRxMsg
