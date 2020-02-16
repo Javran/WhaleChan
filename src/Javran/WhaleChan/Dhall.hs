@@ -4,11 +4,15 @@
   , NamedFieldPuns
   , DeriveGeneric
   #-}
-module Javran.WhaleChan.Dhall where
+module Javran.WhaleChan.Dhall (loadWConf) where
 
 import Dhall
-import Web.Twitter.Conduit
 import Data.Text.Encoding (encodeUtf8)
+import Web.Twitter.Conduit
+
+import Javran.WhaleChan.Types
+
+import qualified Web.Telegram.API.Bot as Tg
 
 -- This is the config loaded by Dhall,
 -- which we will eventually turn into WConf.
@@ -22,6 +26,8 @@ data PreConf = PreConf
   , tgBotToken :: Text
   , tgChannelId :: Integer
   } deriving (Show, Generic)
+
+instance FromDhall PreConf
 
 getTwInfo :: PreConf -> TWInfo
 getTwInfo PreConf{..} = def { twToken, twProxy }
@@ -38,3 +44,16 @@ getTwInfo PreConf{..} = def { twToken, twProxy }
         ]
     twToken = def { twOAuth, twCredential }
     twProxy = Nothing
+
+toWConf :: PreConf -> WConf
+toWConf pc@PreConf {..} =
+    WConf
+    { twInfo = getTwInfo pc
+    , twWatchingUserId = fromIntegral twWatchingUserId
+    , twIgnoreOlderThan = fromIntegral twIgnoreOlderThan
+    , tgBotToken = Tg.Token tgBotToken
+    , tgChannelId = fromIntegral tgChannelId
+    }
+
+loadWConf :: FilePath -> IO WConf
+loadWConf fp = toWConf <$> inputFile auto fp
