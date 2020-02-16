@@ -7,8 +7,7 @@
   , FlexibleContexts
   #-}
 module Javran.WhaleChan.Base
-  ( loadWEnv
-  , autoWCM
+  ( autoWCM
   , logCurrentMessage
   , startLogger
   , wenvToLoggerIO
@@ -52,9 +51,6 @@ import Javran.WhaleChan.Util
   - tweet-sync.yaml: for the tweet sync thread
 
  -}
-
-loadWEnv :: IO WConf
-loadWEnv = Yaml.decodeFileThrow "config.yaml"
 
 {-
   WCM thread template:

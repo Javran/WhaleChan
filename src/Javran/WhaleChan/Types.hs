@@ -1,7 +1,5 @@
 {-# LANGUAGE
-    RecordWildCards
-  , OverloadedStrings
-  , DeriveGeneric
+    DeriveGeneric
   #-}
 module Javran.WhaleChan.Types
   ( WConf(..)
@@ -27,7 +25,6 @@ module Javran.WhaleChan.Types
 import Control.Concurrent
 import Control.Monad.Logger
 import Control.Monad.RWS
-import Data.Aeson
 import Data.Int (Int64)
 import Data.Time.Clock
 import Data.Time.LocalTime.TimeZone.Series
@@ -35,7 +32,6 @@ import GHC.Generics
 import Web.Twitter.Conduit
 import Web.Twitter.Types
 
-import qualified Data.ByteString.Char8 as BSC
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Map.Strict as M
 import qualified Data.Sequence as Seq
@@ -49,32 +45,7 @@ data WConf = WConf
   , twIgnoreOlderThan :: Int
   , tgBotToken :: Tg.Token
   , tgChannelId :: Int64
-  } deriving (Show)
-
-instance FromJSON WConf where
-    parseJSON = withObject "WEnv" $ \o -> do
-      twConsumerKey <- BSC.pack <$> o .: "twitter-consumer-key"
-      twConsumerSecret <- BSC.pack <$> o .: "twitter-consumer-secret"
-      twOAuthToken <- BSC.pack <$> o .: "twitter-oauth-token"
-      twOAuthSecret <- BSC.pack <$> o .: "twitter-oauth-secret"
-      let oauth =
-            twitterOAuth
-              { oauthConsumerKey = twConsumerKey
-              , oauthConsumerSecret = twConsumerSecret
-              }
-          credential =
-            Credential
-            [ ("oauth_token", twOAuthToken)
-            , ("oauth_token_secret", twOAuthSecret)
-            ]
-          twTok = TWToken oauth credential
-          twInfo = TWInfo twTok Nothing
-      WConf
-        <$> pure twInfo
-        <*> o .: "twitter-watching-user-id"
-        <*> o .: "twitter-ignore-older-than"
-        <*> (Tg.Token <$> o .: "telegram-bot-token")
-        <*> o .: "telegram-channel-id"
+  }
 
 -- messages received by TelegramThread
 data TgRxMsg

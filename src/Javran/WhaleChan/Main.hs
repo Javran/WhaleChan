@@ -20,6 +20,7 @@ import System.Environment
 import System.Exit
 
 import Javran.WhaleChan.Base
+import Javran.WhaleChan.Dhall
 import Javran.WhaleChan.TelegramThread (telegramThread)
 import Javran.WhaleChan.ReminderThread (reminderThread)
 import Javran.WhaleChan.TweetSyncThread (tweetSyncThread, createTwMVar)
@@ -90,5 +91,5 @@ main :: IO ()
 main = getArgs >>= \case
     [workingDir] ->
       setCurrentDirectory workingDir >>
-      loadWEnv >>= startService
+      loadWConf "config.dhall" >>= startService
     _ -> putStrLn "WhaleChan <working_dir>" >> exitFailure
