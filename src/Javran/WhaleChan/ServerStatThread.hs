@@ -30,15 +30,16 @@ import Javran.WhaleChan.ServerStatThread.Base
 
 {-
 
+  WIP. This thread is used for detecting various server-side changes.
+
   for getting server related infomation.
 
   - in order not to get too noisy, we only post about following events:
-
-    + a new version change is first detected at a specific server
-    + announce that versions in all servers are now in sync with latest
-    + a server ip is changed
-    + (TODO) a server is down (by trying to get the version number)
-    + (TODO) a server is back online
+     + a new version change is first detected at a specific server
+     + announce that versions in all servers are now in sync with latest
+     + a server ip is changed
+     + (TODO) a server is down (by trying to get the version number)
+     + (TODO) a server is back online
 
   - keep a set of VerPack indexed by ascending number.
     detected versions are first compared against this set of items then
@@ -74,7 +75,7 @@ serverStatThread :: WEnv -> IO ()
 serverStatThread wenv = do
     {-
       we are creating one dedicated to talking to various kc servers.
-      since only this very server talks to these servers,
+      since only this very thread talks to these servers,
       it makes sense not to use the shared manager.
      -}
     mgr <- newManager tlsManagerSettings
@@ -236,6 +237,6 @@ threadStep mgr markStart = do
     {-
       wake up every 53 seconds.
       the number is a random choice to be close to 1 minutes,
-      picking a prime number to reduce the amount simultaneous events.
+      picking a prime number to reduce the amount of simultaneous events.
      -}
     liftIO $ threadDelay $ oneSec * 53
