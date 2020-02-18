@@ -6,11 +6,14 @@
 module Javran.WhaleChan.ServerStatThread.Base
   ( describeServer
   , getInfoFromKcServer
+  , getInfoFromKcServerSafe
   , renderVerPackDiffMd
   , renderServerAddrDiffMd
   , parseServerAddr
   ) where
 
+import Control.Exception.Safe
+import Control.Monad
 import Data.Aeson
 import Data.Char
 import Data.List
@@ -18,14 +21,13 @@ import Data.Maybe
 import Data.Time.Clock
 import Network.HTTP.Client
 import Text.ParserCombinators.ReadP
-import Control.Monad
 
+import qualified Data.HashMap.Strict as HM
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.Builder.Int as TB
-import qualified Data.HashMap.Strict as HM
 
 import Javran.WhaleChan.Util
 import Javran.WhaleChan.ServerStatThread.Types
@@ -78,6 +80,13 @@ getInfoFromKcServer mgr addr = do
       vp = M.fromList . HM.toList . flattenJson $ vpRaw
   t <- getCurrentTime
   pure (vp, t)
+
+getInfoFromKcServerSafe :: Manager -> String -> IO (Either String (VerPack, UTCTime))
+getInfoFromKcServerSafe mgr addr =
+  -- TODO: identify what are the set of exceptions that we intended to catch?
+  catchAnyDeep
+    (Right <$> getInfoFromKcServer mgr addr)
+    (pure . Left . displayException) -- TODO: whether displayException is appropriate?
 
 {-
   message:

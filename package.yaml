@@ -30,6 +30,7 @@ dependencies:
   - monad-logger
   - mono-traversable
   - mtl
+  - safe-exceptions
   - servant-client
   - tagsoup
   - telegram-api
