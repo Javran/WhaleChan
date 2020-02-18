@@ -86,7 +86,27 @@ startService wconf = do
   mapM (async . ($ wenv)) workers >>= mapM_ wait
   wait aLog
 
--- config file name is implicit, see Javran.WhaleChan.Base
+{-
+  Working directory of WhaleChan.
+
+  The program takes a single argument indicating its working directory
+  and switch immediately to it after startup.
+
+  It is assumed that the config file `config.dhall` together with all
+  internal files related to the current running instance
+  is located in this directory.
+
+  All other files except the config file is expected to be optional.
+  All proceeding operations on files should just use a predefined name
+  without using subdirectories.
+
+  - config.dhall: config file
+  - WhaleChan.log: log file, appended.
+  - reminder.yaml: for the reminder thread
+  - tweet-sync.yaml: for the tweet sync thread
+  - and some other yaml files that are usually used by a single thread.
+
+ -}
 main :: IO ()
 main = getArgs >>= \case
     [workingDir] ->
