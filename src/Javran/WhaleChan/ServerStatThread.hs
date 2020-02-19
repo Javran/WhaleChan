@@ -111,11 +111,11 @@ scanAllServers mgr = do
     and wait for their completions.
    -}
   aResults <- liftIO $ do
-    -- TODO: getInfoFromKcServer is not exception-free and will cause ServerStat to crash.
-    aActions <- traverse (async . getInfoFromKcServer mgr) as
+    aActions <- traverse (async . getInfoFromKcServerSafe mgr) as
     traverse waitCatch aActions
   let errs :: [(Int, SomeException)]
-      results :: [(Int, (VerPack, UTCTime))]
+      -- TODO: type starts to look confusing, need some flattening.
+      results :: [(Int, Either String (VerPack, UTCTime))]
       (errs, results) =
           partitionEithers
           . fmap (\(k,e) -> bimap (k,) (k,) e)
@@ -140,7 +140,12 @@ scanAllServers mgr = do
         T.unpack (describeServer serverId)
         <> " encountered exception: "
         <> displayExceptionShort e
-    Right (vp, t) -> do
+    Right (Left errMsg) ->
+      Log.e tag $
+        T.unpack (describeServer serverId)
+        <> " encountered exception while getting info: "
+        <> errMsg
+    Right (Right (vp, t)) -> do
       vpId <- registerVerPack vp
       modify $ \s ->
         let kss = sKcServerStates s
