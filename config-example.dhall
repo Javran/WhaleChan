@@ -8,4 +8,5 @@
 , twIgnoreOlderThan = 4 * 60 * 60
 , tgBotToken = ""
 , tgChannelId = -1234
+, isDevMode = True
 }

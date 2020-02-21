@@ -25,6 +25,7 @@ data PreConf = PreConf
   , twIgnoreOlderThan :: Natural
   , tgBotToken :: Text
   , tgChannelId :: Integer
+  , isDevMode :: Bool
   } deriving (Show, Generic)
 
 instance FromDhall PreConf
@@ -53,6 +54,7 @@ toWConf pc@PreConf {..} =
     , twIgnoreOlderThan = fromIntegral twIgnoreOlderThan
     , tgBotToken = Tg.Token tgBotToken
     , tgChannelId = fromIntegral tgChannelId
+    , isDevMode = isDevMode
     }
 
 loadWConf :: FilePath -> IO WConf

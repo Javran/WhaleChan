@@ -45,6 +45,12 @@ data WConf = WConf
   , twIgnoreOlderThan :: Int
   , tgBotToken :: Tg.Token
   , tgChannelId :: Int64
+    {-
+      This option acts as a "feature switch",
+      thread workers that are still in development can choose to
+      do thing differently depending on this flag.
+     -}
+  , isDevMode :: Bool
   }
 
 -- messages received by TelegramThread
