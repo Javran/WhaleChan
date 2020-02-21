@@ -234,7 +234,8 @@ threadStep mgr markStart = do
 
     cleanupDb
     dbAfterClean <- gets sVerPackDb
-    when (dbAfter /= dbAfterClean && IM.size dbAfterClean == 1) $ do
+    devMode <- asks (isDevMode . fst)
+    when (not devMode && dbAfter /= dbAfterClean && IM.size dbAfterClean == 1) $ do
       let tgMessage =
             simpleMarkdownEscape "[ServerStat] New game version observed on all servers"
       writeToTg (TgRMServerStat tgMessage)
