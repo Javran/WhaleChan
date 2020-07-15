@@ -1,14 +1,15 @@
-resolver: lts-14.23
+resolver: lts-16.4
 
 packages:
 - .
 
 extra-deps:
-- git: https://github.com/Javran/twitter-conduit.git
-  commit: 3c36a9ace8838190ba8f937fcef19d0b26c73df1
 - git: https://github.com/Javran/haskell-telegram-api.git
   commit: 649480f5b414c24e08ae0159c925e8a097ec2d3b
-- twitter-types-0.10.0
-- twitter-types-lens-0.10.0
-- dhall-1.29.0
 - prettyprinter-1.6.0
+- servant-http-streams-0.17
+- servant-0.17
+- servant-client-core-0.17
+- twitter-conduit-0.5.0
+- twitter-types-0.10.1
+- twitter-types-lens-0.10.0

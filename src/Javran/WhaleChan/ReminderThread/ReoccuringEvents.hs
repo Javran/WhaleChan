@@ -13,7 +13,7 @@ module Javran.WhaleChan.ReminderThread.ReoccuringEvents
   , nextQuestPointDeadline
   ) where
 
-import Data.Time.Calendar
+import Data.Time.Calendar hiding (dayOfWeek)
 import Data.Time.Calendar.WeekDate
 import Data.Time.LocalTime
 
