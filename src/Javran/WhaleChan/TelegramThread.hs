@@ -107,6 +107,11 @@ telegramThread wenv@(wconf, tcomm) =
                   \Response {result = Message {message_id}} ->
                     putTwMsg tcTwitter (TwRMTgSent message_id stId)
             TgRMTweetDestroy stId msgId ->
+                -- TODO: twitter api doesn't seem to guarantee consistency so that
+                -- some tweets are mistakenly flagged as removed while in reality it might be
+                -- some delay before data is consistent between serving servers.
+                -- to fix this, we can probably define a timeout and only send deletion notification
+                -- after a tweet is missing and the timeout is passed.
                 sendTgMessage
                   "This tweet is deleted."
                   (\r -> r {message_reply_to_message_id = Just msgId}) $
