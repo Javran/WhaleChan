@@ -91,11 +91,12 @@ callTwApi' tag req fallback handleResp' = do
         ]
   case respM of
     Left e -> do
-      -- a network exception could be temporary, so
-      -- we'll let it proceed instead of throwing exceptions
-      Log.e tag (displayExceptionShort e)
       case fromException @TwitterError e of
-        Nothing -> pure fallback
+        Nothing -> do
+          -- we are dealing with a caught exception that is not TwitterError,
+          -- in this case we will just log it and let the control proceed.
+          Log.e tag (displayExceptionShort e)
+          pure fallback
         Just te -> handleResp' (Left te)
     Right Response {responseHeaders, responseBody} -> do
       let [rlLimit, rlRemaining, _rlReset] =
