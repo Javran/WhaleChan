@@ -62,9 +62,10 @@ callTwApi'
   :: (FromJSON respTy, ResponseBodyType respTy)
   => String
   -> APIRequest apiName respTy
-  -> (Either TwitterError respTy -> WCM s ())
-  -> WCM s ()
-callTwApi' tag req handleResp' = do
+  -> r
+  -> (Either TwitterError respTy -> WCM s r)
+  -> WCM s r
+callTwApi' tag req fallback handleResp' = do
   (WConf {twInfo}, TCommon {tcManager}) <- ask
   respM <-
     liftIO $
@@ -94,7 +95,7 @@ callTwApi' tag req handleResp' = do
       -- we'll let it proceed instead of throwing exceptions
       Log.e tag (displayExceptionShort e)
       case fromException @TwitterError e of
-        Nothing -> pure ()
+        Nothing -> pure fallback
         Just te -> handleResp' (Left te)
     Right Response {responseHeaders, responseBody} -> do
       let [rlLimit, rlRemaining, _rlReset] =
@@ -128,9 +129,14 @@ callTwApi
   -> APIRequest apiName respTy
   -> (respTy -> WCM s ())
   -> WCM s ()
-callTwApi tag req handleResp = callTwApi' tag req $ \case
-  Left _ -> pure ()
-  Right r -> handleResp r
+callTwApi tag req handleResp =
+  callTwApi'
+    tag
+    req
+    ()
+    (\case
+       Left _ -> pure ()
+       Right r -> handleResp r)
 
 {-
   format: [<Month> <Day>, <Year> at <HH>:<MM> JST](https://twitter.com/<user>/status/<id>)

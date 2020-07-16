@@ -196,10 +196,18 @@ tweetSyncThread wenv = do
                   let stId = statusId st
                   info $ "status " <> show stId <> " ignored (outdated)"
                   modify $ M.insert stId (st, TSIgnored)
-          -- TODO: we need to double check deleted tweets before handing over the message
+          -- We need to double check deleted tweets before handing over the message
           -- to telegram, this is because twitter api could return stale data,
           -- so a sudden disappearance of tweet does not necessarily mean that tweet is actually deleted.
-          let tDeleted = tDeletedPre
+          tDeleted <- flip filterM tDeletedPre $ \(Status {statusId = sid}, _) ->
+            -- TODO: Question:
+            -- + do we want to insert back tweets that are not actually deleted?
+            callTwApi' tag (showId sid) True $ \case
+              Right Status {..} -> do
+                -- the existence of this tweet means we shouldn't remove it.
+                info $ "tweet " <> show sid <> " is actually not deleted, skipping the message."
+                pure False
+              _ -> pure True
           unless (null tDeleted) $ do
             info $
               "deleted tweets: "
