@@ -1,39 +1,36 @@
-{-# LANGUAGE
-    NamedFieldPuns
-  , OverloadedStrings
-  , RecordWildCards
-  , ScopedTypeVariables
-  , TypeApplications
-  , FlexibleContexts
-  , TypeApplications
-  #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Javran.WhaleChan.Twitter
   ( callTwApi
   , createTweetLinkMarkdown
   , statusGetTweetUrls
-  , TweetUrls(..)
-  ) where
+  , TweetUrls (..)
+  )
+where
 
 import Control.Applicative
 import Control.Exception
 import Control.Monad.RWS
 import Data.Aeson
-import Data.Conduit.Attoparsec
-import Data.Time.Format
-import Data.Time.LocalTime.TimeZone.Series
-import Network.HTTP.Client
-import Web.Twitter.Conduit
-import Web.Twitter.Types
-import Web.Twitter.Conduit.Base (ResponseBodyType)
-
 import qualified Data.ByteString.Char8 as BSC
+import Data.Conduit.Attoparsec
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.Builder.Int as TB
-
+import Data.Time.Format
+import Data.Time.LocalTime.TimeZone.Series
+import qualified Javran.WhaleChan.Log as Log
 import Javran.WhaleChan.Types
 import Javran.WhaleChan.Util
-import qualified Javran.WhaleChan.Log as Log
+import Network.HTTP.Client
+import Web.Twitter.Conduit
+import Web.Twitter.Conduit.Base (ResponseBodyType)
+import Web.Twitter.Types
 
 {-
   this module contains utils relatd to twitter-api
@@ -59,12 +56,18 @@ import qualified Javran.WhaleChan.Log as Log
 
  -}
 
-callTwApi :: (FromJSON respTy, ResponseBodyType respTy)
-          => String -> APIRequest apiName respTy -> (respTy -> WCM s ()) -> WCM s ()
+callTwApi
+  :: (FromJSON respTy, ResponseBodyType respTy)
+  => String
+  -> APIRequest apiName respTy
+  -> (respTy -> WCM s ())
+  -> WCM s ()
 callTwApi tag req handleResp = do
-    (WConf {twInfo}, TCommon {tcManager}) <- ask
-    respM <- liftIO $
-      (Right <$> callWithResponse twInfo tcManager req) `catches`
+  (WConf {twInfo}, TCommon {tcManager}) <- ask
+  respM <-
+    liftIO $
+      (Right <$> callWithResponse twInfo tcManager req)
+        `catches`
         {-
           network issue and twitter api issue can be temporary,
           so we capture these two kinds of erros instead of
@@ -72,62 +75,63 @@ callTwApi tag req handleResp = do
          -}
         [ Handler $ \(e :: HttpException) -> (pure . Left . toException) e
         , Handler $ \(e :: TwitterError) -> (pure . Left . toException) e
-          {-
+        , {-
             occasionally a ParseError could show up and bring down the whole thread,
             but in our case it's just like a minor API issue so we choose to
             ignore and move on
            -}
-        , Handler $ \(e :: ParseError) -> (pure . Left . toException) e
+          Handler $ \(e :: ParseError) -> (pure . Left . toException) e
         , Handler $ \(e :: IOException) ->
             if isConnectionResetException e
               then (pure . Left . toException) e
               else throw e
         ]
-    case respM of
-      Left e ->
-        -- a network exception could be temporary, so
-        -- we'll let it proceed instead of throwing exceptions
-        Log.e tag (displayExceptionShort e)
-      Right Response{responseHeaders, responseBody} -> do
-        let [rlLimit,rlRemaining,_rlReset] =
-              ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders) <$>
-                [ "x-rate-limit-limit"
-                , "x-rate-limit-remaining"
-                , "x-rate-limit-reset"
-                ]
-        case (rlRemaining, rlLimit) of
-          (Just rRem, Just rLim) -> do
-            -- rRem / rLim < 20%=1/5 => 5 * rem < lim
-            when (rRem * 5 < rLim) $
-              Log.w tag "rate limit availability < 20%"
-            when (rRem < 400) $
-              Log.w tag "remaining # of calls < 400"
-          _ ->
-            {-
-              from https://developer.twitter.com/en/docs/basics/rate-limiting:
-                "... there may be times when the rate limit values that
-                 are returned are inconsistent, or cases where no headers
-                 are returned at all."
-              so we consider the case where rate limit header is missing normal,
-              and just log it as info.
-             -}
-            Log.i tag "rate limit header not available"
-        handleResp responseBody
+  case respM of
+    Left e ->
+      -- a network exception could be temporary, so
+      -- we'll let it proceed instead of throwing exceptions
+      Log.e tag (displayExceptionShort e)
+    Right Response {responseHeaders, responseBody} -> do
+      let [rlLimit, rlRemaining, _rlReset] =
+            ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders)
+              <$> [ "x-rate-limit-limit"
+                  , "x-rate-limit-remaining"
+                  , "x-rate-limit-reset"
+                  ]
+      case (rlRemaining, rlLimit) of
+        (Just rRem, Just rLim) -> do
+          -- rRem / rLim < 20%=1/5 => 5 * rem < lim
+          when (rRem * 5 < rLim) $
+            Log.w tag "rate limit availability < 20%"
+          when (rRem < 400) $
+            Log.w tag "remaining # of calls < 400"
+        _ ->
+          {-
+            from https://developer.twitter.com/en/docs/basics/rate-limiting:
+              "... there may be times when the rate limit values that
+               are returned are inconsistent, or cases where no headers
+               are returned at all."
+            so we consider the case where rate limit header is missing normal,
+            and just log it as info.
+           -}
+          Log.i tag "rate limit header not available"
+      handleResp responseBody
 
 {-
   format: [<Month> <Day>, <Year> at <HH>:<MM> JST](https://twitter.com/<user>/status/<id>)
  -}
 createTweetLinkMarkdown :: TimeZoneSeries -> Status -> T.Text
 createTweetLinkMarkdown tzTokyo st =
-    buildStrictText $
-      "[" <> TB.fromString timeStr <> "](" <> twUrl <> ")"
+  buildStrictText $
+    "[" <> TB.fromString timeStr <> "](" <> twUrl <> ")"
   where
     Status
       { statusCreatedAt = stTime
       , statusId = sId
       , statusUser =
         User
-          { userScreenName = uScrName }
+          { userScreenName = uScrName
+          }
       } = st
     twUrl = "https://twitter.com/" <> TB.fromText uScrName <> "/status/" <> TB.decimal sId
     jstLocalTime = utcToLocalTime' tzTokyo stTime
@@ -147,8 +151,7 @@ createTweetLinkMarkdown tzTokyo st =
   https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/extended-entities-object
  -}
 
-data TweetUrls
-  = TweetUrls
+data TweetUrls = TweetUrls
   { mediaUrls :: [URIString]
   , otherUrls :: [URIString]
   }
@@ -161,7 +164,7 @@ statusGetTweetUrls st = tryExtended <|> tryCompat
       let urls = fmap (exeMediaUrlHttps . entityBody) exs
       pure $ TweetUrls urls []
     tryCompat = do
-      Entities { enURLs = ens, enMedia = ems } <- statusEntities st
-      let mediaUrls = fmap (meMediaURLHttps  . entityBody) ems
-          otherUrls = fmap (ueExpanded .entityBody) ens
+      Entities {enURLs = ens, enMedia = ems} <- statusEntities st
+      let mediaUrls = fmap (meMediaURLHttps . entityBody) ems
+          otherUrls = fmap (ueExpanded . entityBody) ens
       pure $ TweetUrls mediaUrls otherUrls
