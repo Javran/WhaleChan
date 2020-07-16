@@ -194,6 +194,9 @@ tweetSyncThread wenv = do
                         let stId = statusId st
                         info $ "status " <> show stId <> " ignored (outdated)"
                         modify $ M.insert stId (st, TSIgnored)
+                -- TODO: we need to double check deleted tweets before handing over the message
+                -- to telegram, this is because twitter api could return stale data,
+                -- so a sudden disappearance of tweet does not necessarily mean that tweet is actually deleted.
                 unless (null tDeleted) $ do
                   info $ "deleted tweets: " <>
                     intercalate "," (show . statusId . fst <$> tDeleted)
