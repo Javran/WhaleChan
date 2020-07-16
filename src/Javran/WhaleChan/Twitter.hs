@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -7,6 +8,7 @@
 
 module Javran.WhaleChan.Twitter
   ( callTwApi
+  , callTwApi'
   , createTweetLinkMarkdown
   , statusGetTweetUrls
   , TweetUrls (..)
@@ -56,13 +58,13 @@ import Web.Twitter.Types
 
  -}
 
-callTwApi
+callTwApi'
   :: (FromJSON respTy, ResponseBodyType respTy)
   => String
   -> APIRequest apiName respTy
-  -> (respTy -> WCM s ())
+  -> (Either TwitterError respTy -> WCM s ())
   -> WCM s ()
-callTwApi tag req handleResp = do
+callTwApi' tag req handleResp' = do
   (WConf {twInfo}, TCommon {tcManager}) <- ask
   respM <-
     liftIO $
@@ -87,10 +89,13 @@ callTwApi tag req handleResp = do
               else throw e
         ]
   case respM of
-    Left e ->
+    Left e -> do
       -- a network exception could be temporary, so
       -- we'll let it proceed instead of throwing exceptions
       Log.e tag (displayExceptionShort e)
+      case fromException @TwitterError e of
+        Nothing -> pure ()
+        Just te -> handleResp' (Left te)
     Right Response {responseHeaders, responseBody} -> do
       let [rlLimit, rlRemaining, _rlReset] =
             ((read @Int . BSC.unpack) <$>) . (`Prelude.lookup` responseHeaders)
@@ -115,7 +120,17 @@ callTwApi tag req handleResp = do
             and just log it as info.
            -}
           Log.i tag "rate limit header not available"
-      handleResp responseBody
+      handleResp' (Right responseBody)
+
+callTwApi
+  :: (FromJSON respTy, ResponseBodyType respTy)
+  => String
+  -> APIRequest apiName respTy
+  -> (respTy -> WCM s ())
+  -> WCM s ()
+callTwApi tag req handleResp = callTwApi' tag req $ \case
+  Left _ -> pure ()
+  Right r -> handleResp r
 
 {-
   format: [<Month> <Day>, <Year> at <HH>:<MM> JST](https://twitter.com/<user>/status/<id>)
